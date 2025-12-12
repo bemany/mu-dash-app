@@ -6,10 +6,20 @@ export interface UberTrip {
   [key: string]: any;
 }
 
+export interface UberTransaction {
+  "Kennzeichen": string;
+  "Zeitpunkt": string; // Date of payment
+  "Betrag": number;
+  "Beschreibung"?: string;
+  [key: string]: any;
+}
+
 export interface MonthlyStats {
   monthKey: string; // e.g., "2024-09"
   count: number;
-  bonus: number;
+  bonus: number; // Theoretical bonus
+  paidAmount: number; // Actual paid amount
+  difference: number; // bonus - paidAmount
 }
 
 export interface DriverSummary {
@@ -17,4 +27,6 @@ export interface DriverSummary {
   stats: Record<string, MonthlyStats>; // Keyed by monthKey
   totalCount: number;
   totalBonus: number;
+  totalPaid: number;
+  totalDifference: number;
 }

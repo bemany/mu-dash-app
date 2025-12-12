@@ -4,9 +4,17 @@ import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
   onDataLoaded: (data: any[]) => void;
+  title?: string;
+  description?: string;
+  accept?: string;
 }
 
-export function FileUpload({ onDataLoaded }: FileUploadProps) {
+export function FileUpload({ 
+  onDataLoaded, 
+  title = "CSV Datei hier ablegen oder klicken", 
+  description = "Laden Sie Ihre Datei hoch (.csv). Wir verarbeiten die Daten lokal in Ihrem Browser.",
+  accept = ".csv"
+}: FileUploadProps) {
   const [isDragging, setIsDragging] = React.useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {

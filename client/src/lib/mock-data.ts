@@ -1,5 +1,5 @@
-import { UberTrip } from "./types";
-import { subMonths, format } from "date-fns";
+import { UberTrip, UberTransaction } from "./types";
+import { subMonths, format, startOfMonth } from "date-fns";
 
 const LICENSE_PLATES = [
   "B-UB 1234", "B-UB 5678", "B-UB 9012", "B-UB 3456", 
@@ -29,4 +29,37 @@ export function generateMockTrips(count: number = 5000): UberTrip[] {
   }
 
   return trips;
+}
+
+export function generateMockTransactions(): UberTransaction[] {
+  const txs: UberTransaction[] = [];
+  const now = new Date();
+  const sixMonthsAgo = subMonths(now, 6);
+  
+  // Generate transactions for each month/driver
+  for (let i = 0; i < 6; i++) {
+     const monthDate = subMonths(now, i);
+     
+     LICENSE_PLATES.forEach(plate => {
+       // Randomly pay some drivers, underpay some, overpay some
+       const roll = Math.random();
+       let amount = 0;
+       
+       if (roll > 0.7) amount = 400; // Correct
+       else if (roll > 0.4) amount = 250; // Correct lower tier
+       else if (roll > 0.2) amount = 200; // Underpaid
+       else amount = 0; // Missed
+       
+       if (amount > 0) {
+         txs.push({
+           "Kennzeichen": plate,
+           "Zeitpunkt": monthDate.toISOString(),
+           "Betrag": amount,
+           "Beschreibung": "Bonus Zahlung"
+         });
+       }
+     });
+  }
+  
+  return txs;
 }
