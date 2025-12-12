@@ -23,7 +23,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-6 border-b border-slate-800">
             <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">U</span>
-              UberManager
+              Uber-Retter
             </h1>
           </div>
           
@@ -46,7 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
         <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
-           <h1 className="text-lg font-bold text-slate-900">UberManager</h1>
+           <h1 className="text-lg font-bold text-slate-900">Uber-Retter</h1>
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
              <Menu className="w-6 h-6" />
            </Button>

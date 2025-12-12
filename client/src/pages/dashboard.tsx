@@ -80,7 +80,7 @@ export default function Dashboard() {
         {/* Header Area */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Uber-Retter Dashboard</h1>
             <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>
           </div>
           <div className="flex gap-3">
@@ -105,7 +105,7 @@ export default function Dashboard() {
         {currentStep === 1 && (
           <div className="max-w-2xl mx-auto mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2">Willkommen beim Uber Manager</h2>
+              <h2 className="text-3xl font-bold text-slate-800 mb-2">Willkommen beim Uber-Retter</h2>
               <p className="text-slate-500">Beginnen Sie mit dem Import Ihrer Fahrten-Daten.</p>
             </div>
             <FileUpload 
