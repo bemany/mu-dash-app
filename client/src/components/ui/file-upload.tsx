@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, CloudUpload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -11,8 +11,8 @@ interface FileUploadProps {
 
 export function FileUpload({ 
   onDataLoaded, 
-  title = "CSV Datei hier ablegen oder klicken", 
-  description = "Laden Sie Ihre Datei hoch (.csv). Wir verarbeiten die Daten lokal in Ihrem Browser.",
+  title = "CSV Datei hier ablegen", 
+  description = "Drag & Drop oder klicken zum Hochladen",
   accept = ".csv"
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = React.useState(false);
@@ -59,10 +59,10 @@ export function FileUpload({
   return (
     <div 
       className={cn(
-        "border-2 border-dashed rounded-lg p-12 transition-all duration-200 ease-in-out text-center cursor-pointer",
+        "group relative border-2 border-dashed rounded-xl p-16 transition-all duration-300 ease-out text-center cursor-pointer overflow-hidden bg-white",
         isDragging 
-          ? "border-primary bg-primary/5 scale-[1.01]" 
-          : "border-border hover:border-primary/50 hover:bg-slate-50"
+          ? "border-emerald-500 bg-emerald-50/50 scale-[1.01] shadow-xl" 
+          : "border-slate-200 hover:border-emerald-400 hover:bg-slate-50 hover:shadow-md"
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -72,22 +72,36 @@ export function FileUpload({
       <input 
         id="file-upload" 
         type="file" 
-        accept=".csv" 
+        accept={accept}
         className="hidden" 
         onChange={handleFileChange}
       />
       
-      <div className="flex flex-col items-center gap-4">
-        <div className="p-4 bg-slate-100 rounded-full">
-          <Upload className="w-8 h-8 text-slate-600" />
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]" />
+
+      <div className="relative flex flex-col items-center gap-6 z-10">
+        <div className={cn(
+          "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border border-slate-100",
+          isDragging ? "bg-emerald-100 text-emerald-600 scale-110" : "bg-white text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 group-hover:border-emerald-100"
+        )}>
+          {isDragging ? <CloudUpload className="w-10 h-10" /> : <Upload className="w-10 h-10" />}
         </div>
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-foreground">
-            CSV Datei hier ablegen oder klicken
+        
+        <div className="space-y-2 max-w-sm">
+          <h3 className={cn(
+            "text-xl font-bold transition-colors duration-300",
+            isDragging ? "text-emerald-700" : "text-slate-700 group-hover:text-emerald-700"
+          )}>
+            {title}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Laden Sie Ihre Uber-Exportdatei hoch (.csv). Wir verarbeiten die Daten lokal in Ihrem Browser.
+          <p className="text-slate-500 text-sm leading-relaxed">
+            {description}
           </p>
+        </div>
+        
+        <div className="px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-500 shadow-sm group-hover:border-emerald-200 group-hover:text-emerald-600 transition-colors">
+          Unterstützt: {accept}
         </div>
       </div>
     </div>
