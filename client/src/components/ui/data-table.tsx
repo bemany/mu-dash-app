@@ -22,27 +22,33 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
               <th className="px-6 py-4 font-bold text-slate-700 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] w-[180px]">
                 Kennzeichen
               </th>
-              {monthHeaders.map(month => (
-                <th key={month} colSpan={showDiff ? 3 : 2} className="px-2 py-3 text-center border-l border-slate-200 min-w-[140px]">
-                  <div className="font-semibold text-slate-700">{formatMonthHeader(month)}</div>
-                </th>
-              ))}
+              
+              {/* Total Column Moved to Start */}
               <th colSpan={showDiff ? 3 : 2} className="px-4 py-3 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[160px]">
                 Gesamt
               </th>
+
+              {monthHeaders.map(month => (
+                <th key={month} colSpan={showDiff ? 2 : 1} className="px-2 py-3 text-center border-l border-slate-200 min-w-[100px]">
+                  <div className="font-semibold text-slate-700">{formatMonthHeader(month)}</div>
+                </th>
+              ))}
             </tr>
             <tr className="bg-slate-50 border-b border-slate-200">
               <th className="px-6 py-2 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"></th>
-              {monthHeaders.map(month => (
-                <React.Fragment key={month + '-sub'}>
-                  <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">Fahrten</th>
-                  <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400">Bonus</th>
-                  {showDiff && <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">Diff</th>}
-                </React.Fragment>
-              ))}
+              
+              {/* Total Subheaders */}
               <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">Fahrten</th>
               <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Bonus</th>
               {showDiff && <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Diff</th>}
+
+              {/* Monthly Subheaders - REMOVED SOLL COLUMN */}
+              {monthHeaders.map(month => (
+                <React.Fragment key={month + '-sub'}>
+                  <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">Fahrten</th>
+                  {showDiff && <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">Diff</th>}
+                </React.Fragment>
+              ))}
             </tr>
           </thead>
 
@@ -57,18 +63,7 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                   </div>
                 </td>
                 
-                {monthHeaders.map(month => {
-                  const stat = driver.stats[month];
-                  return (
-                    <DataCell 
-                      key={month + driver.licensePlate} 
-                      stat={stat} 
-                      showDiff={showDiff} 
-                    />
-                  );
-                })}
-
-                {/* Row Totals */}
+                {/* Row Totals moved to Start */}
                 <td className="px-2 py-3 text-center border-l border-slate-200 bg-slate-50/30 font-mono font-medium text-slate-600 text-xs">
                   {driver.totalCount.toLocaleString()}
                 </td>
@@ -83,6 +78,17 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                      {formatDiff(driver.totalDifference)}
                   </td>
                 )}
+
+                {monthHeaders.map(month => {
+                  const stat = driver.stats[month];
+                  return (
+                    <DataCell 
+                      key={month + driver.licensePlate} 
+                      stat={stat} 
+                      showDiff={showDiff} 
+                    />
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -91,27 +97,8 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-slate-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] clip-path-inset-top">
              <tr>
                 <td className="px-6 py-4 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Gesamtsumme</td>
-                {monthHeaders.map(month => {
-                  const monthTotalCount = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.count || 0), 0);
-                  const monthTotalBonus = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.bonus || 0), 0);
-                  const monthTotalDiff = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.difference || 0), 0);
-                  
-                  return (
-                    <React.Fragment key={'total-'+month}>
-                      <td className="px-2 py-4 text-center border-l border-slate-200 font-mono text-xs text-slate-600">
-                        {monthTotalCount.toLocaleString()}
-                      </td>
-                      <td className="px-2 py-4 text-center font-mono text-xs text-emerald-700">
-                        {monthTotalBonus.toLocaleString()} €
-                      </td>
-                      {showDiff && (
-                        <td className={cn("px-2 py-4 text-center font-mono text-xs", getDiffColor(monthTotalDiff))}>
-                          {formatDiff(monthTotalDiff)}
-                        </td>
-                      )}
-                    </React.Fragment>
-                  )
-                })}
+                
+                {/* Total Footer moved to Start */}
                 <td className="px-2 py-4 text-center border-l border-slate-200 bg-slate-100/50 font-mono text-sm">
                   {totals.trips.toLocaleString()}
                 </td>
@@ -123,6 +110,24 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                     {formatDiff(totals.diff)}
                   </td>
                 )}
+
+                {monthHeaders.map(month => {
+                  const monthTotalCount = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.count || 0), 0);
+                  const monthTotalDiff = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.difference || 0), 0);
+                  
+                  return (
+                    <React.Fragment key={'total-'+month}>
+                      <td className="px-2 py-4 text-center border-l border-slate-200 font-mono text-xs text-slate-600">
+                        {monthTotalCount.toLocaleString()}
+                      </td>
+                      {showDiff && (
+                        <td className={cn("px-2 py-4 text-center font-mono text-xs", getDiffColor(monthTotalDiff))}>
+                          {formatDiff(monthTotalDiff)}
+                        </td>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
              </tr>
           </tfoot>
         </table>
@@ -133,26 +138,29 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
 
 function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff: boolean }) {
   const count = stat?.count || 0;
-  const bonus = stat?.bonus || 0;
   const diff = stat?.difference || 0;
+
+  // Conditional Styling Logic
+  let countColorClass = "text-slate-600";
+  if (count >= 700) {
+    countColorClass = "bg-emerald-100 text-emerald-800 font-bold rounded-sm"; 
+  } else if (count >= 250) {
+    countColorClass = "bg-yellow-100 text-yellow-800 font-bold rounded-sm";
+  } else if (count === 0) {
+    countColorClass = "text-slate-200";
+  }
 
   return (
     <React.Fragment>
-      <td className={cn(
-        "px-2 py-3 text-center border-l border-slate-100 font-mono text-xs transition-colors",
-        count === 0 ? "text-slate-200" : "text-slate-600"
-      )}>
-        {count > 0 ? count : "-"}
+      <td className="px-2 py-3 text-center border-l border-slate-100 font-mono text-xs">
+        <div className={cn("inline-block px-2 py-1 min-w-[3rem]", countColorClass)}>
+          {count > 0 ? count : "-"}
+        </div>
       </td>
-      <td className={cn(
-        "px-2 py-3 text-center font-mono font-medium text-xs transition-colors",
-        bonus > 0 ? "text-slate-800" : "text-slate-200"
-      )}>
-        {bonus > 0 ? bonus : "-"}
-      </td>
+      {/* REMOVED SOLL COLUMN */}
       {showDiff && (
         <td className={cn("px-2 py-3 text-center font-mono text-xs border-r border-slate-50", getDiffColor(diff))}>
-          {bonus > 0 || diff !== 0 ? formatDiff(diff) : "-"}
+          {diff !== 0 ? formatDiff(diff) : "-"}
         </td>
       )}
     </React.Fragment>
