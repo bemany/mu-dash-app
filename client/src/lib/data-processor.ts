@@ -102,5 +102,5 @@ export function getMonthHeaders(summaries: DriverSummary[]): string[] {
 
 export function formatMonthHeader(monthKey: string): string {
   const date = parseISO(monthKey + "-01");
-  return format(date, "MMMM yyyy", { locale: de });
+  return format(date, "MM.yy", { locale: de });
 }
