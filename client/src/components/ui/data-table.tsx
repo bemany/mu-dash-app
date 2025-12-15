@@ -143,17 +143,17 @@ function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff
   // Conditional Styling Logic
   let countColorClass = "text-slate-600";
   if (count >= 700) {
-    countColorClass = "bg-emerald-100 text-emerald-800 font-bold rounded-sm"; 
+    countColorClass = "bg-emerald-100 text-emerald-800 font-bold"; 
   } else if (count >= 250) {
-    countColorClass = "bg-yellow-100 text-yellow-800 font-bold rounded-sm";
+    countColorClass = "bg-yellow-100 text-yellow-800 font-bold";
   } else if (count === 0) {
     countColorClass = "text-slate-200";
   }
 
   return (
     <React.Fragment>
-      <td className="px-2 py-3 text-center border-l border-slate-100 font-mono text-xs">
-        <div className={cn("inline-block px-2 py-1 min-w-[3rem]", countColorClass)}>
+      <td className="p-0 text-center border-l border-slate-100 font-mono text-xs">
+        <div className={cn("flex items-center justify-center w-full h-full py-3 px-1", countColorClass)}>
           {count > 0 ? count : "-"}
         </div>
       </td>
