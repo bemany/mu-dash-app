@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { FileUpload } from "@/components/ui/file-upload";
+import { UnifiedUpload } from "@/components/ui/unified-upload";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
 import { DataTable } from "@/components/ui/data-table";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { UberTrip, UberTransaction } from "@/lib/types";
-import { processTripsAndTransactions, getMonthHeaders, processPaymentCSV } from "@/lib/data-processor";
+import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Car, CreditCard } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -127,13 +127,9 @@ export default function Dashboard() {
     setIsProcessing(false);
   };
 
-  const handleTripsLoaded = (data: any[]) => {
-    setPendingTrips(data as UberTrip[]);
-  };
-
-  const handlePaymentsLoaded = (data: any[]) => {
-    const processedPayments = processPaymentCSV(data);
-    setPendingPayments(processedPayments);
+  const handleUnifiedUpload = (trips: UberTrip[], payments: UberTransaction[]) => {
+    setPendingTrips(trips);
+    setPendingPayments(payments);
   };
 
   const handleContinue = async () => {
@@ -220,48 +216,14 @@ export default function Dashboard() {
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="text-center mb-8 mt-8">
               <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">Willkommen beim Uber-Retter</h2>
-              <p className="text-slate-500">Importieren Sie Ihre Fahrten- und Zahlungsdaten.</p>
+              <p className="text-slate-500">Laden Sie alle CSV-Dateien auf einmal hoch - Fahrten und Zahlungen werden automatisch erkannt.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <Car className="w-5 h-5 text-emerald-600" />
-                  <span>Fahrten</span>
-                  {pendingTrips.length > 0 && (
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" data-testid="trips-count">
-                      {pendingTrips.length} Fahrten
-                    </span>
-                  )}
-                </div>
-                <FileUpload 
-                  onDataLoaded={handleTripsLoaded} 
-                  title="Fahrten Importieren"
-                  description="Ziehen Sie Ihre Fahrten .csv Dateien hierher"
-                  multiple={true}
-                  testId="upload-trips"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                  <span>Zahlungen</span>
-                  <span className="text-xs text-slate-400">(optional)</span>
-                  {pendingPayments.length > 0 && (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full" data-testid="payments-count">
-                      {pendingPayments.length} Zahlungen
-                    </span>
-                  )}
-                </div>
-                <FileUpload 
-                  onDataLoaded={handlePaymentsLoaded} 
-                  title="Zahlungen Importieren"
-                  description="Ziehen Sie Ihre Zahlungs .csv Dateien hierher"
-                  multiple={true}
-                  testId="upload-payments"
-                />
-              </div>
+            <div className="max-w-3xl mx-auto">
+              <UnifiedUpload 
+                onDataLoaded={handleUnifiedUpload}
+                testId="unified-upload"
+              />
             </div>
             
             <div className="flex justify-center mt-8">
