@@ -5,6 +5,7 @@ import { processPaymentCSV } from '@/lib/data-processor';
 import { UberTrip, UberTransaction } from '@/lib/types';
 import { format, parse, isValid, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { useTranslation } from '@/i18n';
 
 interface FileResult {
   filename: string;
@@ -67,6 +68,7 @@ export function UnifiedUpload({
   onDataLoaded,
   testId = "unified-upload"
 }: UnifiedUploadProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileResults, setFileResults] = useState<FileResult[]>([]);
@@ -211,8 +213,7 @@ export function UnifiedUpload({
     });
 
     return {
-      months: formattedMonths,
-      message: `Zahlungen aus ${formattedMonths.length === 1 ? 'dem Monat' : 'den Monaten'} ${formattedMonths.join(', ')} haben keine passenden Fahrten.`
+      months: formattedMonths
     };
   }, [tripDateRange.months, paymentDateRange.months]);
 
@@ -277,23 +278,23 @@ export function UnifiedUpload({
               hasFiles ? "text-emerald-700" :
               "text-slate-700 group-hover:text-emerald-700"
             )}>
-              {hasFiles ? `${fileResults.length} Datei${fileResults.length > 1 ? 'en' : ''} geladen` : 'Alle CSV-Dateien hier ablegen'}
+              {hasFiles ? `${fileResults.length} Datei${fileResults.length > 1 ? 'en' : ''} geladen` : t('upload.dropHere')}
             </h3>
             <p className="text-slate-500 text-sm leading-relaxed">
               {hasFiles 
-                ? 'Klicken Sie erneut, um weitere Dateien hinzuzufügen' 
-                : 'Fahrten und Zahlungen werden automatisch anhand des Dateinamens erkannt'}
+                ? t('upload.selectFiles') 
+                : t('upload.subtitle')}
             </p>
           </div>
           
           <div className="flex gap-4 text-xs">
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700">
               <Car className="w-3.5 h-3.5" />
-              <span>*trip*.csv → Fahrten</span>
+              <span>*trip*.csv → {t('upload.trips')}</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-700">
               <CreditCard className="w-3.5 h-3.5" />
-              <span>*payment*.csv → Zahlungen</span>
+              <span>*payment*.csv → {t('upload.payments')}</span>
             </div>
           </div>
         </div>
@@ -306,12 +307,12 @@ export function UnifiedUpload({
         >
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-amber-800">Zeitraum-Warnung</p>
+            <p className="font-semibold text-amber-800">{t('upload.periodWarning')}</p>
             <p className="text-sm text-amber-700 mt-1">
-              {dateWarning.message}
+              {t('upload.periodWarningText')} {dateWarning.months.join(', ')}
             </p>
             <p className="text-xs text-amber-600 mt-2">
-              Stellen Sie sicher, dass alle Fahrten-Dateien für die relevanten Zeiträume hochgeladen wurden.
+              {t('upload.uploadTripsHint')}
             </p>
           </div>
         </div>
@@ -323,8 +324,8 @@ export function UnifiedUpload({
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4" data-testid="trips-summary">
               <div className="flex items-center gap-2 mb-2">
                 <Car className="w-5 h-5 text-emerald-600" />
-                <span className="font-semibold text-emerald-800">Fahrten</span>
-                <span className="ml-auto text-sm text-emerald-600">{totalTrips.toLocaleString('de-DE')} Einträge</span>
+                <span className="font-semibold text-emerald-800">{t('upload.trips')}</span>
+                <span className="ml-auto text-sm text-emerald-600">{totalTrips.toLocaleString('de-DE')} {t('upload.records')}</span>
               </div>
               {tripDateRange.min && tripDateRange.max && (
                 <p className="text-xs text-emerald-600 mb-2">
@@ -347,8 +348,8 @@ export function UnifiedUpload({
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4" data-testid="payments-summary">
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="w-5 h-5 text-purple-600" />
-                <span className="font-semibold text-purple-800">Zahlungen</span>
-                <span className="ml-auto text-sm text-purple-600">{totalPayments.toLocaleString('de-DE')} Einträge</span>
+                <span className="font-semibold text-purple-800">{t('upload.payments')}</span>
+                <span className="ml-auto text-sm text-purple-600">{totalPayments.toLocaleString('de-DE')} {t('upload.records')}</span>
               </div>
               {paymentDateRange.min && paymentDateRange.max && (
                 <p className="text-xs text-purple-600 mb-2">

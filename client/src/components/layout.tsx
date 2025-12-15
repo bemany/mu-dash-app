@@ -1,8 +1,15 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
+import { useTranslation } from '@/i18n';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -11,6 +18,9 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [location, setLocation] = useLocation();
+  const { t, language, setLanguage, languages } = useTranslation();
+
+  const currentLanguage = languages.find(l => l.code === language);
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
@@ -24,7 +34,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-6 border-b border-slate-800">
             <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">U</span>
-              Uber-Retter
+              {t('layout.appName')}
             </h1>
           </div>
           
@@ -32,24 +42,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="space-y-1 flex-1">
               <NavItem 
                 icon={<ClipboardCheck className="w-5 h-5" />} 
-                label="Prüfvorgang" 
+                label={t('layout.navProcess')} 
                 active={location === '/'} 
                 onClick={() => setLocation('/')}
                 testId="nav-pruefvorgang"
               />
               <NavItem 
                 icon={<HelpCircle className="w-5 h-5" />} 
-                label="Hilfe" 
+                label={t('layout.navHelp')} 
                 active={location === '/help'} 
                 onClick={() => setLocation('/help')}
                 testId="nav-help"
               />
             </div>
             
-            <div className="pt-4 border-t border-slate-800">
+            <div className="pt-4 border-t border-slate-800 space-y-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    data-testid="language-switcher"
+                    className="w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    <Globe className="w-5 h-5" />
+                    <span className="ml-3 flex-1 text-left">{currentLanguage?.nativeName}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {languages.map((lang) => (
+                    <DropdownMenuItem
+                      key={lang.code}
+                      data-testid={`language-option-${lang.code}`}
+                      onClick={() => setLanguage(lang.code)}
+                      className={cn(
+                        "cursor-pointer",
+                        language === lang.code && "bg-emerald-500/10 text-emerald-600"
+                      )}
+                    >
+                      {lang.nativeName}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <NavItem 
                 icon={<Shield className="w-5 h-5" />} 
-                label="Admin" 
+                label={t('layout.navAdmin')} 
                 active={location === '/admin'} 
                 onClick={() => setLocation('/admin')}
                 testId="nav-admin"
@@ -61,7 +99,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
-           <h1 className="text-lg font-bold text-slate-900">Uber-Retter</h1>
+           <h1 className="text-lg font-bold text-slate-900">{t('layout.appName')}</h1>
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
              <Menu className="w-6 h-6" />
            </Button>

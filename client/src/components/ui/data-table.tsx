@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { DriverSummary, MonthlyStats } from '@/lib/types';
 import { formatMonthHeader } from '@/lib/data-processor';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 interface DataTableProps {
   summaries: DriverSummary[];
@@ -12,6 +13,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ summaries, monthHeaders, totals, showDiff = false }: DataTableProps) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -20,12 +22,12 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-200">
               <th className="px-2 py-2 font-bold text-slate-700 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] w-[140px]">
-                Kennzeichen
+                {t('dataTable.licensePlate')}
               </th>
               
               {/* Total Column Moved to Start */}
               <th colSpan={showDiff ? 3 : 2} className="px-2 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[120px]">
-                Gesamt
+                {t('dataTable.total')}
               </th>
 
               {monthHeaders.map(month => (
@@ -38,15 +40,15 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
               <th className="px-2 py-1 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"></th>
               
               {/* Total Subheaders */}
-              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">Fahrten</th>
-              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Bonus</th>
-              {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Diff</th>}
+              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">{t('dataTable.trips')}</th>
+              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">{t('dataTable.bonus')}</th>
+              {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">{t('dataTable.difference')}</th>}
 
               {/* Monthly Subheaders - REMOVED SOLL COLUMN */}
               {monthHeaders.map(month => (
                 <React.Fragment key={month + '-sub'}>
-                  <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">Fahrten</th>
-                  {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">Diff</th>}
+                  <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">{t('dataTable.trips')}</th>
+                  {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">{t('dataTable.difference')}</th>}
                 </React.Fragment>
               ))}
             </tr>
@@ -96,7 +98,7 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           {/* Footer */}
           <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-slate-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] clip-path-inset-top">
              <tr>
-                <td className="px-2 py-2 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-xs">Gesamtsumme</td>
+                <td className="px-2 py-2 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-xs">{t('dataTable.total')}</td>
                 
                 {/* Total Footer moved to Start */}
                 <td className="px-1 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-mono text-xs">

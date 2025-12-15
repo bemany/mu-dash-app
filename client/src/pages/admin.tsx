@@ -12,8 +12,10 @@ import { cn } from "@/lib/utils";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import { useTranslation } from "@/i18n";
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -39,7 +41,7 @@ export default function AdminPage() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Login fehlgeschlagen");
+        throw new Error(data.error || t('admin.loginFailed'));
       }
       return res.json();
     },
@@ -101,7 +103,7 @@ export default function AdminPage() {
   });
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (confirm("Möchten Sie diese Session wirklich löschen? Alle Daten gehen verloren.")) {
+    if (confirm(t('admin.deleteConfirm'))) {
       await deleteSessionMutation.mutateAsync(sessionId);
       setCheckedSessions(prev => {
         const next = new Set(prev);
@@ -131,7 +133,7 @@ export default function AdminPage() {
 
   const handleDeleteSelected = async () => {
     if (checkedSessions.size === 0) return;
-    if (confirm(`Möchten Sie ${checkedSessions.size} Session(s) wirklich löschen? Alle Daten gehen verloren.`)) {
+    if (confirm(t('admin.deleteMultipleConfirm', { count: checkedSessions.size }))) {
       await deleteMultipleMutation.mutateAsync(Array.from(checkedSessions));
     }
   };
@@ -230,16 +232,16 @@ export default function AdminPage() {
               <div className="mx-auto p-4 bg-emerald-50 rounded-full w-fit mb-4">
                 <Lock className="w-8 h-8 text-emerald-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-slate-900">Admin Zugang</CardTitle>
+              <CardTitle className="text-2xl font-bold text-slate-900">{t('admin.loginTitle')}</CardTitle>
               <p className="text-slate-500 text-sm mt-2">
-                Geben Sie das Admin-Passwort ein, um fortzufahren.
+                {t('admin.loginSubtitle')}
               </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 <Input
                   type="password"
-                  placeholder="Passwort"
+                  placeholder={t('admin.password')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="text-center"
@@ -261,7 +263,7 @@ export default function AdminPage() {
                   ) : (
                     <LogIn className="w-4 h-4 mr-2" />
                   )}
-                  Anmelden
+                  {t('admin.login')}
                 </Button>
               </form>
             </CardContent>
@@ -281,8 +283,8 @@ export default function AdminPage() {
               <Users className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Admin Dashboard</h1>
-              <p className="text-slate-500 text-sm mt-1">Verwalten Sie alle Benutzersitzungen und Daten.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('admin.title')}</h1>
+              <p className="text-slate-500 text-sm mt-1">{t('admin.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -292,7 +294,7 @@ export default function AdminPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Aktive Sessions</p>
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.activeSessions')}</p>
                   <p className="text-3xl font-bold text-slate-800 mt-2">{sessions?.length || 0}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
@@ -306,7 +308,7 @@ export default function AdminPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Gesamt Fahrten</p>
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.totalTrips')}</p>
                   <p className="text-3xl font-bold text-slate-800 mt-2">
                     {sessions?.reduce((acc: number, s: any) => acc + s.tripCount, 0) || 0}
                   </p>
@@ -322,7 +324,7 @@ export default function AdminPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Gesamt Zahlungen</p>
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.totalPayments')}</p>
                   <p className="text-3xl font-bold text-slate-800 mt-2">
                     {sessions?.reduce((acc: number, s: any) => acc + s.transactionCount, 0) || 0}
                   </p>
@@ -337,7 +339,7 @@ export default function AdminPage() {
 
         <Card className="border-slate-100 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Alle Sessions</CardTitle>
+            <CardTitle className="text-lg font-bold">{t('admin.allSessions')}</CardTitle>
             {checkedSessions.size > 0 && (
               <Button
                 variant="destructive"
@@ -351,7 +353,7 @@ export default function AdminPage() {
                 ) : (
                   <Trash2 className="w-4 h-4 mr-2" />
                 )}
-                {checkedSessions.size} Session(s) löschen
+                {checkedSessions.size} {t('admin.deleteSelected')}
               </Button>
             )}
           </CardHeader>
@@ -365,11 +367,11 @@ export default function AdminPage() {
                   data-testid="checkbox-select-all"
                 />
                 <span className="text-sm text-slate-600">
-                  {allChecked ? "Alle abwählen" : "Alle auswählen"}
+                  {allChecked ? t('admin.deselectAll') : t('admin.selectAll')}
                 </span>
                 {checkedSessions.size > 0 && (
                   <span className="text-sm text-emerald-600 font-medium">
-                    ({checkedSessions.size} ausgewählt)
+                    ({checkedSessions.size} {t('admin.selected')})
                   </span>
                 )}
               </div>
@@ -381,7 +383,7 @@ export default function AdminPage() {
                     <div className="flex items-center gap-2 py-2 sticky top-0 bg-white z-10">
                       <Calendar className="w-4 h-4 text-slate-400" />
                       <span className="text-sm font-semibold text-slate-600">{dateKey}</span>
-                      <span className="text-xs text-slate-400">({daySessions.length} Session{daySessions.length > 1 ? 's' : ''})</span>
+                      <span className="text-xs text-slate-400">({daySessions.length} {daySessions.length > 1 ? t('admin.sessions') : t('admin.session')})</span>
                     </div>
                     <div className="space-y-2 pl-6 border-l-2 border-slate-100">
                       {daySessions.map((session: any) => (
@@ -412,13 +414,13 @@ export default function AdminPage() {
                                   {session.vorgangsId ? (
                                     <span className="text-emerald-700">{session.vorgangsId}</span>
                                   ) : (
-                                    <span className="text-slate-400 italic">Kein Vorgang</span>
+                                    <span className="text-slate-400 italic">{t('admin.noProcess')}</span>
                                   )}
                                 </p>
                                 <p className="text-xs text-slate-500 mt-1">
-                                  {format(new Date(session.createdAt), "HH:mm", { locale: de })} Uhr
+                                  {format(new Date(session.createdAt), "HH:mm", { locale: de })} {t('admin.time')}
                                   {" • "}
-                                  Letzte Aktivität: {format(new Date(session.lastActivityAt), "HH:mm", { locale: de })} Uhr
+                                  {t('admin.lastActivity')}: {format(new Date(session.lastActivityAt), "HH:mm", { locale: de })} {t('admin.time')}
                                 </p>
                               </div>
                             </div>
@@ -426,9 +428,9 @@ export default function AdminPage() {
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <p className="text-sm font-medium text-slate-600">
-                                {session.tripCount} Fahrten • {session.transactionCount} Zahlungen
+                                {session.tripCount} {t('admin.trips')} • {session.transactionCount} {t('admin.payments')}
                               </p>
-                              <p className="text-xs text-slate-500 mt-1">Schritt {session.currentStep}/4</p>
+                              <p className="text-xs text-slate-500 mt-1">{t('admin.step')} {session.currentStep}/4</p>
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -464,7 +466,7 @@ export default function AdminPage() {
               ) : (
                 <div className="text-center py-12 text-slate-500">
                   <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Keine Sessions vorhanden</p>
+                  <p>{t('admin.noSessions')}</p>
                 </div>
               )}
             </div>
@@ -481,7 +483,7 @@ export default function AdminPage() {
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>Session Details: {sessionDetails?.session?.vorgangsId || selectedSession}</span>
+              <span>{t('admin.sessionDetails')}: {sessionDetails?.session?.vorgangsId || selectedSession}</span>
             </DialogTitle>
           </DialogHeader>
           
@@ -490,7 +492,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="border-slate-100 shadow-sm bg-blue-50/50">
                   <CardContent className="p-4">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Fahrten</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('admin.trips')}</p>
                     <p className="text-2xl font-bold text-blue-700 mt-1">
                       {processedData.totals.trips.toLocaleString('de-DE')}
                     </p>
@@ -499,7 +501,7 @@ export default function AdminPage() {
 
                 <Card className="border-slate-100 shadow-sm bg-purple-50/50">
                   <CardContent className="p-4">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Bonus</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('admin.bonus')}</p>
                     <p className="text-2xl font-bold text-purple-700 mt-1">
                       {processedData.totals.bonus.toLocaleString('de-DE')} €
                     </p>
@@ -508,7 +510,7 @@ export default function AdminPage() {
 
                 <Card className="border-slate-100 shadow-sm bg-emerald-50/50">
                   <CardContent className="p-4">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Ausgezahlt</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('admin.paid')}</p>
                     <p className="text-2xl font-bold text-emerald-700 mt-1">
                       {processedData.totals.paid.toLocaleString('de-DE')} €
                     </p>
@@ -520,7 +522,7 @@ export default function AdminPage() {
                   processedData.totals.diff > 0 ? "bg-amber-50/50" : "bg-emerald-50/50"
                 )}>
                   <CardContent className="p-4">
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Differenz</p>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('admin.difference')}</p>
                     <p className={cn(
                       "text-2xl font-bold mt-1",
                       processedData.totals.diff > 0 ? "text-amber-700" : "text-emerald-700"

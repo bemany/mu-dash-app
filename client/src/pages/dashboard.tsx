@@ -16,14 +16,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
 import { uploadInChunks, UploadProgress } from "@/lib/chunked-upload";
-
-const STEPS = [
-  "Daten Import",
-  "Kalkulation",
-  "Abgleich"
-];
+import { useTranslation } from "@/i18n";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+  
+  const steps = [
+    t('dashboard.steps.0'),
+    t('dashboard.steps.1'),
+    t('dashboard.steps.2')
+  ];
+
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingTrips, setPendingTrips] = useState<UberTrip[]>([]);
@@ -215,7 +218,6 @@ export default function Dashboard() {
     setUploadProgress(null);
     
     try {
-      // Generate Vorgangs-ID first, before upload starts
       await generateVorgangsIdMutation.mutateAsync();
       queryClient.invalidateQueries({ queryKey: ["session"] });
       
@@ -256,7 +258,7 @@ export default function Dashboard() {
   };
 
   const reset = async () => {
-    if (confirm("Möchten Sie wirklich alle Daten zurücksetzen?")) {
+    if (confirm(t('dashboard.resetConfirm'))) {
       await resetSessionMutation.mutateAsync();
     }
   };
@@ -283,12 +285,12 @@ export default function Dashboard() {
         
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div className="shrink-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="dashboard-title">Uber-Retter Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="dashboard-title">{t('dashboard.title')}</h1>
+            <p className="text-slate-500 text-sm mt-1">{t('dashboard.subtitle')}</p>
           </div>
           
           <div className="flex-1 max-w-xl">
-            <Stepper currentStep={currentStep} steps={STEPS} />
+            <Stepper currentStep={currentStep} steps={steps} />
           </div>
           
           <div className="flex gap-3 shrink-0">
@@ -299,20 +301,8 @@ export default function Dashboard() {
               className="border-slate-200"
             >
               <FolderOpen className="w-4 h-4 mr-2" />
-              Vorgang laden
+              {t('dashboard.loadProcess')}
             </Button>
-{/* Demo button temporarily disabled
-            <Button 
-              data-testid="button-load-demo"
-              variant="outline" 
-              onClick={loadMockData} 
-              disabled={isProcessing} 
-              className="border-slate-200"
-            >
-              <RefreshCw className={cn("w-4 h-4 mr-2", isProcessing && "animate-spin")} />
-              Demo Daten laden
-            </Button>
-*/}
             {(trips.length > 0 || pendingTrips.length > 0) && (
               <Button 
                 data-testid="button-reset"
@@ -320,7 +310,7 @@ export default function Dashboard() {
                 onClick={reset} 
                 className="text-slate-500 hover:text-red-600 hover:bg-red-50"
               >
-                Zurücksetzen
+                {t('dashboard.reset')}
               </Button>
             )}
           </div>
@@ -329,8 +319,8 @@ export default function Dashboard() {
         {currentStep === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="text-center mb-8 mt-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">Willkommen beim Uber-Retter</h2>
-              <p className="text-slate-500">Laden Sie alle CSV-Dateien auf einmal hoch - Fahrten und Zahlungen werden automatisch erkannt.</p>
+              <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">{t('dashboard.welcome')}</h2>
+              <p className="text-slate-500">{t('dashboard.welcomeSubtitle')}</p>
             </div>
             
             <div className="max-w-3xl mx-auto">
@@ -351,11 +341,11 @@ export default function Dashboard() {
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Verarbeite...
+                    {t('dashboard.processing')}
                   </>
                 ) : (
                   <>
-                    Weiter
+                    {t('dashboard.continue')}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}
@@ -366,8 +356,8 @@ export default function Dashboard() {
                   <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-4 rounded-xl border border-emerald-200 shadow-sm mb-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-slate-600">Ihre Vorgangs-ID</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Notieren Sie diese ID - der Upload laeuft im Hintergrund.</p>
+                        <p className="text-sm font-medium text-slate-600">{t('dashboard.yourProcessId')}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{t('dashboard.noteProcessId')}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span 
@@ -386,12 +376,12 @@ export default function Dashboard() {
                           {copied ? (
                             <>
                               <Check className="w-4 h-4 mr-1 text-emerald-600" />
-                              Kopiert
+                              {t('dashboard.copied')}
                             </>
                           ) : (
                             <>
                               <Copy className="w-4 h-4 mr-1" />
-                              Kopieren
+                              {t('dashboard.copy')}
                             </>
                           )}
                         </Button>
@@ -403,7 +393,7 @@ export default function Dashboard() {
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-2">
                     <div className="flex justify-between text-sm text-slate-600 mb-2">
                       <span>
-                        {uploadProgress.phase === 'trips' ? 'Fahrten hochladen' : 'Zahlungen hochladen'}
+                        {uploadProgress.phase === 'trips' ? t('dashboard.uploadingTrips') : t('dashboard.uploadingPayments')}
                       </span>
                       <span>{uploadProgress.current.toLocaleString('de-DE')} / {uploadProgress.total.toLocaleString('de-DE')}</span>
                     </div>
@@ -414,7 +404,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <p className="text-xs text-slate-500 mt-2 text-center">
-                      Daten werden in Teilen hochgeladen, um Abstuerze zu vermeiden...
+                      {t('dashboard.uploadingChunks')}
                     </p>
                   </div>
                 )}
@@ -431,8 +421,8 @@ export default function Dashboard() {
               <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-600">Ihre Vorgangs-ID</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Notieren Sie diese ID, um später auf Ihren Vorgang zugreifen zu können.</p>
+                    <p className="text-sm font-medium text-slate-600">{t('dashboard.yourProcessId')}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{t('dashboard.noteProcessIdLater')}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span 
@@ -451,12 +441,12 @@ export default function Dashboard() {
                       {copied ? (
                         <>
                           <Check className="w-4 h-4 mr-1 text-emerald-600" />
-                          Kopiert
+                          {t('dashboard.copied')}
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4 mr-1" />
-                          Kopieren
+                          {t('dashboard.copy')}
                         </>
                       )}
                     </Button>
@@ -467,14 +457,14 @@ export default function Dashboard() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard 
-                title="Gesamtfahrten" 
+                title={t('dashboard.totalTrips')} 
                 value={totals.trips.toLocaleString('de-DE')} 
                 icon={<CarFront className="w-5 h-5 text-blue-500" />}
                 bg="bg-blue-50/50"
                 testId="kpi-trips"
               />
               <KpiCard 
-                title="Theoretischer Bonus" 
+                title={t('dashboard.theoreticalBonus')} 
                 value={totals.bonus.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} 
                 icon={<BadgeEuro className="w-5 h-5 text-purple-500" />}
                 bg="bg-purple-50/50"
@@ -483,7 +473,7 @@ export default function Dashboard() {
               {currentStep === 3 && (
                 <>
                   <KpiCard 
-                    title="Bereits Ausgezahlt" 
+                    title={t('dashboard.alreadyPaid')} 
                     value={totals.paid.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} 
                     icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
                     className="text-emerald-700"
@@ -491,7 +481,7 @@ export default function Dashboard() {
                     testId="kpi-paid"
                   />
                   <KpiCard 
-                    title="Offener Betrag" 
+                    title={t('dashboard.openAmount')} 
                     value={totals.diff.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} 
                     icon={totals.diff > 0 ? <AlertTriangle className="w-5 h-5 text-amber-500" /> : <CheckCircle className="w-5 h-5 text-emerald-500" />}
                     className={totals.diff > 0 ? "text-amber-600" : "text-emerald-600"}
@@ -507,8 +497,8 @@ export default function Dashboard() {
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-[position:0_0,0_0] animate-shine pointer-events-none" />
                 
                 <div className="relative z-10">
-                  <h3 className="text-lg font-bold mb-1">Berechnung abgeschlossen</h3>
-                  <p className="text-emerald-200 text-sm">Die theoretischen Boni basieren auf der Anzahl der Fahrten pro Monat.</p>
+                  <h3 className="text-lg font-bold mb-1">{t('dashboard.calculationComplete')}</h3>
+                  <p className="text-emerald-200 text-sm">{t('dashboard.calculationSubtitle')}</p>
                 </div>
                 <Button 
                   data-testid="button-go-to-abgleich"
@@ -516,7 +506,7 @@ export default function Dashboard() {
                   className="bg-white text-emerald-900 hover:bg-emerald-50 border-none relative z-10 font-semibold"
                   size="lg"
                 >
-                  Weiter zum Abgleich
+                  {t('dashboard.continueToComparison')}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
@@ -538,7 +528,7 @@ export default function Dashboard() {
                   className="border-slate-300"
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  Auszahlungen pruefen ({transactionAnalysis.matched.length} zugeordnet, {transactionAnalysis.unmatched.length} nicht zugeordnet)
+                  {t('dashboard.viewPayments')} ({transactionAnalysis.matched.length} {t('dashboard.assigned')}, {transactionAnalysis.unmatched.length} {t('dashboard.notAssigned')})
                 </Button>
               </div>
             )}
@@ -562,8 +552,8 @@ export default function Dashboard() {
                 <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-semibold text-slate-800">Vorgang wird geladen...</p>
-                <p className="text-sm text-slate-500 mt-1">Vorgangs-ID: {loadVorgangsId}</p>
+                <p className="text-lg font-semibold text-slate-800">{t('dashboard.loadProcessDialog.loading')}</p>
+                <p className="text-sm text-slate-500 mt-1">{t('dashboard.loadProcessDialog.processId')}: {loadVorgangsId}</p>
               </div>
               <div className="w-full max-w-xs bg-slate-200 rounded-full h-2 overflow-hidden">
                 <div className="bg-emerald-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
@@ -572,14 +562,14 @@ export default function Dashboard() {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Vorgang laden</DialogTitle>
+                <DialogTitle>{t('dashboard.loadProcessDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.
+                  {t('dashboard.loadProcessDialog.description')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <Input
-                  placeholder="z.B. ABC123"
+                  placeholder={t('dashboard.loadProcessDialog.placeholder')}
                   value={loadVorgangsId}
                   onChange={(e) => setLoadVorgangsId(e.target.value.toUpperCase())}
                   className="font-mono text-center text-xl tracking-widest"
@@ -601,7 +591,7 @@ export default function Dashboard() {
                     setLoadError("");
                   }}
                 >
-                  Abbrechen
+                  {t('dashboard.loadProcessDialog.cancel')}
                 </Button>
                 <Button
                   onClick={handleLoadSession}
@@ -610,7 +600,7 @@ export default function Dashboard() {
                   data-testid="button-confirm-load"
                 >
                   <FolderOpen className="w-4 h-4 mr-2" />
-                  Laden
+                  {t('dashboard.loadProcessDialog.load')}
                 </Button>
               </DialogFooter>
             </>
@@ -621,25 +611,25 @@ export default function Dashboard() {
       <Dialog open={transactionsDialogOpen} onOpenChange={setTransactionsDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Auszahlungen Uebersicht</DialogTitle>
+            <DialogTitle>{t('dashboard.transactionsDialog.title')}</DialogTitle>
             <DialogDescription>
-              Pruefen Sie welche Auszahlungen Ihren Kennzeichen zugeordnet wurden.
+              {t('dashboard.transactionsDialog.assignedPayments')} / {t('dashboard.transactionsDialog.unassignedPayments')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto space-y-6 py-4">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-semibold text-emerald-800">Zugeordnete Auszahlungen ({transactionAnalysis.matched.length})</h3>
+                <h3 className="font-semibold text-emerald-800">{t('dashboard.transactionsDialog.assignedPayments')} ({transactionAnalysis.matched.length})</h3>
               </div>
               {transactionAnalysis.matched.length > 0 ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-emerald-100">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-emerald-800">Kennzeichen</th>
-                        <th className="px-3 py-2 text-left font-medium text-emerald-800">Datum</th>
-                        <th className="px-3 py-2 text-right font-medium text-emerald-800">Betrag</th>
+                        <th className="px-3 py-2 text-left font-medium text-emerald-800">{t('dashboard.transactionsDialog.licensePlate')}</th>
+                        <th className="px-3 py-2 text-left font-medium text-emerald-800">{t('dashboard.transactionsDialog.date')}</th>
+                        <th className="px-3 py-2 text-right font-medium text-emerald-800">{t('dashboard.transactionsDialog.amount')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-emerald-200">
@@ -656,28 +646,28 @@ export default function Dashboard() {
                   </table>
                   {transactionAnalysis.matched.length > 50 && (
                     <p className="px-3 py-2 text-xs text-emerald-600 bg-emerald-100">
-                      ... und {transactionAnalysis.matched.length - 50} weitere
+                      ... +{transactionAnalysis.matched.length - 50}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 italic">Keine zugeordneten Auszahlungen gefunden.</p>
+                <p className="text-sm text-slate-500 italic">{t('dashboard.transactionsDialog.noAssignedPayments')}</p>
               )}
             </div>
 
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <XCircle className="w-5 h-5 text-amber-600" />
-                <h3 className="font-semibold text-amber-800">Nicht zugeordnete Auszahlungen ({transactionAnalysis.unmatched.length})</h3>
+                <h3 className="font-semibold text-amber-800">{t('dashboard.transactionsDialog.unassignedPayments')} ({transactionAnalysis.unmatched.length})</h3>
               </div>
               {transactionAnalysis.unmatched.length > 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-amber-100">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-amber-800">Kennzeichen</th>
-                        <th className="px-3 py-2 text-left font-medium text-amber-800">Datum</th>
-                        <th className="px-3 py-2 text-right font-medium text-amber-800">Betrag</th>
+                        <th className="px-3 py-2 text-left font-medium text-amber-800">{t('dashboard.transactionsDialog.licensePlate')}</th>
+                        <th className="px-3 py-2 text-left font-medium text-amber-800">{t('dashboard.transactionsDialog.date')}</th>
+                        <th className="px-3 py-2 text-right font-medium text-amber-800">{t('dashboard.transactionsDialog.amount')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-amber-200">
@@ -694,18 +684,18 @@ export default function Dashboard() {
                   </table>
                   {transactionAnalysis.unmatched.length > 50 && (
                     <p className="px-3 py-2 text-xs text-amber-600 bg-amber-100">
-                      ... und {transactionAnalysis.unmatched.length - 50} weitere
+                      ... +{transactionAnalysis.unmatched.length - 50}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500 italic">Alle Auszahlungen wurden erfolgreich zugeordnet.</p>
+                <p className="text-sm text-slate-500 italic">{t('dashboard.transactionsDialog.noUnassignedPayments')}</p>
               )}
             </div>
           </div>
           <DialogFooter>
             <Button onClick={() => setTransactionsDialogOpen(false)}>
-              Schliessen
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
