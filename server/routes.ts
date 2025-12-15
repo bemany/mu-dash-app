@@ -14,15 +14,38 @@ function extractLicensePlate(description: string): string | null {
 
 function parsePaymentTimestamp(timestamp: string): Date {
   const cleanTimestamp = timestamp.replace(/ \+\d{4} [A-Z]+$/, '').trim();
-  try {
-    return parse(cleanTimestamp, "yyyy-MM-dd HH:mm:ss.SSS", new Date());
-  } catch {
+  
+  const formats = [
+    "yyyy-MM-dd HH:mm:ss.SSS",
+    "yyyy-MM-dd HH:mm:ss",
+    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+    "yyyy-MM-dd'T'HH:mm:ss",
+    "dd.MM.yyyy HH:mm:ss",
+    "dd.MM.yyyy HH:mm",
+  ];
+  
+  for (const fmt of formats) {
     try {
-      return parseISO(timestamp);
+      const result = parse(cleanTimestamp, fmt, new Date());
+      if (!isNaN(result.getTime())) {
+        return result;
+      }
     } catch {
-      return new Date();
+      // Try next format
     }
   }
+  
+  // Try ISO parsing as fallback
+  try {
+    const isoResult = parseISO(timestamp);
+    if (!isNaN(isoResult.getTime())) {
+      return isoResult;
+    }
+  } catch {
+    // Fall through to return Invalid Date
+  }
+  
+  return new Date(NaN);
 }
 
 export async function registerRoutes(
@@ -158,14 +181,19 @@ export async function registerRoutes(
         )
       );
 
-      // Filter out invalid trips and duplicates
+      // Filter out invalid trips and duplicates (including same-batch duplicates)
       const validTrips = trips.filter((trip: any) => {
         // Must have required fields
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
           return false;
         }
         const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${trip["Zeitpunkt der Fahrtbestellung"]}`;
-        return !existingIds.has(id);
+        if (existingIds.has(id)) {
+          return false;
+        }
+        // Add to set to prevent same-batch duplicates
+        existingIds.add(id);
+        return true;
       });
 
       const dbTrips = validTrips.map((trip: any) => ({
@@ -227,21 +255,33 @@ export async function registerRoutes(
       const existingTransactions = await storage.getTransactionsBySession(sessionId);
       const existingKeys = new Set(
         existingTransactions.map(tx => 
-          `${tx.licensePlate}-${tx.transactionTime.toISOString()}-${tx.amount}`
+          `${tx.licensePlate}-${tx.transactionTime.getTime()}-${tx.amount}`
         )
       );
 
       const newTransactions = transactions.filter((tx: any) => {
-        const amount = typeof tx["Betrag"] === 'string' 
-          ? parseFloat(tx["Betrag"].replace(',', '.')) 
-          : tx["Betrag"];
-        
-        let timestamp: string;
-        if (tx["Zeitpunkt"]) {
-          timestamp = tx["Zeitpunkt"];
-        } else if (tx["vs-Berichterstattung"]) {
-          timestamp = tx["vs-Berichterstattung"];
+        let amount: number;
+        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string' 
+            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.')) 
+            : tx["An dein Unternehmen gezahlt"];
         } else {
+          amount = typeof tx["Betrag"] === 'string' 
+            ? parseFloat(tx["Betrag"].replace(',', '.')) 
+            : tx["Betrag"];
+        }
+        
+        let timestamp: Date;
+        if (tx["vs-Berichterstattung"]) {
+          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+        } else if (tx["Zeitpunkt"]) {
+          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
+        } else {
+          return false;
+        }
+        
+        // Skip records with invalid timestamp
+        if (!timestamp || isNaN(timestamp.getTime())) {
           return false;
         }
         
@@ -252,8 +292,13 @@ export async function registerRoutes(
         
         if (!licensePlate) return false;
         
-        const key = `${licensePlate}-${timestamp}-${Math.round(amount * 100)}`;
-        return !existingKeys.has(key);
+        const key = `${licensePlate}-${timestamp.getTime()}-${Math.round(amount * 100)}`;
+        if (existingKeys.has(key)) {
+          return false;
+        }
+        // Add to set to prevent same-batch duplicates
+        existingKeys.add(key);
+        return true;
       });
 
       const dbTransactions = newTransactions.map((tx: any) => {
@@ -272,12 +317,7 @@ export async function registerRoutes(
         if (tx["vs-Berichterstattung"]) {
           timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
         } else if (tx["Zeitpunkt"]) {
-          const ts = tx["Zeitpunkt"];
-          if (ts.includes('+')) {
-            timestamp = parsePaymentTimestamp(ts);
-          } else {
-            timestamp = parseISO(ts);
-          }
+          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
         } else {
           timestamp = new Date();
         }

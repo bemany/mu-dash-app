@@ -63,7 +63,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     data-testid="language-switcher"
                     className="w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-800 hover:text-white"
                   >
-                    <Globe className="w-5 h-5" />
+                    <span className="text-lg">{currentLanguage?.flag}</span>
                     <span className="ml-3 flex-1 text-left">{currentLanguage?.nativeName}</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
@@ -79,6 +79,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         language === lang.code && "bg-emerald-500/10 text-emerald-600"
                       )}
                     >
+                      <span className="text-lg mr-2">{lang.flag}</span>
                       {lang.nativeName}
                     </DropdownMenuItem>
                   ))}

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
@@ -37,6 +37,9 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false);
+  const [addMoreDataDialogOpen, setAddMoreDataDialogOpen] = useState(false);
+  const [additionalTrips, setAdditionalTrips] = useState<UberTrip[]>([]);
+  const [additionalPayments, setAdditionalPayments] = useState<UberTransaction[]>([]);
 
   const { data: sessionData, isLoading } = useQuery({
     queryKey: ["session"],
@@ -267,6 +270,50 @@ export default function Dashboard() {
     updateStepMutation.mutate(step);
   };
 
+  const handleAdditionalDataUpload = (trips: UberTrip[], payments: UberTransaction[]) => {
+    setAdditionalTrips(trips);
+    setAdditionalPayments(payments);
+  };
+
+  const handleAddMoreData = async () => {
+    if (additionalTrips.length === 0 && additionalPayments.length === 0) return;
+    
+    setIsProcessing(true);
+    setUploadProgress(null);
+    
+    try {
+      if (additionalTrips.length > 0) {
+        await uploadInChunks(
+          additionalTrips,
+          '/api/trips',
+          'trips',
+          (progress) => setUploadProgress(progress),
+          'trips'
+        );
+      }
+      
+      if (additionalPayments.length > 0) {
+        await uploadInChunks(
+          additionalPayments,
+          '/api/transactions',
+          'transactions',
+          (progress) => setUploadProgress(progress),
+          'transactions'
+        );
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      setAdditionalTrips([]);
+      setAdditionalPayments([]);
+      setAddMoreDataDialogOpen(false);
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setIsProcessing(false);
+      setUploadProgress(null);
+    }
+  };
+
   const canContinue = pendingTrips.length > 0 || trips.length > 0;
 
   if (isLoading) {
@@ -303,6 +350,17 @@ export default function Dashboard() {
               <FolderOpen className="w-4 h-4 mr-2" />
               {t('dashboard.loadProcess')}
             </Button>
+            {(currentStep === 2 || currentStep === 3) && trips.length > 0 && (
+              <Button 
+                data-testid="button-add-more-data"
+                variant="outline" 
+                onClick={() => setAddMoreDataDialogOpen(true)}
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t('dashboard.addMoreData')}
+              </Button>
+            )}
             {(trips.length > 0 || pendingTrips.length > 0) && (
               <Button 
                 data-testid="button-reset"
@@ -696,6 +754,78 @@ export default function Dashboard() {
           <DialogFooter>
             <Button onClick={() => setTransactionsDialogOpen(false)}>
               {t('common.close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addMoreDataDialogOpen} onOpenChange={(open) => {
+        if (!isProcessing) {
+          setAddMoreDataDialogOpen(open);
+          if (!open) {
+            setAdditionalTrips([]);
+            setAdditionalPayments([]);
+          }
+        }
+      }}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.addMoreData')}</DialogTitle>
+            <DialogDescription>
+              {t('dashboard.addMoreDataDesc')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto py-4">
+            <UnifiedUpload 
+              onDataLoaded={handleAdditionalDataUpload}
+              testId="additional-upload"
+            />
+            
+            {uploadProgress && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-4">
+                <div className="flex justify-between text-sm text-slate-600 mb-2">
+                  <span>
+                    {uploadProgress.phase === 'trips' ? t('dashboard.uploadingTrips') : t('dashboard.uploadingPayments')}
+                  </span>
+                  <span>{uploadProgress.current.toLocaleString('de-DE')} / {uploadProgress.total.toLocaleString('de-DE')}</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div 
+                    className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress.percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddMoreDataDialogOpen(false);
+                setAdditionalTrips([]);
+                setAdditionalPayments([]);
+              }}
+              disabled={isProcessing}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleAddMoreData}
+              disabled={isProcessing || (additionalTrips.length === 0 && additionalPayments.length === 0)}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {t('dashboard.processing')}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('dashboard.addMoreData')}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,10 +1,10 @@
 export type Language = 'de' | 'en' | 'tr' | 'ar';
 
-export const languages: { code: Language; name: string; nativeName: string; dir: 'ltr' | 'rtl' }[] = [
-  { code: 'de', name: 'German', nativeName: 'Deutsch', dir: 'ltr' },
-  { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' },
-  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', dir: 'ltr' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl' },
+export const languages: { code: Language; name: string; nativeName: string; flag: string; dir: 'ltr' | 'rtl' }[] = [
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
+  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', dir: 'ltr' },
+  { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷', dir: 'ltr' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', dir: 'rtl' },
 ];
 
 export const translations = {
@@ -45,6 +45,10 @@ export const translations = {
       viewPayments: 'Auszahlungen prüfen',
       assigned: 'zugeordnet',
       notAssigned: 'nicht zugeordnet',
+      addMoreData: 'Weitere Daten hinzufügen',
+      addMoreDataDesc: 'Laden Sie zusätzliche CSV-Dateien hoch. Duplikate werden automatisch erkannt und übersprungen.',
+      newRecordsAdded: 'neue Einträge hinzugefügt',
+      duplicatesSkipped: 'Duplikate übersprungen',
       loadProcessDialog: {
         title: 'Vorgang laden',
         description: 'Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.',
@@ -230,6 +234,10 @@ export const translations = {
       viewPayments: 'Check Payments',
       assigned: 'assigned',
       notAssigned: 'not assigned',
+      addMoreData: 'Add More Data',
+      addMoreDataDesc: 'Upload additional CSV files. Duplicates are automatically detected and skipped.',
+      newRecordsAdded: 'new records added',
+      duplicatesSkipped: 'duplicates skipped',
       loadProcessDialog: {
         title: 'Load Process',
         description: 'Enter your Process ID to load an existing process.',
@@ -415,6 +423,10 @@ export const translations = {
       viewPayments: 'Ödemeleri Kontrol Et',
       assigned: 'atanmış',
       notAssigned: 'atanmamış',
+      addMoreData: 'Daha Fazla Veri Ekle',
+      addMoreDataDesc: 'Ek CSV dosyaları yükleyin. Tekrarlar otomatik olarak algılanır ve atlanır.',
+      newRecordsAdded: 'yeni kayıt eklendi',
+      duplicatesSkipped: 'tekrar atlandı',
       loadProcessDialog: {
         title: 'İşlem Yükle',
         description: 'Mevcut bir işlemi yüklemek için İşlem Kimliğinizi girin.',
@@ -600,6 +612,10 @@ export const translations = {
       viewPayments: 'فحص المدفوعات',
       assigned: 'معين',
       notAssigned: 'غير معين',
+      addMoreData: 'إضافة المزيد من البيانات',
+      addMoreDataDesc: 'قم بتحميل ملفات CSV إضافية. يتم اكتشاف التكرارات وتخطيها تلقائياً.',
+      newRecordsAdded: 'سجلات جديدة مضافة',
+      duplicatesSkipped: 'تم تخطي التكرارات',
       loadProcessDialog: {
         title: 'تحميل العملية',
         description: 'أدخل معرف العملية لتحميل عملية موجودة.',
