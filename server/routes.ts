@@ -62,6 +62,7 @@ export async function registerRoutes(
 
       res.json({
         sessionId,
+        vorgangsId: session.vorgangsId,
         currentStep: session.currentStep,
         trips: frontendTrips,
         transactions: frontendTransactions,
@@ -69,6 +70,40 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching session:", error);
       res.status(500).json({ error: "Failed to fetch session data" });
+    }
+  });
+
+  app.post("/api/session/vorgangsid", async (req, res) => {
+    try {
+      const sessionId = req.session.uberRetterSessionId!;
+      const vorgangsId = await storage.generateVorgangsId(sessionId);
+      res.json({ vorgangsId });
+    } catch (error) {
+      console.error("Error generating vorgangsId:", error);
+      res.status(500).json({ error: "Failed to generate Vorgangs-ID" });
+    }
+  });
+
+  app.post("/api/session/load", async (req, res) => {
+    try {
+      const { vorgangsId } = req.body;
+      
+      if (!vorgangsId || typeof vorgangsId !== "string") {
+        return res.status(400).json({ error: "Vorgangs-ID erforderlich" });
+      }
+
+      const session = await storage.getSessionByVorgangsId(vorgangsId.trim());
+      
+      if (!session) {
+        return res.status(404).json({ error: "Keine Session mit dieser Vorgangs-ID gefunden" });
+      }
+
+      req.session.uberRetterSessionId = session.sessionId;
+      
+      res.json({ success: true, sessionId: session.sessionId });
+    } catch (error) {
+      console.error("Error loading session:", error);
+      res.status(500).json({ error: "Failed to load session" });
     }
   });
 
