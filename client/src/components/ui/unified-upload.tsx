@@ -130,7 +130,7 @@ export function UnifiedUpload({
       <div 
         data-testid={testId}
         className={cn(
-          "group relative border-2 border-dashed rounded-xl p-16 transition-all duration-300 ease-out text-center cursor-pointer overflow-hidden bg-white",
+          "group relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 ease-out text-center cursor-pointer overflow-hidden bg-white",
           isDragging 
             ? "border-emerald-500 bg-emerald-50/50 scale-[1.01] shadow-xl" 
             : "border-slate-200 hover:border-emerald-400 hover:bg-slate-50 hover:shadow-md",
@@ -153,21 +153,21 @@ export function UnifiedUpload({
         
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]" />
 
-        <div className="relative flex flex-col items-center gap-6 z-10">
+        <div className="relative flex flex-col items-center gap-4 z-10">
           <div className={cn(
-            "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border border-slate-100",
+            "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border border-slate-100",
             isDragging ? "bg-emerald-100 text-emerald-600 scale-110" : 
             hasFiles ? "bg-emerald-100 text-emerald-600" :
             "bg-white text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 group-hover:border-emerald-100"
           )}>
             {isProcessing ? (
-              <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             ) : hasFiles ? (
-              <CheckCircle2 className="w-10 h-10" />
+              <CheckCircle2 className="w-7 h-7" />
             ) : isDragging ? (
-              <CloudUpload className="w-10 h-10" />
+              <CloudUpload className="w-7 h-7" />
             ) : (
-              <Upload className="w-10 h-10" />
+              <Upload className="w-7 h-7" />
             )}
           </div>
           
