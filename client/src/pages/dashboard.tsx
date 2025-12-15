@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
+import { uploadInChunks, UploadProgress } from "@/lib/chunked-upload";
 
 const STEPS = [
   "Daten Import",
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [loadVorgangsId, setLoadVorgangsId] = useState("");
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
   const { data: sessionData, isLoading } = useQuery({
     queryKey: ["session"],
@@ -42,7 +44,7 @@ export default function Dashboard() {
   });
 
   const { progress } = useProgress();
-  const showProgress = isProcessing || progress.isActive;
+  const showProgress = isProcessing || progress.isActive || uploadProgress !== null;
 
   const currentStep = sessionData?.currentStep || 1;
   const trips = sessionData?.trips || [];
@@ -200,20 +202,40 @@ export default function Dashboard() {
 
   const handleContinue = async () => {
     setIsProcessing(true);
+    setUploadProgress(null);
     
-    if (pendingTrips.length > 0) {
-      await uploadTripsMutation.mutateAsync(pendingTrips);
+    try {
+      if (pendingTrips.length > 0) {
+        await uploadInChunks(
+          pendingTrips,
+          '/api/trips',
+          'trips',
+          (progress) => setUploadProgress(progress),
+          'trips'
+        );
+      }
+      
+      if (pendingPayments.length > 0) {
+        await uploadInChunks(
+          pendingPayments,
+          '/api/transactions',
+          'transactions',
+          (progress) => setUploadProgress(progress),
+          'transactions'
+        );
+      }
+      
+      await generateVorgangsIdMutation.mutateAsync();
+      await updateStepMutation.mutateAsync(2);
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      setPendingTrips([]);
+      setPendingPayments([]);
+    } catch (error) {
+      console.error("Upload error:", error);
+    } finally {
+      setIsProcessing(false);
+      setUploadProgress(null);
     }
-    
-    if (pendingPayments.length > 0) {
-      await uploadTransactionsMutation.mutateAsync(pendingPayments);
-    }
-    
-    await generateVorgangsIdMutation.mutateAsync();
-    await updateStepMutation.mutateAsync(2);
-    setPendingTrips([]);
-    setPendingPayments([]);
-    setIsProcessing(false);
   };
 
   const handleGoToAbgleich = async () => {
@@ -324,6 +346,25 @@ export default function Dashboard() {
               </Button>
               
               <div className="w-full">
+                {uploadProgress && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-2">
+                    <div className="flex justify-between text-sm text-slate-600 mb-2">
+                      <span>
+                        {uploadProgress.phase === 'trips' ? 'Fahrten hochladen' : 'Zahlungen hochladen'}
+                      </span>
+                      <span>{uploadProgress.current.toLocaleString('de-DE')} / {uploadProgress.total.toLocaleString('de-DE')}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div 
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress.percent}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2 text-center">
+                      Daten werden in Teilen hochgeladen, um Abstuerze zu vermeiden...
+                    </p>
+                  </div>
+                )}
                 <InlineProgress progress={progress} />
               </div>
             </div>
