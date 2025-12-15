@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
@@ -8,8 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, TrendingUp, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const STEPS = [
   "Fahrten",
@@ -19,35 +20,84 @@ const STEPS = [
 ];
 
 export default function Dashboard() {
-  const [currentStep, setCurrentStep] = useState(() => {
-    const saved = sessionStorage.getItem("uber-retter-step");
-    return saved ? parseInt(saved) : 1;
-  });
-  
-  const [trips, setTrips] = useState<UberTrip[]>(() => {
-    const saved = sessionStorage.getItem("uber-retter-trips");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [transactions, setTransactions] = useState<UberTransaction[]>(() => {
-    const saved = sessionStorage.getItem("uber-retter-transactions");
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Persist state to session storage
-  React.useEffect(() => {
-    sessionStorage.setItem("uber-retter-trips", JSON.stringify(trips));
-  }, [trips]);
+  // Fetch session data from backend
+  const { data: sessionData, isLoading } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const res = await fetch("/api/session");
+      if (!res.ok) throw new Error("Failed to fetch session");
+      return res.json();
+    },
+  });
 
-  React.useEffect(() => {
-    sessionStorage.setItem("uber-retter-transactions", JSON.stringify(transactions));
-  }, [transactions]);
+  const currentStep = sessionData?.currentStep || 1;
+  const trips = sessionData?.trips || [];
+  const transactions = sessionData?.transactions || [];
 
-  React.useEffect(() => {
-    sessionStorage.setItem("uber-retter-step", currentStep.toString());
-  }, [currentStep]);
+  // Update step mutation
+  const updateStepMutation = useMutation({
+    mutationFn: async (step: number) => {
+      const res = await fetch("/api/session/step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step }),
+      });
+      if (!res.ok) throw new Error("Failed to update step");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+
+  // Upload trips mutation
+  const uploadTripsMutation = useMutation({
+    mutationFn: async (trips: UberTrip[]) => {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trips }),
+      });
+      if (!res.ok) throw new Error("Failed to upload trips");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+
+  // Upload transactions mutation
+  const uploadTransactionsMutation = useMutation({
+    mutationFn: async (transactions: UberTransaction[]) => {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactions }),
+      });
+      if (!res.ok) throw new Error("Failed to upload transactions");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+
+  // Reset session mutation
+  const resetSessionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/session/reset", {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to reset session");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
 
   // Process data when trips or transactions change
   const { summaries, monthHeaders, totals } = useMemo(() => {
@@ -68,60 +118,49 @@ export default function Dashboard() {
     };
   }, [trips, transactions]);
 
-  const loadMockData = () => {
+  const loadMockData = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setTrips(generateMockTrips(2000));
-      setTransactions(generateMockTransactions());
-      setCurrentStep(4); // Jump to end for demo
-      setIsProcessing(false);
-    }, 800);
-  };
-
-  const handleTripsLoaded = (data: any[]) => {
-    setIsProcessing(true);
-    const newTrips = (data as UberTrip[]);
+    const mockTrips = generateMockTrips(2000);
+    const mockTransactions = generateMockTransactions();
     
-    // Deduplication Logic
-    setTrips(prev => {
-      const existingIds = new Set(prev.map(t => t["Fahrt-ID"] || `${t["Kennzeichen"]}-${t["Zeitpunkt der Fahrtbestellung"]}`));
-      const uniqueNewTrips = newTrips.filter(t => {
-        const id = t["Fahrt-ID"] || `${t["Kennzeichen"]}-${t["Zeitpunkt der Fahrtbestellung"]}`;
-        return !existingIds.has(id);
-      });
-      return [...prev, ...uniqueNewTrips];
-    });
+    await uploadTripsMutation.mutateAsync(mockTrips);
+    await uploadTransactionsMutation.mutateAsync(mockTransactions);
+    await updateStepMutation.mutateAsync(4);
     
     setIsProcessing(false);
-    setCurrentStep(2);
   };
 
-  const handleTransactionsLoaded = (data: any[]) => {
+  const handleTripsLoaded = async (data: any[]) => {
     setIsProcessing(true);
-    const newTransactions = (data as UberTransaction[]);
-
-    // Deduplication Logic (Composite Key)
-    setTransactions(prev => {
-      const existingKeys = new Set(prev.map(t => `${t["Kennzeichen"]}-${t["Zeitpunkt"]}-${t["Betrag"]}`));
-      const uniqueNewTx = newTransactions.filter(t => {
-        const key = `${t["Kennzeichen"]}-${t["Zeitpunkt"]}-${t["Betrag"]}`;
-        return !existingKeys.has(key);
-      });
-      return [...prev, ...uniqueNewTx];
-    });
-
+    await uploadTripsMutation.mutateAsync(data as UberTrip[]);
     setIsProcessing(false);
-    setCurrentStep(4);
   };
 
-  const reset = () => {
+  const handleTransactionsLoaded = async (data: any[]) => {
+    setIsProcessing(true);
+    await uploadTransactionsMutation.mutateAsync(data as UberTransaction[]);
+    setIsProcessing(false);
+  };
+
+  const reset = async () => {
     if (confirm("Möchten Sie wirklich alle Daten zurücksetzen?")) {
-      setTrips([]);
-      setTransactions([]);
-      setCurrentStep(1);
-      sessionStorage.clear();
+      await resetSessionMutation.mutateAsync();
     }
   };
+
+  const setCurrentStep = (step: number) => {
+    updateStepMutation.mutate(step);
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-screen">
+          <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
