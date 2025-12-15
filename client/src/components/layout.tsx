@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, FileText, Settings, Shield } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 
@@ -14,7 +14,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
-      {/* Sidebar */}
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block shadow-xl",
@@ -29,30 +28,42 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </h1>
           </div>
           
-          <nav className="flex-1 p-4 space-y-1">
-            <NavItem 
-              icon={<LayoutDashboard className="w-5 h-5" />} 
-              label="Dashboard" 
-              active={location === '/'} 
-              onClick={() => setLocation('/')}
-            />
-            <NavItem 
-              icon={<Shield className="w-5 h-5" />} 
-              label="Admin" 
-              active={location === '/admin'} 
-              onClick={() => setLocation('/admin')}
-            />
+          <nav className="flex-1 p-4 flex flex-col">
+            <div className="space-y-1 flex-1">
+              <NavItem 
+                icon={<ClipboardCheck className="w-5 h-5" />} 
+                label="Prüfvorgang" 
+                active={location === '/'} 
+                onClick={() => setLocation('/')}
+                testId="nav-pruefvorgang"
+              />
+              <NavItem 
+                icon={<HelpCircle className="w-5 h-5" />} 
+                label="Hilfe" 
+                active={location === '/help'} 
+                onClick={() => setLocation('/help')}
+                testId="nav-help"
+              />
+            </div>
+            
+            <div className="pt-4 border-t border-slate-800">
+              <NavItem 
+                icon={<Shield className="w-5 h-5" />} 
+                label="Admin" 
+                active={location === '/admin'} 
+                onClick={() => setLocation('/admin')}
+                testId="nav-admin"
+              />
+            </div>
           </nav>
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header */}
         <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
            <h1 className="text-lg font-bold text-slate-900">Uber-Retter</h1>
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
-             <LayoutDashboard className="w-6 h-6" />
+             <Menu className="w-6 h-6" />
            </Button>
         </header>
 
@@ -61,7 +72,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
       
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -72,10 +82,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 }
 
-function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
+function NavItem({ icon, label, active, onClick, testId }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, testId?: string }) {
   return (
     <button 
       onClick={onClick}
+      data-testid={testId}
       className={cn(
         "w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors",
         active 
