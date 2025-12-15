@@ -11,6 +11,8 @@ import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
 import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useProgress } from "@/hooks/use-progress";
+import { ProgressOverlay } from "@/components/ui/progress-overlay";
 
 const STEPS = [
   "Daten Import",
@@ -32,6 +34,9 @@ export default function Dashboard() {
       return res.json();
     },
   });
+
+  const { progress } = useProgress();
+  const showProgress = isProcessing || progress.isActive;
 
   const currentStep = sessionData?.currentStep || 1;
   const trips = sessionData?.trips || [];
@@ -177,6 +182,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      <ProgressOverlay progress={progress} />
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">

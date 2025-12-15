@@ -21,6 +21,8 @@ const pool = new Pool({
 
 export const db = drizzle(pool);
 
+export type OnProgressCallback = (processed: number, total: number) => void;
+
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
@@ -28,12 +30,12 @@ export interface IStorage {
   getAllSessions(): Promise<Session[]>;
   
   // Trip management
-  createTrips(trips: InsertTrip[]): Promise<Trip[]>;
+  createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
   getTripsBySession(sessionId: string): Promise<Trip[]>;
   deleteTripsForSession(sessionId: string): Promise<void>;
   
   // Transaction management
-  createTransactions(transactions: InsertTransaction[]): Promise<Transaction[]>;
+  createTransactions(transactions: InsertTransaction[], onProgress?: OnProgressCallback): Promise<Transaction[]>;
   getTransactionsBySession(sessionId: string): Promise<Transaction[]>;
   deleteTransactionsForSession(sessionId: string): Promise<void>;
   
@@ -78,17 +80,21 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(sessions.lastActivityAt));
   }
 
-  async createTrips(newTrips: InsertTrip[]): Promise<Trip[]> {
+  async createTrips(newTrips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]> {
     if (newTrips.length === 0) return [];
     
-    // Batch inserts to avoid stack overflow with large datasets
     const BATCH_SIZE = 500;
     const results: Trip[] = [];
+    const total = newTrips.length;
     
     for (let i = 0; i < newTrips.length; i += BATCH_SIZE) {
       const batch = newTrips.slice(i, i + BATCH_SIZE);
       const inserted = await db.insert(trips).values(batch).returning();
       results.push(...inserted);
+      
+      if (onProgress) {
+        onProgress(Math.min(i + BATCH_SIZE, total), total);
+      }
     }
     
     return results;
@@ -105,17 +111,21 @@ export class DatabaseStorage implements IStorage {
     await db.delete(trips).where(eq(trips.sessionId, sessionId));
   }
 
-  async createTransactions(newTransactions: InsertTransaction[]): Promise<Transaction[]> {
+  async createTransactions(newTransactions: InsertTransaction[], onProgress?: OnProgressCallback): Promise<Transaction[]> {
     if (newTransactions.length === 0) return [];
     
-    // Batch inserts to avoid stack overflow with large datasets
     const BATCH_SIZE = 500;
     const results: Transaction[] = [];
+    const total = newTransactions.length;
     
     for (let i = 0; i < newTransactions.length; i += BATCH_SIZE) {
       const batch = newTransactions.slice(i, i + BATCH_SIZE);
       const inserted = await db.insert(transactions).values(batch).returning();
       results.push(...inserted);
+      
+      if (onProgress) {
+        onProgress(Math.min(i + BATCH_SIZE, total), total);
+      }
     }
     
     return results;

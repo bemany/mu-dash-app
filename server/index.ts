@@ -3,6 +3,10 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import { progressBroker } from "./progress-broker";
+import cookie from "cookie";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,6 +23,55 @@ declare module "http" {
   }
 }
 
+const SESSION_SECRET = process.env.SESSION_SECRET || "uber-retter-secret-key-change-in-production";
+
+const sessionMiddleware = session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+});
+
+const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+
+wss.on("connection", (ws, req) => {
+  // Parse cookies from the request headers
+  const cookies = cookie.parse(req.headers.cookie || "");
+  const signedSessionId = cookies["connect.sid"];
+  
+  if (!signedSessionId) {
+    ws.close(1008, "No session cookie");
+    return;
+  }
+
+  // Unsign the session cookie using cookie-parser's signature verification
+  const sessionId = cookieParser.signedCookie(signedSessionId, SESSION_SECRET);
+  
+  if (!sessionId || sessionId === signedSessionId) {
+    ws.close(1008, "Invalid session signature");
+    return;
+  }
+
+  // Use the express session to get the uber-retter session ID
+  // The session ID from the cookie needs to be resolved through the session store
+  // For simplicity, we'll use the signed session cookie as a secure identifier
+  // and store the mapping when the client connects
+  
+  // Store the WebSocket connection keyed by the secure session cookie ID
+  progressBroker.register(sessionId, ws);
+
+  ws.on("close", () => {
+    progressBroker.unregister(sessionId, ws);
+  });
+
+  ws.on("error", () => {
+    progressBroker.unregister(sessionId, ws);
+  });
+});
+
 app.use(
   express.json({
     limit: '50mb', // Increase limit for large CSV uploads
@@ -29,18 +82,8 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "uber-retter-secret-key-change-in-production",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    },
-  })
-);
+app.use(cookieParser(SESSION_SECRET));
+app.use(sessionMiddleware);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

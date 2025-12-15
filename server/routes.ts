@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { progressBroker } from "./progress-broker";
 import { z } from "zod";
 import { parseISO, parse } from "date-fns";
 
@@ -123,7 +124,35 @@ export async function registerRoutes(
         rawData: trip,
       }));
 
-      await storage.createTrips(dbTrips);
+      const total = dbTrips.length;
+      const expressSessionId = req.sessionID!;
+      progressBroker.broadcast(expressSessionId, {
+        phase: "trips",
+        total,
+        processed: 0,
+        percent: 0,
+        message: "Fahrten werden gespeichert...",
+      });
+
+      await storage.createTrips(dbTrips, (processed, totalCount) => {
+        const percent = Math.round((processed / totalCount) * 100);
+        progressBroker.broadcast(expressSessionId, {
+          phase: "trips",
+          total: totalCount,
+          processed,
+          percent,
+          message: "Fahrten werden gespeichert...",
+        });
+      });
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "trips",
+        total,
+        processed: total,
+        percent: 100,
+        message: "Fahrten erfolgreich gespeichert!",
+      });
+
       await storage.updateSessionActivity(sessionId, 2);
 
       res.json({ success: true, added: validTrips.length });
@@ -215,7 +244,34 @@ export async function registerRoutes(
         };
       }).filter((tx: any) => tx.licensePlate);
 
-      await storage.createTransactions(dbTransactions);
+      const total = dbTransactions.length;
+      const expressSessionId = req.sessionID!;
+      progressBroker.broadcast(expressSessionId, {
+        phase: "transactions",
+        total,
+        processed: 0,
+        percent: 0,
+        message: "Zahlungen werden gespeichert...",
+      });
+
+      await storage.createTransactions(dbTransactions, (processed, totalCount) => {
+        const percent = Math.round((processed / totalCount) * 100);
+        progressBroker.broadcast(expressSessionId, {
+          phase: "transactions",
+          total: totalCount,
+          processed,
+          percent,
+          message: "Zahlungen werden gespeichert...",
+        });
+      });
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "transactions",
+        total,
+        processed: total,
+        percent: 100,
+        message: "Zahlungen erfolgreich gespeichert!",
+      });
 
       res.json({ success: true, added: dbTransactions.length });
     } catch (error) {
