@@ -546,54 +546,75 @@ export default function Dashboard() {
         )}
       </div>
 
-      <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+      <Dialog open={loadDialogOpen} onOpenChange={(open) => {
+        if (!loadSessionMutation.isPending) {
+          setLoadDialogOpen(open);
+          if (!open) {
+            setLoadVorgangsId("");
+            setLoadError("");
+          }
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Vorgang laden</DialogTitle>
-            <DialogDescription>
-              Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Input
-              placeholder="z.B. ABC123"
-              value={loadVorgangsId}
-              onChange={(e) => setLoadVorgangsId(e.target.value.toUpperCase())}
-              className="font-mono text-center text-xl tracking-widest"
-              maxLength={6}
-              data-testid="input-load-vorgangs-id"
-            />
-            {loadError && (
-              <p className="text-sm text-red-600 text-center" data-testid="text-load-error">
-                {loadError}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setLoadDialogOpen(false);
-                setLoadVorgangsId("");
-                setLoadError("");
-              }}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={handleLoadSession}
-              disabled={!loadVorgangsId.trim() || loadSessionMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              data-testid="button-confirm-load"
-            >
-              {loadSessionMutation.isPending ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <FolderOpen className="w-4 h-4 mr-2" />
-              )}
-              Laden
-            </Button>
-          </DialogFooter>
+          {loadSessionMutation.isPending ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold text-slate-800">Vorgang wird geladen...</p>
+                <p className="text-sm text-slate-500 mt-1">Vorgangs-ID: {loadVorgangsId}</p>
+              </div>
+              <div className="w-full max-w-xs bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-emerald-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Vorgang laden</DialogTitle>
+                <DialogDescription>
+                  Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input
+                  placeholder="z.B. ABC123"
+                  value={loadVorgangsId}
+                  onChange={(e) => setLoadVorgangsId(e.target.value.toUpperCase())}
+                  className="font-mono text-center text-xl tracking-widest"
+                  maxLength={6}
+                  data-testid="input-load-vorgangs-id"
+                />
+                {loadError && (
+                  <p className="text-sm text-red-600 text-center" data-testid="text-load-error">
+                    {loadError}
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setLoadDialogOpen(false);
+                    setLoadVorgangsId("");
+                    setLoadError("");
+                  }}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  onClick={handleLoadSession}
+                  disabled={!loadVorgangsId.trim() || loadSessionMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  data-testid="button-confirm-load"
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  Laden
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

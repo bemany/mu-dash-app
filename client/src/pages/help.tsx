@@ -16,6 +16,9 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import dashboardNavImage from "@assets/generated_images/dashboard_navigation_to_reports.png";
+import csvExportImage from "@assets/generated_images/csv_export_button_interface.png";
+import fileUploadImage from "@assets/generated_images/file_upload_drop_zone.png";
 
 export default function HelpPage() {
   return (
@@ -108,6 +111,16 @@ export default function HelpPage() {
                 </p>
               </div>
             </div>
+
+            <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+              <img 
+                src={dashboardNavImage} 
+                alt="Uber Fleet Dashboard Navigation zu Berichten" 
+                className="w-full h-auto"
+                data-testid="img-dashboard-navigation"
+              />
+              <p className="text-xs text-slate-500 p-2 bg-slate-50 text-center">So navigieren Sie zu den Berichten im Uber Fleet Dashboard</p>
+            </div>
           </CardContent>
         </Card>
 
@@ -157,6 +170,16 @@ export default function HelpPage() {
                 <CodeChip>Zeitpunkt der Fahrtbestellung</CodeChip>
                 <CodeChip>Fahrtstatus</CodeChip>
               </div>
+            </div>
+
+            <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+              <img 
+                src={csvExportImage} 
+                alt="CSV Export Button im Uber Dashboard" 
+                className="w-full h-auto"
+                data-testid="img-csv-export"
+              />
+              <p className="text-xs text-slate-500 p-2 bg-slate-50 text-center">So exportieren Sie die Daten als CSV-Datei</p>
             </div>
           </CardContent>
         </Card>
@@ -237,6 +260,16 @@ export default function HelpPage() {
                 <span className="text-slate-600">Klicken Sie auf "Weiter" um die Berechnung zu starten</span>
               </li>
             </ol>
+
+            <div className="mt-4 rounded-lg overflow-hidden border border-slate-200">
+              <img 
+                src={fileUploadImage} 
+                alt="Datei-Upload Bereich in Uber-Retter" 
+                className="w-full h-auto"
+                data-testid="img-file-upload"
+              />
+              <p className="text-xs text-slate-500 p-2 bg-slate-50 text-center">Der Upload-Bereich für Ihre CSV-Dateien</p>
+            </div>
             
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
               <p className="text-sm text-emerald-700">
