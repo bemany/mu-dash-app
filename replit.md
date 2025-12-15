@@ -36,12 +36,23 @@ The backend serves both the API and static files in production. In development, 
   - `trips` - Stores uploaded trip data with license plates and timestamps
   - `transactions` - Stores payment transaction records
 
+### Workflow Steps
+The application follows a 3-step workflow:
+1. **Daten Import** - Upload both trip and payment CSV files (multiple files supported for each)
+2. **Kalkulation** - View calculated bonuses based on trip counts per month
+3. **Abgleich** - Compare expected bonuses against actual payments received
+
 ### Data Flow
-1. Users upload CSV files containing trip or transaction data
-2. Data is parsed client-side using PapaParse
-3. Parsed data is sent to backend and stored in PostgreSQL
-4. Processing logic calculates bonuses based on completed trip counts
-5. Results are displayed in a data table comparing expected vs actual payments
+1. Users upload CSV files on step 1 (both trips and payments can be uploaded together)
+2. Data is parsed client-side using PapaParse with multiple file support
+3. Payment CSVs are processed to extract license plates from "Beschreibung" field
+4. Parsed data is sent to backend and stored in PostgreSQL
+5. Processing logic calculates bonuses: >249 trips/month = €250, >699 trips/month = €400
+6. Results are displayed in a data table comparing expected vs actual payments
+
+### CSV Formats
+- **Trips CSV**: Must have "Kennzeichen", "Zeitpunkt der Fahrtbestellung", "Fahrtstatus" columns
+- **Payments CSV**: Uses "Beschreibung" (to extract license plate via regex), "An dein Unternehmen gezahlt" (amount), "vs-Berichterstattung" (timestamp)
 
 ### Build System
 - Client builds to `dist/public` via Vite
