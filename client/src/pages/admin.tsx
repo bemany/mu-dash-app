@@ -373,7 +373,13 @@ export default function AdminPage() {
                           session.currentStep === 4 ? "bg-emerald-500" : "bg-amber-500"
                         )} />
                         <div>
-                          <p className="font-mono text-sm font-semibold text-slate-700">{session.sessionId}</p>
+                          <p className="font-mono text-sm font-semibold text-slate-700">
+                            {session.vorgangsId ? (
+                              <span className="text-emerald-700">{session.vorgangsId}</span>
+                            ) : (
+                              <span className="text-slate-400 italic">Kein Vorgang</span>
+                            )}
+                          </p>
                           <p className="text-xs text-slate-500 mt-1">
                             Erstellt: {format(new Date(session.createdAt), "dd.MM.yyyy HH:mm", { locale: de })}
                             {" • "}
