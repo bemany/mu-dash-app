@@ -54,18 +54,29 @@ function createTripsForMonth(plate: string, count: number, monthDate: Date): Ube
 }
 
 export function generateMockTrips(count: number = 5000): UberTrip[] {
-  // Ignore count param, generate based on REAL_DATA
+  // Generate based on REAL_DATA but sample down counts to avoid huge payloads
   let allTrips: UberTrip[] = [];
 
+  // Use only last 3 months for demo to keep data size reasonable
+  const monthsToUse = 3;
+  const startIndex = REAL_DATA[0].counts.length - monthsToUse;
+
   REAL_DATA.forEach(driver => {
-    driver.counts.forEach((count, index) => {
-      // Handle the skip in the original data if needed, but for simplicity we'll assume consecutive months
-      // Original data had: Jul 24 ... Aug 25, Oct 25, Nov 25. (Sep 25 missing?)
-      // Let's just map index 0 to July 2024 and increment.
-      
-      const monthDate = addMonths(START_DATE, index);
-      allTrips = allTrips.concat(createTripsForMonth(driver.plate, count, monthDate));
-    });
+    for (let i = startIndex; i < driver.counts.length; i++) {
+      const monthDate = addMonths(START_DATE, i);
+      // Scale down but keep trips proportional to bonus thresholds
+      // Ensure some months qualify for bonuses (250+ for €250, 700+ for €400)
+      const originalCount = driver.counts[i];
+      let sampleCount: number;
+      if (originalCount > 700) {
+        sampleCount = 720 + Math.floor(Math.random() * 50); // Will qualify for €400 bonus (needs >699)
+      } else if (originalCount > 250) {
+        sampleCount = 260 + Math.floor(Math.random() * 40); // Will qualify for €250 bonus (needs >249)
+      } else {
+        sampleCount = Math.ceil(originalCount / 2); // Keep below threshold
+      }
+      allTrips = allTrips.concat(createTripsForMonth(driver.plate, sampleCount, monthDate));
+    }
   });
 
   return allTrips;
@@ -74,9 +85,14 @@ export function generateMockTrips(count: number = 5000): UberTrip[] {
 export function generateMockTransactions(): UberTransaction[] {
   const txs: UberTransaction[] = [];
   
+  // Use only last 3 months to match trips
+  const monthsToUse = 3;
+  const startIndex = REAL_DATA[0].counts.length - monthsToUse;
+
   REAL_DATA.forEach(driver => {
-    driver.counts.forEach((count, index) => {
-      const monthDate = addMonths(START_DATE, index);
+    for (let i = startIndex; i < driver.counts.length; i++) {
+      const count = driver.counts[i];
+      const monthDate = addMonths(START_DATE, i);
       
       // Calculate Expected Bonus
       let expectedBonus = 0;
@@ -93,7 +109,7 @@ export function generateMockTransactions(): UberTransaction[] {
 
          // 10% chance of missed payment
          if (roll < 0.1) {
-            return; 
+            continue; 
          }
          // 10% chance of partial payment
          else if (roll < 0.2) {
@@ -108,12 +124,12 @@ export function generateMockTransactions(): UberTransaction[] {
 
          txs.push({
            "Kennzeichen": driver.plate,
-           "Zeitpunkt": monthDate.toISOString(), // Payment usually happens in same month for this logic
+           "Zeitpunkt": monthDate.toISOString(),
            "Betrag": payAmount,
            "Beschreibung": description
          });
       }
-    });
+    }
   });
   
   return txs;

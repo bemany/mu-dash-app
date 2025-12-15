@@ -2,14 +2,33 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { parseISO } from "date-fns";
+import { parseISO, parse } from "date-fns";
+
+const LICENSE_PLATE_REGEX = /[A-Z]{1,3}-[A-Z]{1,3}\s?\d{1,4}[A-Z]?/i;
+
+function extractLicensePlate(description: string): string | null {
+  const match = description.match(LICENSE_PLATE_REGEX);
+  return match ? match[0].toUpperCase().replace(/\s/g, '') : null;
+}
+
+function parsePaymentTimestamp(timestamp: string): Date {
+  const cleanTimestamp = timestamp.replace(/ \+\d{4} [A-Z]+$/, '').trim();
+  try {
+    return parse(cleanTimestamp, "yyyy-MM-dd HH:mm:ss.SSS", new Date());
+  } catch {
+    try {
+      return parseISO(timestamp);
+    } catch {
+      return new Date();
+    }
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
-  // Generate or retrieve session ID from cookies
   app.use((req, res, next) => {
     if (!req.session.uberRetterSessionId) {
       req.session.uberRetterSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -17,7 +36,6 @@ export async function registerRoutes(
     next();
   });
 
-  // Get session data (trips, transactions, current step)
   app.get("/api/session", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
@@ -25,7 +43,6 @@ export async function registerRoutes(
       const trips = await storage.getTripsBySession(sessionId);
       const transactions = await storage.getTransactionsBySession(sessionId);
 
-      // Convert DB format back to frontend format
       const frontendTrips = trips.map(t => ({
         "Kennzeichen": t.licensePlate,
         "Zeitpunkt der Fahrtbestellung": t.orderTime.toISOString(),
@@ -37,7 +54,7 @@ export async function registerRoutes(
       const frontendTransactions = transactions.map(tx => ({
         "Kennzeichen": tx.licensePlate,
         "Zeitpunkt": tx.transactionTime.toISOString(),
-        "Betrag": tx.amount / 100, // Convert cents back to euros
+        "Betrag": tx.amount / 100,
         "Beschreibung": tx.description || undefined,
         ...tx.rawData as any,
       }));
@@ -54,7 +71,6 @@ export async function registerRoutes(
     }
   });
 
-  // Update current step
   app.post("/api/session/step", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
@@ -72,7 +88,6 @@ export async function registerRoutes(
     }
   });
 
-  // Upload trips
   app.post("/api/trips", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
@@ -82,7 +97,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid trips data" });
       }
 
-      // Get existing trips to check for duplicates
       const existingTrips = await storage.getTripsBySession(sessionId);
       const existingIds = new Set(
         existingTrips.map(t => 
@@ -90,14 +104,17 @@ export async function registerRoutes(
         )
       );
 
-      // Filter out duplicates
-      const newTrips = trips.filter((trip: any) => {
+      // Filter out invalid trips and duplicates
+      const validTrips = trips.filter((trip: any) => {
+        // Must have required fields
+        if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
+          return false;
+        }
         const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${trip["Zeitpunkt der Fahrtbestellung"]}`;
         return !existingIds.has(id);
       });
 
-      // Convert to DB format
-      const dbTrips = newTrips.map((trip: any) => ({
+      const dbTrips = validTrips.map((trip: any) => ({
         sessionId,
         tripId: trip["Fahrt-ID"] || null,
         licensePlate: trip["Kennzeichen"],
@@ -109,14 +126,13 @@ export async function registerRoutes(
       await storage.createTrips(dbTrips);
       await storage.updateSessionActivity(sessionId, 2);
 
-      res.json({ success: true, added: newTrips.length });
+      res.json({ success: true, added: validTrips.length });
     } catch (error) {
       console.error("Error uploading trips:", error);
       res.status(500).json({ error: "Failed to upload trips" });
     }
   });
 
-  // Upload transactions
   app.post("/api/transactions", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
@@ -126,7 +142,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid transactions data" });
       }
 
-      // Get existing transactions to check for duplicates
       const existingTransactions = await storage.getTransactionsBySession(sessionId);
       const existingKeys = new Set(
         existingTransactions.map(tx => 
@@ -134,42 +149,81 @@ export async function registerRoutes(
         )
       );
 
-      // Filter out duplicates
       const newTransactions = transactions.filter((tx: any) => {
         const amount = typeof tx["Betrag"] === 'string' 
           ? parseFloat(tx["Betrag"].replace(',', '.')) 
           : tx["Betrag"];
-        const key = `${tx["Kennzeichen"]}-${tx["Zeitpunkt"]}-${Math.round(amount * 100)}`;
+        
+        let timestamp: string;
+        if (tx["Zeitpunkt"]) {
+          timestamp = tx["Zeitpunkt"];
+        } else if (tx["vs-Berichterstattung"]) {
+          timestamp = tx["vs-Berichterstattung"];
+        } else {
+          return false;
+        }
+        
+        let licensePlate = tx["Kennzeichen"];
+        if (!licensePlate && tx["Beschreibung"]) {
+          licensePlate = extractLicensePlate(tx["Beschreibung"]);
+        }
+        
+        if (!licensePlate) return false;
+        
+        const key = `${licensePlate}-${timestamp}-${Math.round(amount * 100)}`;
         return !existingKeys.has(key);
       });
 
-      // Convert to DB format
       const dbTransactions = newTransactions.map((tx: any) => {
-        const amount = typeof tx["Betrag"] === 'string' 
-          ? parseFloat(tx["Betrag"].replace(',', '.')) 
-          : tx["Betrag"];
+        let amount: number;
+        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string' 
+            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.')) 
+            : tx["An dein Unternehmen gezahlt"];
+        } else {
+          amount = typeof tx["Betrag"] === 'string' 
+            ? parseFloat(tx["Betrag"].replace(',', '.')) 
+            : tx["Betrag"];
+        }
+        
+        let timestamp: Date;
+        if (tx["vs-Berichterstattung"]) {
+          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+        } else if (tx["Zeitpunkt"]) {
+          const ts = tx["Zeitpunkt"];
+          if (ts.includes('+')) {
+            timestamp = parsePaymentTimestamp(ts);
+          } else {
+            timestamp = parseISO(ts);
+          }
+        } else {
+          timestamp = new Date();
+        }
+        
+        let licensePlate = tx["Kennzeichen"];
+        if (!licensePlate && tx["Beschreibung"]) {
+          licensePlate = extractLicensePlate(tx["Beschreibung"]);
+        }
         
         return {
           sessionId,
-          licensePlate: tx["Kennzeichen"],
-          transactionTime: parseISO(tx["Zeitpunkt"]),
-          amount: Math.round(amount * 100), // Convert euros to cents
+          licensePlate: licensePlate || "",
+          transactionTime: timestamp,
+          amount: Math.round(amount * 100),
           description: tx["Beschreibung"] || null,
           rawData: tx,
         };
-      });
+      }).filter((tx: any) => tx.licensePlate);
 
       await storage.createTransactions(dbTransactions);
-      await storage.updateSessionActivity(sessionId, 4);
 
-      res.json({ success: true, added: newTransactions.length });
+      res.json({ success: true, added: dbTransactions.length });
     } catch (error) {
       console.error("Error uploading transactions:", error);
       res.status(500).json({ error: "Failed to upload transactions" });
     }
   });
 
-  // Reset session
   app.post("/api/session/reset", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
@@ -183,12 +237,10 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: Get all sessions
   app.get("/api/admin/sessions", async (req, res) => {
     try {
       const sessions = await storage.getAllSessions();
       
-      // Get trip and transaction counts for each session
       const sessionsWithCounts = await Promise.all(
         sessions.map(async (session) => {
           const trips = await storage.getTripsBySession(session.sessionId);
@@ -209,14 +261,12 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: Get session details
   app.get("/api/admin/sessions/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;
       const trips = await storage.getTripsBySession(sessionId);
       const transactions = await storage.getTransactionsBySession(sessionId);
 
-      // Convert to frontend format
       const frontendTrips = trips.map(t => ({
         "Kennzeichen": t.licensePlate,
         "Zeitpunkt der Fahrtbestellung": t.orderTime.toISOString(),
@@ -243,7 +293,6 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: Delete session
   app.delete("/api/admin/sessions/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
@@ -6,24 +6,24 @@ import { DataTable } from "@/components/ui/data-table";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { UberTrip, UberTransaction } from "@/lib/types";
-import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
+import { processTripsAndTransactions, getMonthHeaders, processPaymentCSV } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Car, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const STEPS = [
-  "Fahrten",
+  "Daten Import",
   "Kalkulation",
-  "Zahlungen",
   "Abgleich"
 ];
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingTrips, setPendingTrips] = useState<UberTrip[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<UberTransaction[]>([]);
 
-  // Fetch session data from backend
   const { data: sessionData, isLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
@@ -37,7 +37,6 @@ export default function Dashboard() {
   const trips = sessionData?.trips || [];
   const transactions = sessionData?.transactions || [];
 
-  // Update step mutation
   const updateStepMutation = useMutation({
     mutationFn: async (step: number) => {
       const res = await fetch("/api/session/step", {
@@ -53,7 +52,6 @@ export default function Dashboard() {
     },
   });
 
-  // Upload trips mutation
   const uploadTripsMutation = useMutation({
     mutationFn: async (trips: UberTrip[]) => {
       const res = await fetch("/api/trips", {
@@ -69,7 +67,6 @@ export default function Dashboard() {
     },
   });
 
-  // Upload transactions mutation
   const uploadTransactionsMutation = useMutation({
     mutationFn: async (transactions: UberTransaction[]) => {
       const res = await fetch("/api/transactions", {
@@ -85,7 +82,6 @@ export default function Dashboard() {
     },
   });
 
-  // Reset session mutation
   const resetSessionMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/session/reset", {
@@ -96,10 +92,11 @@ export default function Dashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session"] });
+      setPendingTrips([]);
+      setPendingPayments([]);
     },
   });
 
-  // Process data when trips or transactions change
   const { summaries, monthHeaders, totals } = useMemo(() => {
     if (trips.length === 0) return { summaries: [], monthHeaders: [], totals: { trips: 0, bonus: 0, paid: 0, diff: 0 } };
 
@@ -125,21 +122,39 @@ export default function Dashboard() {
     
     await uploadTripsMutation.mutateAsync(mockTrips);
     await uploadTransactionsMutation.mutateAsync(mockTransactions);
-    await updateStepMutation.mutateAsync(4);
+    await updateStepMutation.mutateAsync(3);
     
     setIsProcessing(false);
   };
 
-  const handleTripsLoaded = async (data: any[]) => {
+  const handleTripsLoaded = (data: any[]) => {
+    setPendingTrips(data as UberTrip[]);
+  };
+
+  const handlePaymentsLoaded = (data: any[]) => {
+    const processedPayments = processPaymentCSV(data);
+    setPendingPayments(processedPayments);
+  };
+
+  const handleContinue = async () => {
     setIsProcessing(true);
-    await uploadTripsMutation.mutateAsync(data as UberTrip[]);
+    
+    if (pendingTrips.length > 0) {
+      await uploadTripsMutation.mutateAsync(pendingTrips);
+    }
+    
+    if (pendingPayments.length > 0) {
+      await uploadTransactionsMutation.mutateAsync(pendingPayments);
+    }
+    
+    await updateStepMutation.mutateAsync(2);
+    setPendingTrips([]);
+    setPendingPayments([]);
     setIsProcessing(false);
   };
 
-  const handleTransactionsLoaded = async (data: any[]) => {
-    setIsProcessing(true);
-    await uploadTransactionsMutation.mutateAsync(data as UberTransaction[]);
-    setIsProcessing(false);
+  const handleGoToAbgleich = async () => {
+    await updateStepMutation.mutateAsync(3);
   };
 
   const reset = async () => {
@@ -152,10 +167,12 @@ export default function Dashboard() {
     updateStepMutation.mutate(step);
   };
 
+  const canContinue = pendingTrips.length > 0 || trips.length > 0;
+
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-screen" data-testid="loading-spinner">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
         </div>
       </DashboardLayout>
@@ -166,86 +183,130 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
-        {/* Header Area */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Uber-Retter Dashboard</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="dashboard-title">Uber-Retter Dashboard</h1>
             <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={loadMockData} disabled={isProcessing} className="border-slate-200">
+            <Button 
+              data-testid="button-load-demo"
+              variant="outline" 
+              onClick={loadMockData} 
+              disabled={isProcessing} 
+              className="border-slate-200"
+            >
               <RefreshCw className={cn("w-4 h-4 mr-2", isProcessing && "animate-spin")} />
               Demo Daten laden
             </Button>
-            {trips.length > 0 && (
-              <Button variant="ghost" onClick={reset} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
+            {(trips.length > 0 || pendingTrips.length > 0) && (
+              <Button 
+                data-testid="button-reset"
+                variant="ghost" 
+                onClick={reset} 
+                className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+              >
                 Zurücksetzen
               </Button>
             )}
           </div>
         </div>
 
-        {/* Stepper Navigation */}
         <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-6">
           <Stepper currentStep={currentStep} steps={STEPS} />
         </div>
 
-        {/* Phase 1: Upload Trips */}
         {currentStep === 1 && (
-          <div className="max-w-2xl mx-auto mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2">Willkommen beim Uber-Retter</h2>
-              <p className="text-slate-500">Beginnen Sie mit dem Import Ihrer Fahrten-Daten.</p>
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="text-center mb-8 mt-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">Willkommen beim Uber-Retter</h2>
+              <p className="text-slate-500">Importieren Sie Ihre Fahrten- und Zahlungsdaten.</p>
             </div>
-            <FileUpload 
-              onDataLoaded={handleTripsLoaded} 
-              title="Fahrten Importieren"
-              description="Ziehen Sie Ihre .csv Exportdatei hierher"
-            />
-          </div>
-        )}
-
-        {/* Phase 3: Upload Transactions */}
-        {currentStep === 3 && (
-          <div className="max-w-2xl mx-auto mt-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
-             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2">Zahlungsabgleich</h2>
-              <p className="text-slate-500">Importieren Sie jetzt Ihre Banktransaktionen für den Abgleich.</p>
-            </div>
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-slate-100">
-              <FileUpload 
-                onDataLoaded={handleTransactionsLoaded} 
-                title="Zahlungen Importieren"
-                description="CSV mit Kennzeichen, Datum und Betrag"
-              />
-              <div className="mt-8 flex justify-center">
-                 <Button variant="ghost" onClick={() => setCurrentStep(4)} className="text-slate-400 hover:text-slate-600">
-                   Diesen Schritt überspringen
-                 </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <Car className="w-5 h-5 text-emerald-600" />
+                  <span>Fahrten</span>
+                  {pendingTrips.length > 0 && (
+                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full" data-testid="trips-count">
+                      {pendingTrips.length} Fahrten
+                    </span>
+                  )}
+                </div>
+                <FileUpload 
+                  onDataLoaded={handleTripsLoaded} 
+                  title="Fahrten Importieren"
+                  description="Ziehen Sie Ihre Fahrten .csv Dateien hierher"
+                  multiple={true}
+                  testId="upload-trips"
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                  <CreditCard className="w-5 h-5 text-purple-600" />
+                  <span>Zahlungen</span>
+                  <span className="text-xs text-slate-400">(optional)</span>
+                  {pendingPayments.length > 0 && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full" data-testid="payments-count">
+                      {pendingPayments.length} Zahlungen
+                    </span>
+                  )}
+                </div>
+                <FileUpload 
+                  onDataLoaded={handlePaymentsLoaded} 
+                  title="Zahlungen Importieren"
+                  description="Ziehen Sie Ihre Zahlungs .csv Dateien hierher"
+                  multiple={true}
+                  testId="upload-payments"
+                />
               </div>
             </div>
+            
+            <div className="flex justify-center mt-8">
+              <Button 
+                data-testid="button-continue"
+                onClick={handleContinue}
+                disabled={!canContinue || isProcessing}
+                size="lg"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8"
+              >
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Verarbeite...
+                  </>
+                ) : (
+                  <>
+                    Weiter
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Phase 2 & 4: Data Visualization */}
-        {(currentStep === 2 || currentStep === 4) && trips.length > 0 && (
+        {(currentStep === 2 || currentStep === 3) && trips.length > 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard 
                 title="Gesamtfahrten" 
                 value={totals.trips.toLocaleString('de-DE')} 
                 icon={<CarFront className="w-5 h-5 text-blue-500" />}
                 bg="bg-blue-50/50"
+                testId="kpi-trips"
               />
               <KpiCard 
                 title="Theoretischer Bonus" 
                 value={totals.bonus.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} 
                 icon={<BadgeEuro className="w-5 h-5 text-purple-500" />}
                 bg="bg-purple-50/50"
+                testId="kpi-bonus"
               />
-              {currentStep === 4 && (
+              {currentStep === 3 && (
                 <>
                   <KpiCard 
                     title="Bereits Ausgezahlt" 
@@ -253,6 +314,7 @@ export default function Dashboard() {
                     icon={<CheckCircle className="w-5 h-5 text-emerald-500" />}
                     className="text-emerald-700"
                     bg="bg-emerald-50/50"
+                    testId="kpi-paid"
                   />
                   <KpiCard 
                     title="Offener Betrag" 
@@ -260,12 +322,12 @@ export default function Dashboard() {
                     icon={totals.diff > 0 ? <AlertTriangle className="w-5 h-5 text-amber-500" /> : <CheckCircle className="w-5 h-5 text-emerald-500" />}
                     className={totals.diff > 0 ? "text-amber-600" : "text-emerald-600"}
                     bg={totals.diff > 0 ? "bg-amber-50/50" : "bg-emerald-50/50"}
+                    testId="kpi-diff"
                   />
                 </>
               )}
             </div>
 
-            {/* Action Bar for Phase 2 */}
             {currentStep === 2 && (
               <div className="flex justify-between items-center bg-emerald-900 text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] bg-[position:0_0,0_0] animate-shine pointer-events-none" />
@@ -275,22 +337,22 @@ export default function Dashboard() {
                   <p className="text-emerald-200 text-sm">Die theoretischen Boni basieren auf der Anzahl der Fahrten pro Monat.</p>
                 </div>
                 <Button 
-                  onClick={() => setCurrentStep(3)} 
+                  data-testid="button-go-to-abgleich"
+                  onClick={handleGoToAbgleich} 
                   className="bg-white text-emerald-900 hover:bg-emerald-50 border-none relative z-10 font-semibold"
                   size="lg"
                 >
-                  Weiter zum Zahlungsabgleich
+                  Weiter zum Abgleich
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
             )}
 
-            {/* Main Table */}
             <DataTable 
               summaries={summaries} 
               monthHeaders={monthHeaders} 
               totals={totals} 
-              showDiff={currentStep === 4} 
+              showDiff={currentStep === 3} 
             />
           </div>
         )}
@@ -299,9 +361,9 @@ export default function Dashboard() {
   );
 }
 
-function KpiCard({ title, value, icon, className, bg }: { title: string, value: string, icon: React.ReactNode, className?: string, bg?: string }) {
+function KpiCard({ title, value, icon, className, bg, testId }: { title: string, value: string, icon: React.ReactNode, className?: string, bg?: string, testId?: string }) {
   return (
-    <Card className={cn("border-slate-100 shadow-sm transition-all hover:shadow-md", bg)}>
+    <Card className={cn("border-slate-100 shadow-sm transition-all hover:shadow-md", bg)} data-testid={testId}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-y-0 pb-4">
           <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{title}</p>
