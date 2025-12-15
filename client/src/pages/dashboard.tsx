@@ -286,6 +286,7 @@ export default function Dashboard() {
               <FolderOpen className="w-4 h-4 mr-2" />
               Vorgang laden
             </Button>
+{/* Demo button temporarily disabled
             <Button 
               data-testid="button-load-demo"
               variant="outline" 
@@ -296,6 +297,7 @@ export default function Dashboard() {
               <RefreshCw className={cn("w-4 h-4 mr-2", isProcessing && "animate-spin")} />
               Demo Daten laden
             </Button>
+*/}
             {(trips.length > 0 || pendingTrips.length > 0) && (
               <Button 
                 data-testid="button-reset"
