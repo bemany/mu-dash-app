@@ -44,6 +44,11 @@ export async function registerRoutes(
       const trips = await storage.getTripsBySession(sessionId);
       const transactions = await storage.getTransactionsBySession(sessionId);
 
+      let vorgangsId = session.vorgangsId;
+      if (!vorgangsId && trips.length > 0) {
+        vorgangsId = await storage.generateVorgangsId(sessionId);
+      }
+
       const frontendTrips = trips.map(t => ({
         "Kennzeichen": t.licensePlate,
         "Zeitpunkt der Fahrtbestellung": t.orderTime.toISOString(),
@@ -62,7 +67,7 @@ export async function registerRoutes(
 
       res.json({
         sessionId,
-        vorgangsId: session.vorgangsId,
+        vorgangsId,
         currentStep: session.currentStep,
         trips: frontendTrips,
         transactions: frontendTransactions,
@@ -98,7 +103,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Keine Session mit dieser Vorgangs-ID gefunden" });
       }
 
+      const trips = await storage.getTripsBySession(session.sessionId);
+      
+      if (trips.length === 0) {
+        return res.status(404).json({ error: "Dieser Vorgang enthält keine Daten mehr" });
+      }
+
       req.session.uberRetterSessionId = session.sessionId;
+      
+      if (session.currentStep === 1 && trips.length > 0) {
+        const transactions = await storage.getTransactionsBySession(session.sessionId);
+        const newStep = transactions.length > 0 ? 3 : 2;
+        await storage.updateSessionActivity(session.sessionId, newStep);
+      }
       
       res.json({ success: true, sessionId: session.sessionId });
     } catch (error) {

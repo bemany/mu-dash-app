@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { UnifiedUpload } from "@/components/ui/unified-upload";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Stepper } from "@/components/ui/stepper";
 import { DataTable } from "@/components/ui/data-table";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
@@ -25,6 +27,10 @@ export default function Dashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pendingTrips, setPendingTrips] = useState<UberTrip[]>([]);
   const [pendingPayments, setPendingPayments] = useState<UberTransaction[]>([]);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [loadVorgangsId, setLoadVorgangsId] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const { data: sessionData, isLoading } = useQuery({
     queryKey: ["session"],
@@ -102,6 +108,60 @@ export default function Dashboard() {
     },
   });
 
+  const generateVorgangsIdMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/session/vorgangsid", {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to generate Vorgangs-ID");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+
+  const loadSessionMutation = useMutation({
+    mutationFn: async (vorgangsId: string) => {
+      const res = await fetch("/api/session/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vorgangsId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to load session");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      setLoadDialogOpen(false);
+      setLoadVorgangsId("");
+      setLoadError("");
+    },
+    onError: (error: Error) => {
+      setLoadError(error.message);
+    },
+  });
+
+  const vorgangsId = sessionData?.vorgangsId;
+
+  const copyVorgangsId = () => {
+    if (vorgangsId) {
+      navigator.clipboard.writeText(vorgangsId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleLoadSession = () => {
+    if (loadVorgangsId.trim()) {
+      setLoadError("");
+      loadSessionMutation.mutate(loadVorgangsId.trim());
+    }
+  };
+
   const { summaries, monthHeaders, totals } = useMemo(() => {
     if (trips.length === 0) return { summaries: [], monthHeaders: [], totals: { trips: 0, bonus: 0, paid: 0, diff: 0 } };
 
@@ -127,6 +187,7 @@ export default function Dashboard() {
     
     await uploadTripsMutation.mutateAsync(mockTrips);
     await uploadTransactionsMutation.mutateAsync(mockTransactions);
+    await generateVorgangsIdMutation.mutateAsync();
     await updateStepMutation.mutateAsync(3);
     
     setIsProcessing(false);
@@ -148,6 +209,7 @@ export default function Dashboard() {
       await uploadTransactionsMutation.mutateAsync(pendingPayments);
     }
     
+    await generateVorgangsIdMutation.mutateAsync();
     await updateStepMutation.mutateAsync(2);
     setPendingTrips([]);
     setPendingPayments([]);
@@ -190,6 +252,15 @@ export default function Dashboard() {
             <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>
           </div>
           <div className="flex gap-3">
+            <Button 
+              data-testid="button-load-vorgang"
+              variant="outline" 
+              onClick={() => setLoadDialogOpen(true)}
+              className="border-slate-200"
+            >
+              <FolderOpen className="w-4 h-4 mr-2" />
+              Vorgang laden
+            </Button>
             <Button 
               data-testid="button-load-demo"
               variant="outline" 
@@ -262,6 +333,44 @@ export default function Dashboard() {
         {(currentStep === 2 || currentStep === 3) && trips.length > 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
+            {vorgangsId && (
+              <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Ihre Vorgangs-ID</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Notieren Sie diese ID, um später auf Ihren Vorgang zugreifen zu können.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span 
+                      className="font-mono text-2xl font-bold text-emerald-700 tracking-widest bg-white px-4 py-2 rounded-lg border border-emerald-200"
+                      data-testid="text-vorgangs-id"
+                    >
+                      {vorgangsId}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyVorgangsId}
+                      className="border-emerald-300 hover:bg-emerald-100"
+                      data-testid="button-copy-vorgangs-id"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1 text-emerald-600" />
+                          Kopiert
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4 mr-1" />
+                          Kopieren
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard 
                 title="Gesamtfahrten" 
@@ -328,6 +437,57 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vorgang laden</DialogTitle>
+            <DialogDescription>
+              Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="z.B. ABC123"
+              value={loadVorgangsId}
+              onChange={(e) => setLoadVorgangsId(e.target.value.toUpperCase())}
+              className="font-mono text-center text-xl tracking-widest"
+              maxLength={6}
+              data-testid="input-load-vorgangs-id"
+            />
+            {loadError && (
+              <p className="text-sm text-red-600 text-center" data-testid="text-load-error">
+                {loadError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setLoadDialogOpen(false);
+                setLoadVorgangsId("");
+                setLoadError("");
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleLoadSession}
+              disabled={!loadVorgangsId.trim() || loadSessionMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              data-testid="button-confirm-load"
+            >
+              {loadSessionMutation.isPending ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FolderOpen className="w-4 h-4 mr-2" />
+              )}
+              Laden
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
