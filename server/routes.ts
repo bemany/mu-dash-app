@@ -360,5 +360,23 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/sessions/bulk-delete", async (req, res) => {
+    try {
+      const { sessionIds } = req.body;
+      if (!Array.isArray(sessionIds)) {
+        return res.status(400).json({ error: "sessionIds must be an array" });
+      }
+      
+      for (const sessionId of sessionIds) {
+        await storage.deleteSession(sessionId);
+      }
+      
+      res.json({ success: true, deleted: sessionIds.length });
+    } catch (error) {
+      console.error("Error bulk deleting sessions:", error);
+      res.status(500).json({ error: "Failed to delete sessions" });
+    }
+  });
+
   return httpServer;
 }

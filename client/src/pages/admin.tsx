@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Trash2, Eye, Users, Database } from "lucide-react";
@@ -13,6 +14,7 @@ import { de } from "date-fns/locale";
 export default function AdminPage() {
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
 
   // Fetch all sessions
   const { data: sessions, isLoading } = useQuery({
@@ -56,8 +58,61 @@ export default function AdminPage() {
   const handleDeleteSession = async (sessionId: string) => {
     if (confirm("Möchten Sie diese Session wirklich löschen? Alle Daten gehen verloren.")) {
       await deleteSessionMutation.mutateAsync(sessionId);
+      setCheckedSessions(prev => {
+        const next = new Set(prev);
+        next.delete(sessionId);
+        return next;
+      });
     }
   };
+
+  const deleteMultipleMutation = useMutation({
+    mutationFn: async (sessionIds: string[]) => {
+      const res = await fetch("/api/admin/sessions/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionIds }),
+      });
+      if (!res.ok) throw new Error("Failed to delete sessions");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
+      setCheckedSessions(new Set());
+      setSelectedSession(null);
+    },
+  });
+
+  const handleDeleteSelected = async () => {
+    if (checkedSessions.size === 0) return;
+    if (confirm(`Möchten Sie ${checkedSessions.size} Session(s) wirklich löschen? Alle Daten gehen verloren.`)) {
+      await deleteMultipleMutation.mutateAsync(Array.from(checkedSessions));
+    }
+  };
+
+  const toggleSession = (sessionId: string) => {
+    setCheckedSessions(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (!sessions) return;
+    if (checkedSessions.size === sessions.length) {
+      setCheckedSessions(new Set());
+    } else {
+      setCheckedSessions(new Set(sessions.map((s: any) => s.sessionId)));
+    }
+  };
+
+  const allChecked = sessions && sessions.length > 0 && checkedSessions.size === sessions.length;
+  const someChecked = checkedSessions.size > 0 && checkedSessions.size < (sessions?.length || 0);
 
   // Process session details for visualization
   const processedData = React.useMemo(() => {
@@ -157,10 +212,44 @@ export default function AdminPage() {
 
         {/* Sessions List */}
         <Card className="border-slate-100 shadow-sm">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Alle Sessions</CardTitle>
+            {checkedSessions.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={deleteMultipleMutation.isPending}
+                data-testid="button-delete-selected"
+              >
+                {deleteMultipleMutation.isPending ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                {checkedSessions.size} Session(s) löschen
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
+            {sessions && sessions.length > 0 && (
+              <div className="flex items-center gap-3 pb-3 mb-3 border-b border-slate-200">
+                <Checkbox
+                  checked={allChecked}
+                  data-state={someChecked ? "indeterminate" : undefined}
+                  onCheckedChange={toggleAll}
+                  data-testid="checkbox-select-all"
+                />
+                <span className="text-sm text-slate-600">
+                  {allChecked ? "Alle abwählen" : "Alle auswählen"}
+                </span>
+                {checkedSessions.size > 0 && (
+                  <span className="text-sm text-emerald-600 font-medium">
+                    ({checkedSessions.size} ausgewählt)
+                  </span>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               {sessions && sessions.length > 0 ? (
                 sessions.map((session: any) => (
@@ -168,13 +257,21 @@ export default function AdminPage() {
                     key={session.id}
                     className={cn(
                       "flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer",
-                      selectedSession === session.sessionId
+                      checkedSessions.has(session.sessionId)
                         ? "border-emerald-500 bg-emerald-50/50"
+                        : selectedSession === session.sessionId
+                        ? "border-blue-500 bg-blue-50/50"
                         : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                     )}
                     onClick={() => setSelectedSession(session.sessionId)}
                   >
-                    <div className="flex-1">
+                    <div className="flex items-center gap-4">
+                      <Checkbox
+                        checked={checkedSessions.has(session.sessionId)}
+                        onCheckedChange={() => toggleSession(session.sessionId)}
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`checkbox-session-${session.sessionId}`}
+                      />
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-2 h-2 rounded-full",
