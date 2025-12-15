@@ -14,6 +14,7 @@ const httpServer = createServer(app);
 declare module "express-session" {
   interface SessionData {
     uberRetterSessionId?: string;
+    isAdmin?: boolean;
   }
 }
 

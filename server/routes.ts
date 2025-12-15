@@ -347,7 +347,39 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/sessions", async (req, res) => {
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { password } = req.body;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      
+      if (!adminPassword) {
+        return res.status(500).json({ error: "Admin password not configured" });
+      }
+      
+      if (password === adminPassword) {
+        req.session.isAdmin = true;
+        res.json({ success: true });
+      } else {
+        res.status(401).json({ error: "Falsches Passwort" });
+      }
+    } catch (error) {
+      console.error("Error during admin login:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.get("/api/admin/check", async (req, res) => {
+    res.json({ isAdmin: !!req.session.isAdmin });
+  });
+
+  const requireAdmin = (req: any, res: any, next: any) => {
+    if (!req.session.isAdmin) {
+      return res.status(401).json({ error: "Nicht autorisiert" });
+    }
+    next();
+  };
+
+  app.get("/api/admin/sessions", requireAdmin, async (req, res) => {
     try {
       const sessions = await storage.getAllSessions();
       
@@ -371,7 +403,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/sessions/:sessionId", async (req, res) => {
+  app.get("/api/admin/sessions/:sessionId", requireAdmin, async (req, res) => {
     try {
       const { sessionId } = req.params;
       const trips = await storage.getTripsBySession(sessionId);
@@ -403,7 +435,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/sessions/:sessionId", async (req, res) => {
+  app.delete("/api/admin/sessions/:sessionId", requireAdmin, async (req, res) => {
     try {
       const { sessionId } = req.params;
       await storage.deleteSession(sessionId);
@@ -414,7 +446,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sessions/bulk-delete", async (req, res) => {
+  app.post("/api/admin/sessions/bulk-delete", requireAdmin, async (req, res) => {
     try {
       const { sessionIds } = req.body;
       if (!Array.isArray(sessionIds)) {

@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Trash2, Eye, Users, Database } from "lucide-react";
+import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { format } from "date-fns";
@@ -15,8 +16,51 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
-  // Fetch all sessions
+  const { data: authStatus, isLoading: isCheckingAuth } = useQuery({
+    queryKey: ["admin-auth"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/check");
+      if (!res.ok) throw new Error("Failed to check auth");
+      return res.json();
+    },
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Login fehlgeschlagen");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-auth"] });
+      setPassword("");
+      setLoginError("");
+    },
+    onError: (error: Error) => {
+      setLoginError(error.message);
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.trim()) {
+      loginMutation.mutate(password);
+    }
+  };
+
+  const isAdmin = authStatus?.isAdmin;
+
+  // Fetch all sessions (only when authenticated)
   const { data: sessions, isLoading } = useQuery({
     queryKey: ["admin-sessions"],
     queryFn: async () => {
@@ -24,6 +68,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to fetch sessions");
       return res.json();
     },
+    enabled: isAdmin,
   });
 
   // Fetch selected session details
@@ -134,11 +179,61 @@ export default function AdminPage() {
     };
   }, [sessionDetails]);
 
-  if (isLoading) {
+  if (isCheckingAuth || isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-screen">
           <RefreshCw className="w-8 h-8 animate-spin text-emerald-500" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <Card className="w-full max-w-md border-slate-200 shadow-lg">
+            <CardHeader className="text-center">
+              <div className="mx-auto p-4 bg-emerald-50 rounded-full w-fit mb-4">
+                <Lock className="w-8 h-8 text-emerald-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-slate-900">Admin Zugang</CardTitle>
+              <p className="text-slate-500 text-sm mt-2">
+                Geben Sie das Admin-Passwort ein, um fortzufahren.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <Input
+                  type="password"
+                  placeholder="Passwort"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="text-center"
+                  data-testid="input-admin-password"
+                />
+                {loginError && (
+                  <p className="text-sm text-red-600 text-center" data-testid="text-login-error">
+                    {loginError}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!password.trim() || loginMutation.isPending}
+                  data-testid="button-admin-login"
+                >
+                  {loginMutation.isPending ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <LogIn className="w-4 h-4 mr-2" />
+                  )}
+                  Anmelden
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );

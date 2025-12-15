@@ -44,6 +44,13 @@ Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after up
 - **Display**: Shown prominently in steps 2/3 with copy-to-clipboard functionality
 - **Reset behavior**: When session is reset, Vorgangs-ID is cleared (old ID becomes invalid)
 
+### Admin Access
+- **Path**: /admin
+- **Authentication**: Password-protected via ADMIN_PASSWORD environment variable
+- **Endpoints**: All /api/admin/* endpoints require authentication via session
+- **Login**: POST /api/admin/login with { password: string }
+- **Check**: GET /api/admin/check returns { isAdmin: boolean }
+
 ### Workflow Steps
 The application follows a 3-step workflow:
 1. **Daten Import** - Upload both trip and payment CSV files (multiple files supported for each)
