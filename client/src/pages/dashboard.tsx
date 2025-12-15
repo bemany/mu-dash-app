@@ -12,7 +12,7 @@ import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle 
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
-import { ProgressOverlay } from "@/components/ui/progress-overlay";
+import { InlineProgress } from "@/components/ui/inline-progress";
 
 const STEPS = [
   "Daten Import",
@@ -182,7 +182,6 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <ProgressOverlay progress={progress} />
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
@@ -232,7 +231,7 @@ export default function Dashboard() {
               />
             </div>
             
-            <div className="flex justify-center mt-8">
+            <div className="flex flex-col items-center mt-8 gap-4 max-w-3xl mx-auto">
               <Button 
                 data-testid="button-continue"
                 onClick={handleContinue}
@@ -252,6 +251,10 @@ export default function Dashboard() {
                   </>
                 )}
               </Button>
+              
+              <div className="w-full">
+                <InlineProgress progress={progress} />
+              </div>
             </div>
           </div>
         )}
