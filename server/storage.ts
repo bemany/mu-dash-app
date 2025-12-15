@@ -28,6 +28,8 @@ export interface IStorage {
   getOrCreateSession(sessionId: string): Promise<Session>;
   updateSessionActivity(sessionId: string, currentStep: number): Promise<void>;
   getAllSessions(): Promise<Session[]>;
+  getSessionByVorgangsId(vorgangsId: string): Promise<Session | null>;
+  generateVorgangsId(sessionId: string): Promise<string>;
   
   // Trip management
   createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
@@ -78,6 +80,54 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(sessions)
       .orderBy(desc(sessions.lastActivityAt));
+  }
+
+  async getSessionByVorgangsId(vorgangsId: string): Promise<Session | null> {
+    const result = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.vorgangsId, vorgangsId.toUpperCase()))
+      .limit(1);
+    
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async generateVorgangsId(sessionId: string): Promise<string> {
+    const existing = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.sessionId, sessionId))
+      .limit(1);
+    
+    if (existing.length > 0 && existing[0].vorgangsId) {
+      return existing[0].vorgangsId;
+    }
+
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let vorgangsId: string;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      vorgangsId = '';
+      for (let i = 0; i < 6; i++) {
+        vorgangsId += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      const check = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.vorgangsId, vorgangsId))
+        .limit(1);
+      
+      isUnique = check.length === 0;
+    }
+
+    await db
+      .update(sessions)
+      .set({ vorgangsId: vorgangsId! })
+      .where(eq(sessions.sessionId, sessionId));
+    
+    return vorgangsId!;
   }
 
   async createTrips(newTrips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]> {
