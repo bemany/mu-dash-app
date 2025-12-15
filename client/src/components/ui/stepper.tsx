@@ -9,8 +9,8 @@ interface StepperProps {
 
 export function Stepper({ currentStep, steps }: StepperProps) {
   return (
-    <div className="w-full py-4">
-      <div className="flex items-start justify-between relative max-w-4xl mx-auto">
+    <div className="w-full py-2">
+      <div className="flex items-start justify-between relative">
         {/* Connecting Lines */}
         <div className="absolute left-0 top-5 w-full h-0.5 bg-slate-100" style={{ zIndex: 0 }} />
         <div 

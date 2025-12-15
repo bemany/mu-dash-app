@@ -271,12 +271,17 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-          <div>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+          <div className="shrink-0">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="dashboard-title">Uber-Retter Dashboard</h1>
             <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>
           </div>
-          <div className="flex gap-3">
+          
+          <div className="flex-1 max-w-xl">
+            <Stepper currentStep={currentStep} steps={STEPS} />
+          </div>
+          
+          <div className="flex gap-3 shrink-0">
             <Button 
               data-testid="button-load-vorgang"
               variant="outline" 
@@ -309,10 +314,6 @@ export default function Dashboard() {
               </Button>
             )}
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-6">
-          <Stepper currentStep={currentStep} steps={STEPS} />
         </div>
 
         {currentStep === 1 && (
