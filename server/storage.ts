@@ -30,6 +30,7 @@ export interface IStorage {
   getAllSessions(): Promise<Session[]>;
   getSessionByVorgangsId(vorgangsId: string): Promise<Session | null>;
   generateVorgangsId(sessionId: string): Promise<string>;
+  clearVorgangsId(sessionId: string): Promise<void>;
   
   // Trip management
   createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
@@ -128,6 +129,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sessions.sessionId, sessionId));
     
     return vorgangsId!;
+  }
+
+  async clearVorgangsId(sessionId: string): Promise<void> {
+    await db
+      .update(sessions)
+      .set({ vorgangsId: null })
+      .where(eq(sessions.sessionId, sessionId));
   }
 
   async createTrips(newTrips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]> {

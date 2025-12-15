@@ -97,7 +97,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Vorgangs-ID erforderlich" });
       }
 
-      const session = await storage.getSessionByVorgangsId(vorgangsId.trim());
+      const normalizedId = vorgangsId.trim().toUpperCase();
+      const session = await storage.getSessionByVorgangsId(normalizedId);
       
       if (!session) {
         return res.status(404).json({ error: "Keine Session mit dieser Vorgangs-ID gefunden" });
@@ -337,6 +338,7 @@ export async function registerRoutes(
       const sessionId = req.session.uberRetterSessionId!;
       await storage.deleteTripsForSession(sessionId);
       await storage.deleteTransactionsForSession(sessionId);
+      await storage.clearVorgangsId(sessionId);
       await storage.updateSessionActivity(sessionId, 1);
       res.json({ success: true });
     } catch (error) {
