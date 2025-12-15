@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn } from "lucide-react";
+import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { format } from "date-fns";
@@ -15,6 +16,7 @@ import { de } from "date-fns/locale";
 export default function AdminPage() {
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -60,7 +62,6 @@ export default function AdminPage() {
 
   const isAdmin = authStatus?.isAdmin;
 
-  // Fetch all sessions (only when authenticated)
   const { data: sessions, isLoading } = useQuery({
     queryKey: ["admin-sessions"],
     queryFn: async () => {
@@ -71,7 +72,6 @@ export default function AdminPage() {
     enabled: isAdmin,
   });
 
-  // Fetch selected session details
   const { data: sessionDetails } = useQuery({
     queryKey: ["admin-session-details", selectedSession],
     queryFn: async () => {
@@ -80,10 +80,9 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Failed to fetch session details");
       return res.json();
     },
-    enabled: !!selectedSession,
+    enabled: !!selectedSession && detailsModalOpen,
   });
 
-  // Delete session mutation
   const deleteSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
       const res = await fetch(`/api/admin/sessions/${sessionId}`, {
@@ -96,6 +95,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
       if (selectedSession) {
         setSelectedSession(null);
+        setDetailsModalOpen(false);
       }
     },
   });
@@ -125,6 +125,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-sessions"] });
       setCheckedSessions(new Set());
       setSelectedSession(null);
+      setDetailsModalOpen(false);
     },
   });
 
@@ -159,8 +160,34 @@ export default function AdminPage() {
   const allChecked = sessions && sessions.length > 0 && checkedSessions.size === sessions.length;
   const someChecked = checkedSessions.size > 0 && checkedSessions.size < (sessions?.length || 0);
 
-  // Process session details for visualization
-  const processedData = React.useMemo(() => {
+  const groupedSessions = useMemo(() => {
+    if (!sessions || sessions.length === 0) return {};
+    
+    const sortedSessions = [...sessions].sort((a: any, b: any) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    const groups: Record<string, any[]> = {};
+    const orderedKeys: string[] = [];
+    
+    for (const session of sortedSessions) {
+      const dateKey = format(new Date(session.createdAt), "dd.MM.yyyy", { locale: de });
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+        orderedKeys.push(dateKey);
+      }
+      groups[dateKey].push(session);
+    }
+    
+    const sortedGroups: Record<string, any[]> = {};
+    for (const key of orderedKeys) {
+      sortedGroups[key] = groups[key];
+    }
+    
+    return sortedGroups;
+  }, [sessions]);
+
+  const processedData = useMemo(() => {
     if (!sessionDetails) return null;
     
     const { trips, transactions } = sessionDetails;
@@ -178,6 +205,11 @@ export default function AdminPage() {
       totals: { trips: totalTrips, bonus: totalBonus, paid: totalPaid, diff: totalDiff }
     };
   }, [sessionDetails]);
+
+  const openSessionDetails = (sessionId: string) => {
+    setSelectedSession(sessionId);
+    setDetailsModalOpen(true);
+  };
 
   if (isCheckingAuth || isLoading) {
     return (
@@ -243,7 +275,6 @@ export default function AdminPage() {
     <DashboardLayout>
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
-        {/* Header */}
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-500/10 rounded-lg">
@@ -256,7 +287,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-slate-100 shadow-sm">
             <CardContent className="p-6">
@@ -305,7 +335,6 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Sessions List */}
         <Card className="border-slate-100 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-bold">Alle Sessions</CardTitle>
@@ -345,79 +374,90 @@ export default function AdminPage() {
                 )}
               </div>
             )}
-            <div className="space-y-2">
-              {sessions && sessions.length > 0 ? (
-                sessions.map((session: any) => (
-                  <div
-                    key={session.id}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer",
-                      checkedSessions.has(session.sessionId)
-                        ? "border-emerald-500 bg-emerald-50/50"
-                        : selectedSession === session.sessionId
-                        ? "border-blue-500 bg-blue-50/50"
-                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                    )}
-                    onClick={() => setSelectedSession(session.sessionId)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <Checkbox
-                        checked={checkedSessions.has(session.sessionId)}
-                        onCheckedChange={() => toggleSession(session.sessionId)}
-                        onClick={(e) => e.stopPropagation()}
-                        data-testid={`checkbox-session-${session.sessionId}`}
-                      />
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          session.currentStep === 4 ? "bg-emerald-500" : "bg-amber-500"
-                        )} />
-                        <div>
-                          <p className="font-mono text-sm font-semibold text-slate-700">
-                            {session.vorgangsId ? (
-                              <span className="text-emerald-700">{session.vorgangsId}</span>
-                            ) : (
-                              <span className="text-slate-400 italic">Kein Vorgang</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            Erstellt: {format(new Date(session.createdAt), "dd.MM.yyyy HH:mm", { locale: de })}
-                            {" • "}
-                            Letzte Aktivität: {format(new Date(session.lastActivityAt), "dd.MM.yyyy HH:mm", { locale: de })}
-                          </p>
-                        </div>
-                      </div>
+            <div className="space-y-4">
+              {Object.keys(groupedSessions).length > 0 ? (
+                Object.entries(groupedSessions).map(([dateKey, daySessions]) => (
+                  <div key={dateKey} className="space-y-2">
+                    <div className="flex items-center gap-2 py-2 sticky top-0 bg-white z-10">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm font-semibold text-slate-600">{dateKey}</span>
+                      <span className="text-xs text-slate-400">({daySessions.length} Session{daySessions.length > 1 ? 's' : ''})</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-slate-600">
-                          {session.tripCount} Fahrten • {session.transactionCount} Zahlungen
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">Schritt {session.currentStep}/4</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSession(session.sessionId);
-                          }}
+                    <div className="space-y-2 pl-6 border-l-2 border-slate-100">
+                      {daySessions.map((session: any) => (
+                        <div
+                          key={session.id}
+                          className={cn(
+                            "flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer",
+                            checkedSessions.has(session.sessionId)
+                              ? "border-emerald-500 bg-emerald-50/50"
+                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                          )}
+                          onClick={() => openSessionDetails(session.sessionId)}
                         >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSession(session.sessionId);
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                          <div className="flex items-center gap-4">
+                            <Checkbox
+                              checked={checkedSessions.has(session.sessionId)}
+                              onCheckedChange={() => toggleSession(session.sessionId)}
+                              onClick={(e) => e.stopPropagation()}
+                              data-testid={`checkbox-session-${session.sessionId}`}
+                            />
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                session.currentStep === 4 ? "bg-emerald-500" : "bg-amber-500"
+                              )} />
+                              <div>
+                                <p className="font-mono text-sm font-semibold text-slate-700">
+                                  {session.vorgangsId ? (
+                                    <span className="text-emerald-700">{session.vorgangsId}</span>
+                                  ) : (
+                                    <span className="text-slate-400 italic">Kein Vorgang</span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {format(new Date(session.createdAt), "HH:mm", { locale: de })} Uhr
+                                  {" • "}
+                                  Letzte Aktivität: {format(new Date(session.lastActivityAt), "HH:mm", { locale: de })} Uhr
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-slate-600">
+                                {session.tripCount} Fahrten • {session.transactionCount} Zahlungen
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">Schritt {session.currentStep}/4</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openSessionDetails(session.sessionId);
+                                }}
+                                data-testid={`button-view-session-${session.sessionId}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSession(session.sessionId);
+                                }}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                data-testid={`button-delete-session-${session.sessionId}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))
@@ -430,76 +470,81 @@ export default function AdminPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Session Details */}
-        {selectedSession && processedData && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-900">Session Details: {selectedSession}</h2>
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedSession(null)}
-                className="text-slate-500"
-              >
-                Schließen
-              </Button>
-            </div>
-
-            {/* KPI Cards for selected session */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-slate-100 shadow-sm bg-blue-50/50">
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Fahrten</p>
-                  <p className="text-3xl font-bold text-blue-700 mt-2">
-                    {processedData.totals.trips.toLocaleString('de-DE')}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-slate-100 shadow-sm bg-purple-50/50">
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Bonus</p>
-                  <p className="text-3xl font-bold text-purple-700 mt-2">
-                    {processedData.totals.bonus.toLocaleString('de-DE')} €
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-slate-100 shadow-sm bg-emerald-50/50">
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Ausgezahlt</p>
-                  <p className="text-3xl font-bold text-emerald-700 mt-2">
-                    {processedData.totals.paid.toLocaleString('de-DE')} €
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className={cn(
-                "border-slate-100 shadow-sm",
-                processedData.totals.diff > 0 ? "bg-amber-50/50" : "bg-emerald-50/50"
-              )}>
-                <CardContent className="p-6">
-                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Differenz</p>
-                  <p className={cn(
-                    "text-3xl font-bold mt-2",
-                    processedData.totals.diff > 0 ? "text-amber-700" : "text-emerald-700"
-                  )}>
-                    {processedData.totals.diff > 0 ? '+' : ''}{processedData.totals.diff.toLocaleString('de-DE')} €
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Data Table */}
-            <DataTable
-              summaries={processedData.summaries}
-              monthHeaders={processedData.monthHeaders}
-              totals={processedData.totals}
-              showDiff={true}
-            />
-          </div>
-        )}
       </div>
+
+      <Dialog open={detailsModalOpen} onOpenChange={(open) => {
+        setDetailsModalOpen(open);
+        if (!open) {
+          setSelectedSession(null);
+        }
+      }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Session Details: {sessionDetails?.session?.vorgangsId || selectedSession}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {processedData ? (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-slate-100 shadow-sm bg-blue-50/50">
+                  <CardContent className="p-4">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Fahrten</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-1">
+                      {processedData.totals.trips.toLocaleString('de-DE')}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-100 shadow-sm bg-purple-50/50">
+                  <CardContent className="p-4">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Bonus</p>
+                    <p className="text-2xl font-bold text-purple-700 mt-1">
+                      {processedData.totals.bonus.toLocaleString('de-DE')} €
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-100 shadow-sm bg-emerald-50/50">
+                  <CardContent className="p-4">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Ausgezahlt</p>
+                    <p className="text-2xl font-bold text-emerald-700 mt-1">
+                      {processedData.totals.paid.toLocaleString('de-DE')} €
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className={cn(
+                  "border-slate-100 shadow-sm",
+                  processedData.totals.diff > 0 ? "bg-amber-50/50" : "bg-emerald-50/50"
+                )}>
+                  <CardContent className="p-4">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Differenz</p>
+                    <p className={cn(
+                      "text-2xl font-bold mt-1",
+                      processedData.totals.diff > 0 ? "text-amber-700" : "text-emerald-700"
+                    )}>
+                      {processedData.totals.diff > 0 ? '+' : ''}{processedData.totals.diff.toLocaleString('de-DE')} €
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <DataTable
+                summaries={processedData.summaries}
+                monthHeaders={processedData.monthHeaders}
+                totals={processedData.totals}
+                showDiff={true}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

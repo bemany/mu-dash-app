@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
-import { Upload, CheckCircle2, CloudUpload, Car, CreditCard, FileText } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Upload, CheckCircle2, CloudUpload, Car, CreditCard, FileText, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processPaymentCSV } from '@/lib/data-processor';
 import { UberTrip, UberTransaction } from '@/lib/types';
+import { format, parse, isValid, parseISO } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 interface FileResult {
   filename: string;
   type: 'trips' | 'payments' | 'unknown';
   rowCount: number;
+}
+
+interface DateRange {
+  min: Date | null;
+  max: Date | null;
+  months: Set<string>;
 }
 
 interface UnifiedUploadProps {
@@ -26,6 +34,35 @@ function detectFileType(filename: string): 'trips' | 'payments' | 'unknown' {
   return 'unknown';
 }
 
+function parseTripDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  
+  const isoResult = parseISO(dateStr);
+  if (isValid(isoResult)) return isoResult;
+  
+  const formats = [
+    'yyyy-MM-dd HH:mm:ss',
+    "yyyy-MM-dd'T'HH:mm:ss",
+    "yyyy-MM-dd'T'HH:mm:ssXXX",
+    'dd.MM.yyyy HH:mm:ss',
+    'dd.MM.yyyy HH:mm',
+    'yyyy-MM-dd',
+    'dd.MM.yyyy',
+  ];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(dateStr, fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    } catch {}
+  }
+  const fallback = new Date(dateStr);
+  return isValid(fallback) ? fallback : null;
+}
+
+function getMonthKey(date: Date): string {
+  return format(date, 'yyyy-MM');
+}
+
 export function UnifiedUpload({ 
   onDataLoaded,
   testId = "unified-upload"
@@ -33,6 +70,8 @@ export function UnifiedUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileResults, setFileResults] = useState<FileResult[]>([]);
+  const [tripDateRange, setTripDateRange] = useState<DateRange>({ min: null, max: null, months: new Set() });
+  const [paymentDateRange, setPaymentDateRange] = useState<DateRange>({ min: null, max: null, months: new Set() });
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -87,7 +126,6 @@ export function UnifiedUpload({
               allPayments.push(...processed);
               results.push({ filename: file.name, type: 'payments', rowCount: processed.length });
             } else {
-              // Try to auto-detect based on columns
               const firstRow = validData[0] as any;
               if (firstRow) {
                 if (firstRow["Kennzeichen"] && firstRow["Zeitpunkt der Fahrtbestellung"]) {
@@ -112,10 +150,71 @@ export function UnifiedUpload({
       });
     }
 
+    const tripMonths = new Set<string>();
+    let tripMin: Date | null = null;
+    let tripMax: Date | null = null;
+    
+    for (const trip of allTrips) {
+      const dateStr = trip["Zeitpunkt der Fahrtbestellung"];
+      if (dateStr) {
+        const date = parseTripDate(dateStr);
+        if (date) {
+          tripMonths.add(getMonthKey(date));
+          if (!tripMin || date < tripMin) tripMin = date;
+          if (!tripMax || date > tripMax) tripMax = date;
+        }
+      }
+    }
+
+    const paymentMonths = new Set<string>();
+    let paymentMin: Date | null = null;
+    let paymentMax: Date | null = null;
+    
+    for (const payment of allPayments) {
+      const dateStr = payment.timestamp;
+      if (dateStr) {
+        const date = parseTripDate(dateStr);
+        if (date) {
+          paymentMonths.add(getMonthKey(date));
+          if (!paymentMin || date < paymentMin) paymentMin = date;
+          if (!paymentMax || date > paymentMax) paymentMax = date;
+        }
+      }
+    }
+
+    setTripDateRange({ min: tripMin, max: tripMax, months: tripMonths });
+    setPaymentDateRange({ min: paymentMin, max: paymentMax, months: paymentMonths });
     setFileResults(results);
     setIsProcessing(false);
     onDataLoaded(allTrips, allPayments);
   };
+
+  const dateWarning = useMemo(() => {
+    if (tripDateRange.months.size === 0 || paymentDateRange.months.size === 0) {
+      return null;
+    }
+
+    const unmatchedPaymentMonths: string[] = [];
+    paymentDateRange.months.forEach(month => {
+      if (!tripDateRange.months.has(month)) {
+        unmatchedPaymentMonths.push(month);
+      }
+    });
+
+    if (unmatchedPaymentMonths.length === 0) {
+      return null;
+    }
+
+    const formattedMonths = unmatchedPaymentMonths.map(m => {
+      const [year, month] = m.split('-');
+      return format(new Date(parseInt(year), parseInt(month) - 1, 1), 'MMMM yyyy', { locale: de });
+    });
+
+    return {
+      months: formattedMonths,
+      message: `Zahlungen aus ${formattedMonths.length === 1 ? 'dem Monat' : 'den Monaten'} ${formattedMonths.join(', ')} haben keine passenden Fahrten.`
+    };
+  }, [tripDateRange.months, paymentDateRange.months]);
 
   const inputId = `file-upload-${testId}`;
   const tripFiles = fileResults.filter(f => f.type === 'trips');
@@ -200,6 +299,24 @@ export function UnifiedUpload({
         </div>
       </div>
 
+      {dateWarning && (
+        <div 
+          className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex items-start gap-3"
+          data-testid="date-range-warning"
+        >
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-800">Zeitraum-Warnung</p>
+            <p className="text-sm text-amber-700 mt-1">
+              {dateWarning.message}
+            </p>
+            <p className="text-xs text-amber-600 mt-2">
+              Stellen Sie sicher, dass alle Fahrten-Dateien für die relevanten Zeiträume hochgeladen wurden.
+            </p>
+          </div>
+        </div>
+      )}
+
       {hasFiles && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="upload-summary">
           {tripFiles.length > 0 && (
@@ -209,6 +326,11 @@ export function UnifiedUpload({
                 <span className="font-semibold text-emerald-800">Fahrten</span>
                 <span className="ml-auto text-sm text-emerald-600">{totalTrips.toLocaleString('de-DE')} Einträge</span>
               </div>
+              {tripDateRange.min && tripDateRange.max && (
+                <p className="text-xs text-emerald-600 mb-2">
+                  Zeitraum: {format(tripDateRange.min, 'dd.MM.yyyy', { locale: de })} - {format(tripDateRange.max, 'dd.MM.yyyy', { locale: de })}
+                </p>
+              )}
               <div className="space-y-1">
                 {tripFiles.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-emerald-700">
@@ -228,6 +350,11 @@ export function UnifiedUpload({
                 <span className="font-semibold text-purple-800">Zahlungen</span>
                 <span className="ml-auto text-sm text-purple-600">{totalPayments.toLocaleString('de-DE')} Einträge</span>
               </div>
+              {paymentDateRange.min && paymentDateRange.max && (
+                <p className="text-xs text-purple-600 mb-2">
+                  Zeitraum: {format(paymentDateRange.min, 'dd.MM.yyyy', { locale: de })} - {format(paymentDateRange.max, 'dd.MM.yyyy', { locale: de })}
+                </p>
+              )}
               <div className="space-y-1">
                 {paymentFiles.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-purple-700">
