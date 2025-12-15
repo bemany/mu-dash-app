@@ -80,7 +80,18 @@ export class DatabaseStorage implements IStorage {
 
   async createTrips(newTrips: InsertTrip[]): Promise<Trip[]> {
     if (newTrips.length === 0) return [];
-    return await db.insert(trips).values(newTrips).returning();
+    
+    // Batch inserts to avoid stack overflow with large datasets
+    const BATCH_SIZE = 500;
+    const results: Trip[] = [];
+    
+    for (let i = 0; i < newTrips.length; i += BATCH_SIZE) {
+      const batch = newTrips.slice(i, i + BATCH_SIZE);
+      const inserted = await db.insert(trips).values(batch).returning();
+      results.push(...inserted);
+    }
+    
+    return results;
   }
 
   async getTripsBySession(sessionId: string): Promise<Trip[]> {
@@ -96,7 +107,18 @@ export class DatabaseStorage implements IStorage {
 
   async createTransactions(newTransactions: InsertTransaction[]): Promise<Transaction[]> {
     if (newTransactions.length === 0) return [];
-    return await db.insert(transactions).values(newTransactions).returning();
+    
+    // Batch inserts to avoid stack overflow with large datasets
+    const BATCH_SIZE = 500;
+    const results: Transaction[] = [];
+    
+    for (let i = 0; i < newTransactions.length; i += BATCH_SIZE) {
+      const batch = newTransactions.slice(i, i + BATCH_SIZE);
+      const inserted = await db.insert(transactions).values(batch).returning();
+      results.push(...inserted);
+    }
+    
+    return results;
   }
 
   async getTransactionsBySession(sessionId: string): Promise<Transaction[]> {
