@@ -16,7 +16,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block shadow-xl",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:block shadow-xl",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -59,7 +59,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
            <h1 className="text-lg font-bold text-slate-900">Uber-Retter</h1>
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
