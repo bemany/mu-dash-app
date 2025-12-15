@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X } from "lucide-react";
+import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { format } from "date-fns";
@@ -22,6 +22,13 @@ export default function AdminPage() {
   const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyVorgangsId = (vorgangsId: string) => {
+    navigator.clipboard.writeText(vorgangsId);
+    setCopiedId(vorgangsId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const { data: authStatus, isLoading: isCheckingAuth } = useQuery({
     queryKey: ["admin-auth"],
@@ -410,13 +417,31 @@ export default function AdminPage() {
                                 session.currentStep === 4 ? "bg-emerald-500" : "bg-amber-500"
                               )} />
                               <div>
-                                <p className="font-mono text-sm font-semibold text-slate-700">
-                                  {session.vorgangsId ? (
-                                    <span className="text-emerald-700">{session.vorgangsId}</span>
-                                  ) : (
-                                    <span className="text-slate-400 italic">{t('admin.noProcess')}</span>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-mono text-sm font-semibold text-slate-700">
+                                    {session.vorgangsId ? (
+                                      <span className="text-emerald-700">{session.vorgangsId}</span>
+                                    ) : (
+                                      <span className="text-slate-400 italic">{t('admin.noProcess')}</span>
+                                    )}
+                                  </p>
+                                  {session.vorgangsId && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        copyVorgangsId(session.vorgangsId!);
+                                      }}
+                                      className="p-1 rounded hover:bg-slate-200 transition-colors"
+                                      data-testid={`button-copy-vorgangsid-${session.vorgangsId}`}
+                                    >
+                                      {copiedId === session.vorgangsId ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                      )}
+                                    </button>
                                   )}
-                                </p>
+                                </div>
                                 <p className="text-xs text-slate-500 mt-1">
                                   {format(new Date(session.createdAt), "HH:mm", { locale: de })} {t('admin.time')}
                                   {" • "}
