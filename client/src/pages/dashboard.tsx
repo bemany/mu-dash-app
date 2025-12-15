@@ -19,10 +19,35 @@ const STEPS = [
 ];
 
 export default function Dashboard() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [trips, setTrips] = useState<UberTrip[]>([]);
-  const [transactions, setTransactions] = useState<UberTransaction[]>([]);
+  const [currentStep, setCurrentStep] = useState(() => {
+    const saved = sessionStorage.getItem("uber-retter-step");
+    return saved ? parseInt(saved) : 1;
+  });
+  
+  const [trips, setTrips] = useState<UberTrip[]>(() => {
+    const saved = sessionStorage.getItem("uber-retter-trips");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [transactions, setTransactions] = useState<UberTransaction[]>(() => {
+    const saved = sessionStorage.getItem("uber-retter-transactions");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Persist state to session storage
+  React.useEffect(() => {
+    sessionStorage.setItem("uber-retter-trips", JSON.stringify(trips));
+  }, [trips]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem("uber-retter-transactions", JSON.stringify(transactions));
+  }, [transactions]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem("uber-retter-step", currentStep.toString());
+  }, [currentStep]);
 
   // Process data when trips or transactions change
   const { summaries, monthHeaders, totals } = useMemo(() => {
@@ -55,22 +80,47 @@ export default function Dashboard() {
 
   const handleTripsLoaded = (data: any[]) => {
     setIsProcessing(true);
-    setTrips(data as UberTrip[]);
+    const newTrips = (data as UberTrip[]);
+    
+    // Deduplication Logic
+    setTrips(prev => {
+      const existingIds = new Set(prev.map(t => t["Fahrt-ID"] || `${t["Kennzeichen"]}-${t["Zeitpunkt der Fahrtbestellung"]}`));
+      const uniqueNewTrips = newTrips.filter(t => {
+        const id = t["Fahrt-ID"] || `${t["Kennzeichen"]}-${t["Zeitpunkt der Fahrtbestellung"]}`;
+        return !existingIds.has(id);
+      });
+      return [...prev, ...uniqueNewTrips];
+    });
+    
     setIsProcessing(false);
     setCurrentStep(2);
   };
 
   const handleTransactionsLoaded = (data: any[]) => {
     setIsProcessing(true);
-    setTransactions(data as UberTransaction[]);
+    const newTransactions = (data as UberTransaction[]);
+
+    // Deduplication Logic (Composite Key)
+    setTransactions(prev => {
+      const existingKeys = new Set(prev.map(t => `${t["Kennzeichen"]}-${t["Zeitpunkt"]}-${t["Betrag"]}`));
+      const uniqueNewTx = newTransactions.filter(t => {
+        const key = `${t["Kennzeichen"]}-${t["Zeitpunkt"]}-${t["Betrag"]}`;
+        return !existingKeys.has(key);
+      });
+      return [...prev, ...uniqueNewTx];
+    });
+
     setIsProcessing(false);
     setCurrentStep(4);
   };
 
   const reset = () => {
-    setTrips([]);
-    setTransactions([]);
-    setCurrentStep(1);
+    if (confirm("Möchten Sie wirklich alle Daten zurücksetzen?")) {
+      setTrips([]);
+      setTransactions([]);
+      setCurrentStep(1);
+      sessionStorage.clear();
+    }
   };
 
   return (

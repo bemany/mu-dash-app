@@ -34,9 +34,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           <div className="p-4 border-t border-slate-800">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800"
+              onClick={() => {
+                if (confirm("Möchten Sie die aktuelle Sitzung beenden? Alle nicht gespeicherten Daten gehen verloren.")) {
+                  sessionStorage.clear();
+                  window.location.reload();
+                }
+              }}
+            >
               <LogOut className="w-5 h-5 mr-3" />
-              Abmelden
+              Sitzung beenden
             </Button>
           </div>
         </div>
