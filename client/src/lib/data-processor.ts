@@ -147,3 +147,30 @@ export function formatMonthHeader(monthKey: string): string {
   const date = parseISO(monthKey + "-01");
   return format(date, "MM.yy", { locale: de });
 }
+
+export interface TransactionMatch {
+  transaction: UberTransaction;
+  matched: boolean;
+  licensePlate: string | null;
+}
+
+export function analyzeTransactions(transactions: UberTransaction[], knownPlates: Set<string>): {
+  matched: TransactionMatch[];
+  unmatched: TransactionMatch[];
+} {
+  const matched: TransactionMatch[] = [];
+  const unmatched: TransactionMatch[] = [];
+
+  transactions.forEach(tx => {
+    const plate = tx["Kennzeichen"];
+    const normalizedPlate = plate ? plate.trim().toUpperCase().replace(/\s/g, '') : null;
+    
+    if (normalizedPlate && knownPlates.has(normalizedPlate)) {
+      matched.push({ transaction: tx, matched: true, licensePlate: normalizedPlate });
+    } else {
+      unmatched.push({ transaction: tx, matched: false, licensePlate: normalizedPlate });
+    }
+  });
+
+  return { matched, unmatched };
+}

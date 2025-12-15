@@ -8,9 +8,9 @@ import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { UberTrip, UberTransaction } from "@/lib/types";
-import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
+import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState("");
   const [copied, setCopied] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [transactionsDialogOpen, setTransactionsDialogOpen] = useState(false);
 
   const { data: sessionData, isLoading } = useQuery({
     queryKey: ["session"],
@@ -164,8 +165,13 @@ export default function Dashboard() {
     }
   };
 
-  const { summaries, monthHeaders, totals } = useMemo(() => {
-    if (trips.length === 0) return { summaries: [], monthHeaders: [], totals: { trips: 0, bonus: 0, paid: 0, diff: 0 } };
+  const { summaries, monthHeaders, totals, transactionAnalysis } = useMemo(() => {
+    if (trips.length === 0) return { 
+      summaries: [], 
+      monthHeaders: [], 
+      totals: { trips: 0, bonus: 0, paid: 0, diff: 0 },
+      transactionAnalysis: { matched: [], unmatched: [] }
+    };
 
     const processed = processTripsAndTransactions(trips, transactions);
     const months = getMonthHeaders(processed);
@@ -175,10 +181,14 @@ export default function Dashboard() {
     const totalPaid = processed.reduce((acc, curr) => acc + curr.totalPaid, 0);
     const totalDiff = processed.reduce((acc, curr) => acc + curr.totalDifference, 0);
 
+    const knownPlates = new Set(processed.map(s => s.licensePlate));
+    const analysis = analyzeTransactions(transactions, knownPlates);
+
     return { 
       summaries: processed, 
       monthHeaders: months, 
-      totals: { trips: totalTrips, bonus: totalBonus, paid: totalPaid, diff: totalDiff } 
+      totals: { trips: totalTrips, bonus: totalBonus, paid: totalPaid, diff: totalDiff },
+      transactionAnalysis: analysis
     };
   }, [trips, transactions]);
 
@@ -518,6 +528,20 @@ export default function Dashboard() {
               totals={totals} 
               showDiff={currentStep === 3} 
             />
+
+            {currentStep === 3 && transactions.length > 0 && (
+              <div className="flex justify-center mt-6">
+                <Button
+                  data-testid="button-view-transactions"
+                  variant="outline"
+                  onClick={() => setTransactionsDialogOpen(true)}
+                  className="border-slate-300"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Auszahlungen pruefen ({transactionAnalysis.matched.length} zugeordnet, {transactionAnalysis.unmatched.length} nicht zugeordnet)
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -568,6 +592,99 @@ export default function Dashboard() {
                 <FolderOpen className="w-4 h-4 mr-2" />
               )}
               Laden
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transactionsDialogOpen} onOpenChange={setTransactionsDialogOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Auszahlungen Uebersicht</DialogTitle>
+            <DialogDescription>
+              Pruefen Sie welche Auszahlungen Ihren Kennzeichen zugeordnet wurden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto space-y-6 py-4">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-semibold text-emerald-800">Zugeordnete Auszahlungen ({transactionAnalysis.matched.length})</h3>
+              </div>
+              {transactionAnalysis.matched.length > 0 ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-emerald-100">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-emerald-800">Kennzeichen</th>
+                        <th className="px-3 py-2 text-left font-medium text-emerald-800">Datum</th>
+                        <th className="px-3 py-2 text-right font-medium text-emerald-800">Betrag</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-emerald-200">
+                      {transactionAnalysis.matched.slice(0, 50).map((item, i) => (
+                        <tr key={i} className="hover:bg-emerald-100/50">
+                          <td className="px-3 py-2 font-mono">{item.licensePlate}</td>
+                          <td className="px-3 py-2">{item.transaction["Zeitpunkt"]?.split(' ')[0] || '-'}</td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            {(typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {transactionAnalysis.matched.length > 50 && (
+                    <p className="px-3 py-2 text-xs text-emerald-600 bg-emerald-100">
+                      ... und {transactionAnalysis.matched.length - 50} weitere
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 italic">Keine zugeordneten Auszahlungen gefunden.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <XCircle className="w-5 h-5 text-amber-600" />
+                <h3 className="font-semibold text-amber-800">Nicht zugeordnete Auszahlungen ({transactionAnalysis.unmatched.length})</h3>
+              </div>
+              {transactionAnalysis.unmatched.length > 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-amber-100">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-amber-800">Kennzeichen</th>
+                        <th className="px-3 py-2 text-left font-medium text-amber-800">Datum</th>
+                        <th className="px-3 py-2 text-right font-medium text-amber-800">Betrag</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-200">
+                      {transactionAnalysis.unmatched.slice(0, 50).map((item, i) => (
+                        <tr key={i} className="hover:bg-amber-100/50">
+                          <td className="px-3 py-2 font-mono">{item.licensePlate || '(unbekannt)'}</td>
+                          <td className="px-3 py-2">{item.transaction["Zeitpunkt"]?.split(' ')[0] || '-'}</td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            {(typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {transactionAnalysis.unmatched.length > 50 && (
+                    <p className="px-3 py-2 text-xs text-amber-600 bg-amber-100">
+                      ... und {transactionAnalysis.unmatched.length - 50} weitere
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 italic">Alle Auszahlungen wurden erfolgreich zugeordnet.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setTransactionsDialogOpen(false)}>
+              Schliessen
             </Button>
           </DialogFooter>
         </DialogContent>
