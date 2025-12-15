@@ -75,10 +75,10 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1920px] mx-auto space-y-8 pb-20">
+      <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
         {/* Header Area */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Uber-Retter Dashboard</h1>
             <p className="text-slate-500 text-sm mt-1">Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.</p>

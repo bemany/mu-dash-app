@@ -19,34 +19,34 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           {/* Header */}
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-200">
-              <th className="px-6 py-4 font-bold text-slate-700 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] w-[180px]">
+              <th className="px-2 py-2 font-bold text-slate-700 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] w-[140px]">
                 Kennzeichen
               </th>
               
               {/* Total Column Moved to Start */}
-              <th colSpan={showDiff ? 3 : 2} className="px-4 py-3 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[160px]">
+              <th colSpan={showDiff ? 3 : 2} className="px-2 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[120px]">
                 Gesamt
               </th>
 
               {monthHeaders.map(month => (
-                <th key={month} colSpan={showDiff ? 2 : 1} className="px-2 py-3 text-center border-l border-slate-200 min-w-[100px]">
+                <th key={month} colSpan={showDiff ? 2 : 1} className="px-1 py-2 text-center border-l border-slate-200 min-w-[80px]">
                   <div className="font-semibold text-slate-700">{formatMonthHeader(month)}</div>
                 </th>
               ))}
             </tr>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-2 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"></th>
+              <th className="px-2 py-1 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"></th>
               
               {/* Total Subheaders */}
-              <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">Fahrten</th>
-              <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Bonus</th>
-              {showDiff && <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Diff</th>}
+              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">Fahrten</th>
+              <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Bonus</th>
+              {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">Diff</th>}
 
               {/* Monthly Subheaders - REMOVED SOLL COLUMN */}
               {monthHeaders.map(month => (
                 <React.Fragment key={month + '-sub'}>
-                  <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">Fahrten</th>
-                  {showDiff && <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">Diff</th>}
+                  <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">Fahrten</th>
+                  {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">Diff</th>}
                 </React.Fragment>
               ))}
             </tr>
@@ -56,23 +56,23 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           <tbody className="divide-y divide-slate-100">
             {summaries.map((driver) => (
               <tr key={driver.licensePlate} className="hover:bg-slate-50/60 transition-colors group">
-                <td className="px-6 py-3 font-semibold text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/60 z-10 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)] border-r border-transparent">
+                <td className="px-2 py-1 font-semibold text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50/60 z-10 whitespace-nowrap shadow-[1px_0_0_0_rgba(0,0,0,0.05)] border-r border-transparent text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-slate-300 group-hover:bg-emerald-400 transition-colors" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-emerald-400 transition-colors" />
                     {driver.licensePlate}
                   </div>
                 </td>
                 
                 {/* Row Totals moved to Start */}
-                <td className="px-2 py-3 text-center border-l border-slate-200 bg-slate-50/30 font-mono font-medium text-slate-600 text-xs">
+                <td className="px-1 py-1 text-center border-l border-slate-200 bg-slate-50/30 font-mono font-medium text-slate-600 text-xs">
                   {driver.totalCount.toLocaleString()}
                 </td>
-                <td className="px-2 py-3 text-center bg-slate-50/30 font-mono font-bold text-slate-700 text-xs">
+                <td className="px-1 py-1 text-center bg-slate-50/30 font-mono font-bold text-slate-700 text-xs">
                   {driver.totalBonus > 0 ? driver.totalBonus + " €" : "-"}
                 </td>
                 {showDiff && (
                   <td className={cn(
-                    "px-2 py-3 text-center bg-slate-50/30 font-mono font-bold text-xs border-r border-slate-50",
+                    "px-1 py-1 text-center bg-slate-50/30 font-mono font-bold text-xs border-r border-slate-50",
                     getDiffColor(driver.totalDifference)
                   )}>
                      {formatDiff(driver.totalDifference)}
@@ -96,17 +96,17 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
           {/* Footer */}
           <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-slate-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] clip-path-inset-top">
              <tr>
-                <td className="px-6 py-4 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Gesamtsumme</td>
+                <td className="px-2 py-2 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_rgba(0,0,0,0.05)] text-xs">Gesamtsumme</td>
                 
                 {/* Total Footer moved to Start */}
-                <td className="px-2 py-4 text-center border-l border-slate-200 bg-slate-100/50 font-mono text-sm">
+                <td className="px-1 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-mono text-xs">
                   {totals.trips.toLocaleString()}
                 </td>
-                <td className="px-2 py-4 text-center bg-slate-100/50 font-mono text-sm text-emerald-700">
+                <td className="px-1 py-2 text-center bg-slate-100/50 font-mono text-xs text-emerald-700">
                   {totals.bonus.toLocaleString()} €
                 </td>
                 {showDiff && (
-                  <td className={cn("px-2 py-4 text-center bg-slate-100/50 font-mono text-sm", getDiffColor(totals.diff))}>
+                  <td className={cn("px-1 py-2 text-center bg-slate-100/50 font-mono text-xs", getDiffColor(totals.diff))}>
                     {formatDiff(totals.diff)}
                   </td>
                 )}
@@ -117,11 +117,11 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                   
                   return (
                     <React.Fragment key={'total-'+month}>
-                      <td className="px-2 py-4 text-center border-l border-slate-200 font-mono text-xs text-slate-600">
+                      <td className="px-1 py-2 text-center border-l border-slate-200 font-mono text-xs text-slate-600">
                         {monthTotalCount.toLocaleString()}
                       </td>
                       {showDiff && (
-                        <td className={cn("px-2 py-4 text-center font-mono text-xs", getDiffColor(monthTotalDiff))}>
+                        <td className={cn("px-1 py-2 text-center font-mono text-xs", getDiffColor(monthTotalDiff))}>
                           {formatDiff(monthTotalDiff)}
                         </td>
                       )}
@@ -153,13 +153,13 @@ function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff
   return (
     <React.Fragment>
       <td className="p-0 text-center border-l border-slate-100 font-mono text-xs">
-        <div className={cn("flex items-center justify-center w-full h-full py-3 px-1", countColorClass)}>
+        <div className={cn("flex items-center justify-center w-full h-full py-1 px-1", countColorClass)}>
           {count > 0 ? count : "-"}
         </div>
       </td>
       {/* REMOVED SOLL COLUMN */}
       {showDiff && (
-        <td className={cn("px-2 py-3 text-center font-mono text-xs border-r border-slate-50", getDiffColor(diff))}>
+        <td className={cn("px-1 py-1 text-center font-mono text-xs border-r border-slate-50", getDiffColor(diff))}>
           {diff !== 0 ? formatDiff(diff) : "-"}
         </td>
       )}
