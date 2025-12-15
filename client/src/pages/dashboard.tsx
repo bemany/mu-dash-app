@@ -205,6 +205,10 @@ export default function Dashboard() {
     setUploadProgress(null);
     
     try {
+      // Generate Vorgangs-ID first, before upload starts
+      await generateVorgangsIdMutation.mutateAsync();
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      
       if (pendingTrips.length > 0) {
         await uploadInChunks(
           pendingTrips,
@@ -225,7 +229,6 @@ export default function Dashboard() {
         );
       }
       
-      await generateVorgangsIdMutation.mutateAsync();
       await updateStepMutation.mutateAsync(2);
       queryClient.invalidateQueries({ queryKey: ["session"] });
       setPendingTrips([]);
@@ -346,6 +349,43 @@ export default function Dashboard() {
               </Button>
               
               <div className="w-full">
+                {vorgangsId && isProcessing && (
+                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-4 rounded-xl border border-emerald-200 shadow-sm mb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600">Ihre Vorgangs-ID</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Notieren Sie diese ID - der Upload laeuft im Hintergrund.</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span 
+                          className="font-mono text-2xl font-bold text-emerald-700 tracking-widest bg-white px-4 py-2 rounded-lg border border-emerald-200"
+                          data-testid="text-vorgangs-id-upload"
+                        >
+                          {vorgangsId}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={copyVorgangsId}
+                          className="border-emerald-300 hover:bg-emerald-100"
+                          data-testid="button-copy-vorgangs-id-upload"
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="w-4 h-4 mr-1 text-emerald-600" />
+                              Kopiert
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 mr-1" />
+                              Kopieren
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {uploadProgress && (
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-2">
                     <div className="flex justify-between text-sm text-slate-600 mb-2">
