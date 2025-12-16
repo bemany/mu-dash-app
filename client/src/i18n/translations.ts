@@ -51,6 +51,9 @@ export const translations = {
       duplicatesSkipped: 'Duplikate übersprungen',
       loadingData: 'Daten werden geladen',
       pleaseWait: 'Bitte warten Sie einen Moment...',
+      status: 'Status',
+      readyToProcess: 'Bereit zur Verarbeitung',
+      awaitingFiles: 'Warte auf Dateien...',
       loadProcessDialog: {
         title: 'Vorgang laden',
         description: 'Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.',
@@ -242,6 +245,9 @@ export const translations = {
       duplicatesSkipped: 'duplicates skipped',
       loadingData: 'Loading data',
       pleaseWait: 'Please wait a moment...',
+      status: 'Status',
+      readyToProcess: 'Ready to process',
+      awaitingFiles: 'Waiting for files...',
       loadProcessDialog: {
         title: 'Load Process',
         description: 'Enter your Process ID to load an existing process.',
@@ -433,6 +439,9 @@ export const translations = {
       duplicatesSkipped: 'tekrar atlandı',
       loadingData: 'Veriler yükleniyor',
       pleaseWait: 'Lütfen bir dakika bekleyin...',
+      status: 'Durum',
+      readyToProcess: 'İşlemeye hazır',
+      awaitingFiles: 'Dosyalar bekleniyor...',
       loadProcessDialog: {
         title: 'İşlem Yükle',
         description: 'Mevcut bir işlemi yüklemek için İşlem Kimliğinizi girin.',
@@ -624,6 +633,9 @@ export const translations = {
       duplicatesSkipped: 'تم تخطي التكرارات',
       loadingData: 'جاري تحميل البيانات',
       pleaseWait: 'يرجى الانتظار لحظة...',
+      status: 'الحالة',
+      readyToProcess: 'جاهز للمعالجة',
+      awaitingFiles: 'في انتظار الملفات...',
       loadProcessDialog: {
         title: 'تحميل العملية',
         description: 'أدخل معرف العملية لتحميل عملية موجودة.',

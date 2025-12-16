@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
@@ -394,97 +394,111 @@ export default function Dashboard() {
 
         {!isTransitioning && currentStep === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center mb-8 mt-8">
-              <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">{t('dashboard.welcome')}</h2>
-              <p className="text-slate-500">{t('dashboard.welcomeSubtitle')}</p>
-            </div>
-            
-            <div className="max-w-3xl mx-auto">
-              <UnifiedUpload 
-                onDataLoaded={handleUnifiedUpload}
-                testId="unified-upload"
-              />
-            </div>
-            
-            <div className="flex flex-col items-center mt-8 gap-4 max-w-3xl mx-auto">
-              <Button 
-                data-testid="button-continue"
-                onClick={handleContinue}
-                disabled={!canContinue || isProcessing}
-                size="lg"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8"
-              >
-                {isProcessing ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    {t('dashboard.processing')}
-                  </>
-                ) : (
-                  <>
-                    {t('dashboard.continue')}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mt-4">
+              <div className="space-y-4">
+                <UnifiedUpload 
+                  onDataLoaded={handleUnifiedUpload}
+                  testId="unified-upload"
+                  compact={true}
+                />
+              </div>
               
-              <div className="w-full">
-                {vorgangsId && isProcessing && (
-                  <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-4 rounded-xl border border-emerald-200 shadow-sm mb-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-slate-600">{t('dashboard.yourProcessId')}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{t('dashboard.noteProcessId')}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span 
-                          className="font-mono text-2xl font-bold text-emerald-700 tracking-widest bg-white px-4 py-2 rounded-lg border border-emerald-200"
-                          data-testid="text-vorgangs-id-upload"
-                        >
-                          {vorgangsId}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={copyVorgangsId}
-                          className="border-emerald-300 hover:bg-emerald-100"
-                          data-testid="button-copy-vorgangs-id-upload"
-                        >
-                          {copied ? (
-                            <>
-                              <Check className="w-4 h-4 mr-1 text-emerald-600" />
-                              {t('dashboard.copied')}
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-4 h-4 mr-1" />
-                              {t('dashboard.copy')}
-                            </>
-                          )}
-                        </Button>
+              <div className="lg:sticky lg:top-4 lg:self-start">
+                <Card className="border-slate-200 shadow-sm">
+                  <CardContent className="p-5 space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-slate-800 mb-1">{t('dashboard.status')}</h3>
+                      <div className="flex items-center gap-2 text-sm">
+                        {canContinue ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            <span className="text-emerald-700">{t('dashboard.readyToProcess')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-500">{t('dashboard.awaitingFiles')}</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
-                {uploadProgress && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-2">
-                    <div className="flex justify-between text-sm text-slate-600 mb-2">
-                      <span>
-                        {uploadProgress.phase === 'trips' ? t('dashboard.uploadingTrips') : t('dashboard.uploadingPayments')}
-                      </span>
-                      <span>{uploadProgress.current.toLocaleString('de-DE')} / {uploadProgress.total.toLocaleString('de-DE')}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${uploadProgress.percent}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2 text-center">
-                      {t('dashboard.uploadingChunks')}
-                    </p>
-                  </div>
-                )}
-                <InlineProgress progress={progress} />
+
+                    {(pendingTrips.length > 0 || pendingPayments.length > 0) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-emerald-700">{pendingTrips.length.toLocaleString('de-DE')}</p>
+                          <p className="text-xs text-emerald-600">{t('upload.trips')}</p>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-3 text-center">
+                          <p className="text-2xl font-bold text-purple-700">{pendingPayments.length.toLocaleString('de-DE')}</p>
+                          <p className="text-xs text-purple-600">{t('upload.payments')}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {vorgangsId && isProcessing && (
+                      <div className="bg-gradient-to-r from-emerald-50 to-blue-50 p-3 rounded-lg border border-emerald-200">
+                        <p className="text-xs font-medium text-slate-600 mb-1">{t('dashboard.yourProcessId')}</p>
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="font-mono text-lg font-bold text-emerald-700 tracking-wider"
+                            data-testid="text-vorgangs-id-upload"
+                          >
+                            {vorgangsId}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={copyVorgangsId}
+                            className="h-7 px-2"
+                            data-testid="button-copy-vorgangs-id-upload"
+                          >
+                            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {uploadProgress && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-slate-600">
+                          <span>{uploadProgress.phase === 'trips' ? t('dashboard.uploadingTrips') : t('dashboard.uploadingPayments')}</span>
+                          <span>{uploadProgress.percent}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div 
+                            className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress.percent}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-500 text-center">
+                          {uploadProgress.current.toLocaleString('de-DE')} / {uploadProgress.total.toLocaleString('de-DE')}
+                        </p>
+                      </div>
+                    )}
+
+                    <InlineProgress progress={progress} />
+
+                    <Button 
+                      data-testid="button-continue"
+                      onClick={handleContinue}
+                      disabled={!canContinue || isProcessing}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          {t('dashboard.processing')}
+                        </>
+                      ) : (
+                        <>
+                          {t('dashboard.continue')}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

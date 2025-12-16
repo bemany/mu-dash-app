@@ -22,6 +22,7 @@ interface DateRange {
 interface UnifiedUploadProps {
   onDataLoaded: (trips: UberTrip[], payments: UberTransaction[]) => void;
   testId?: string;
+  compact?: boolean;
 }
 
 function detectFileType(filename: string): 'trips' | 'payments' | 'unknown' {
@@ -66,7 +67,8 @@ function getMonthKey(date: Date): string {
 
 export function UnifiedUpload({ 
   onDataLoaded,
-  testId = "unified-upload"
+  testId = "unified-upload",
+  compact = false
 }: UnifiedUploadProps) {
   const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
@@ -230,7 +232,8 @@ export function UnifiedUpload({
       <div 
         data-testid={testId}
         className={cn(
-          "group relative border-2 border-dashed rounded-xl p-8 transition-all duration-300 ease-out text-center cursor-pointer overflow-hidden bg-white",
+          "group relative border-2 border-dashed rounded-xl transition-all duration-300 ease-out text-center cursor-pointer overflow-hidden bg-white",
+          compact ? "p-5" : "p-8",
           isDragging 
             ? "border-emerald-500 bg-emerald-50/50 scale-[1.01] shadow-xl" 
             : "border-slate-200 hover:border-emerald-400 hover:bg-slate-50 hover:shadow-md",
@@ -253,48 +256,50 @@ export function UnifiedUpload({
         
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]" />
 
-        <div className="relative flex flex-col items-center gap-4 z-10">
+        <div className={cn("relative flex flex-col items-center z-10", compact ? "gap-3" : "gap-4")}>
           <div className={cn(
-            "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border border-slate-100",
+            "rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border border-slate-100",
+            compact ? "w-10 h-10" : "w-14 h-14",
             isDragging ? "bg-emerald-100 text-emerald-600 scale-110" : 
             hasFiles ? "bg-emerald-100 text-emerald-600" :
             "bg-white text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 group-hover:border-emerald-100"
           )}>
             {isProcessing ? (
-              <div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <div className={cn("border-2 border-emerald-500 border-t-transparent rounded-full animate-spin", compact ? "w-5 h-5" : "w-7 h-7")} />
             ) : hasFiles ? (
-              <CheckCircle2 className="w-7 h-7" />
+              <CheckCircle2 className={compact ? "w-5 h-5" : "w-7 h-7"} />
             ) : isDragging ? (
-              <CloudUpload className="w-7 h-7" />
+              <CloudUpload className={compact ? "w-5 h-5" : "w-7 h-7"} />
             ) : (
-              <Upload className="w-7 h-7" />
+              <Upload className={compact ? "w-5 h-5" : "w-7 h-7"} />
             )}
           </div>
           
-          <div className="space-y-2 max-w-lg">
+          <div className={cn("max-w-lg", compact ? "space-y-1" : "space-y-2")}>
             <h3 data-testid={`${testId}-title`} className={cn(
-              "text-xl font-bold transition-colors duration-300",
+              "font-bold transition-colors duration-300",
+              compact ? "text-base" : "text-xl",
               isDragging ? "text-emerald-700" : 
               hasFiles ? "text-emerald-700" :
               "text-slate-700 group-hover:text-emerald-700"
             )}>
               {hasFiles ? `${fileResults.length} Datei${fileResults.length > 1 ? 'en' : ''} geladen` : t('upload.dropHere')}
             </h3>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className={cn("text-slate-500 leading-relaxed", compact ? "text-xs" : "text-sm")}>
               {hasFiles 
                 ? t('upload.selectFiles') 
                 : t('upload.subtitle')}
             </p>
           </div>
           
-          <div className="flex gap-4 text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700">
+          <div className={cn("flex text-xs", compact ? "gap-2 flex-wrap justify-center" : "gap-4")}>
+            <div className={cn("flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700", compact ? "px-2 py-1" : "px-3 py-1.5")}>
               <Car className="w-3.5 h-3.5" />
-              <span>*trip*.csv → {t('upload.trips')}</span>
+              <span>*trip*.csv</span>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-700">
+            <div className={cn("flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-700", compact ? "px-2 py-1" : "px-3 py-1.5")}>
               <CreditCard className="w-3.5 h-3.5" />
-              <span>*payment*.csv → {t('upload.payments')}</span>
+              <span>*payment*.csv</span>
             </div>
           </div>
         </div>
