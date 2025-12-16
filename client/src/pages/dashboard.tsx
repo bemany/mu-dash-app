@@ -40,8 +40,9 @@ export default function Dashboard() {
   const [addMoreDataDialogOpen, setAddMoreDataDialogOpen] = useState(false);
   const [additionalTrips, setAdditionalTrips] = useState<UberTrip[]>([]);
   const [additionalPayments, setAdditionalPayments] = useState<UberTransaction[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const { data: sessionData, isLoading } = useQuery({
+  const { data: sessionData, isLoading, isFetching } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
       const res = await fetch("/api/session");
@@ -248,6 +249,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["session"] });
       setPendingTrips([]);
       setPendingPayments([]);
+      setIsTransitioning(true);
     } catch (error) {
       console.error("Upload error:", error);
     } finally {
@@ -255,6 +257,13 @@ export default function Dashboard() {
       setUploadProgress(null);
     }
   };
+  
+  // Reset transitioning state when data fetching completes
+  React.useEffect(() => {
+    if (isTransitioning && !isFetching) {
+      setIsTransitioning(false);
+    }
+  }, [isTransitioning, isFetching]);
 
   const handleGoToAbgleich = async () => {
     await updateStepMutation.mutateAsync(3);
@@ -374,7 +383,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {currentStep === 1 && (
+        {isTransitioning && (
+          <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-300">
+            <RefreshCw className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
+            <p className="text-lg font-medium text-slate-700">{t('dashboard.loadingData')}</p>
+            <p className="text-sm text-slate-500 mt-1">{t('dashboard.pleaseWait')}</p>
+          </div>
+        )}
+
+        {!isTransitioning && currentStep === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="text-center mb-8 mt-8">
               <h2 className="text-3xl font-bold text-slate-800 mb-2" data-testid="step1-title">{t('dashboard.welcome')}</h2>
@@ -472,7 +489,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {(currentStep === 2 || currentStep === 3) && trips.length > 0 && (
+        {!isTransitioning && (currentStep === 2 || currentStep === 3) && trips.length > 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {vorgangsId && (

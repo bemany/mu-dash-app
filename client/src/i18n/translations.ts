@@ -49,6 +49,8 @@ export const translations = {
       addMoreDataDesc: 'Laden Sie zusätzliche CSV-Dateien hoch. Duplikate werden automatisch erkannt und übersprungen.',
       newRecordsAdded: 'neue Einträge hinzugefügt',
       duplicatesSkipped: 'Duplikate übersprungen',
+      loadingData: 'Daten werden geladen',
+      pleaseWait: 'Bitte warten Sie einen Moment...',
       loadProcessDialog: {
         title: 'Vorgang laden',
         description: 'Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.',
@@ -238,6 +240,8 @@ export const translations = {
       addMoreDataDesc: 'Upload additional CSV files. Duplicates are automatically detected and skipped.',
       newRecordsAdded: 'new records added',
       duplicatesSkipped: 'duplicates skipped',
+      loadingData: 'Loading data',
+      pleaseWait: 'Please wait a moment...',
       loadProcessDialog: {
         title: 'Load Process',
         description: 'Enter your Process ID to load an existing process.',
@@ -427,6 +431,8 @@ export const translations = {
       addMoreDataDesc: 'Ek CSV dosyaları yükleyin. Tekrarlar otomatik olarak algılanır ve atlanır.',
       newRecordsAdded: 'yeni kayıt eklendi',
       duplicatesSkipped: 'tekrar atlandı',
+      loadingData: 'Veriler yükleniyor',
+      pleaseWait: 'Lütfen bir dakika bekleyin...',
       loadProcessDialog: {
         title: 'İşlem Yükle',
         description: 'Mevcut bir işlemi yüklemek için İşlem Kimliğinizi girin.',
@@ -616,6 +622,8 @@ export const translations = {
       addMoreDataDesc: 'قم بتحميل ملفات CSV إضافية. يتم اكتشاف التكرارات وتخطيها تلقائياً.',
       newRecordsAdded: 'سجلات جديدة مضافة',
       duplicatesSkipped: 'تم تخطي التكرارات',
+      loadingData: 'جاري تحميل البيانات',
+      pleaseWait: 'يرجى الانتظار لحظة...',
       loadProcessDialog: {
         title: 'تحميل العملية',
         description: 'أدخل معرف العملية لتحميل عملية موجودة.',
