@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
 import { uploadInChunks, UploadProgress } from "@/lib/chunked-upload";
 import { useTranslation } from "@/i18n";
+import * as XLSX from "xlsx";
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -326,6 +327,61 @@ export default function Dashboard() {
 
   const canContinue = pendingTrips.length > 0 || trips.length > 0;
 
+  const exportTransactionsToExcel = () => {
+    const matchedData = transactionAnalysis.matched.map(item => ({
+      'Kennzeichen': item.licensePlate,
+      'Datum': item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
+      'Betrag': typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
+      'Status': 'Zugeordnet'
+    }));
+    
+    const unmatchedData = transactionAnalysis.unmatched.map(item => ({
+      'Kennzeichen': item.licensePlate || '(unbekannt)',
+      'Datum': item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
+      'Betrag': typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
+      'Status': 'Nicht zugeordnet'
+    }));
+    
+    const allData = [...matchedData, ...unmatchedData];
+    const ws = XLSX.utils.json_to_sheet(allData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Zahlungen");
+    XLSX.writeFile(wb, `Zahlungen_${vorgangsId || 'export'}.xlsx`);
+  };
+
+  const exportSummaryToExcel = () => {
+    const data = summaries.map(s => {
+      const row: Record<string, any> = {
+        'Kennzeichen': s.licensePlate,
+        'Gesamt Fahrten': s.totalCount,
+        'Bonus': s.totalBonus,
+      };
+      if (currentStep === 3) {
+        row['Gezahlt'] = s.totalPaid;
+        row['Differenz'] = s.totalDifference;
+      }
+      monthHeaders.forEach(month => {
+        const monthData = s.months[month];
+        if (monthData) {
+          row[`${month} Fahrten`] = monthData.count;
+        }
+      });
+      return row;
+    });
+    
+    data.push({
+      'Kennzeichen': 'GESAMT',
+      'Gesamt Fahrten': totals.trips,
+      'Bonus': totals.bonus,
+      ...(currentStep === 3 ? { 'Gezahlt': totals.paid, 'Differenz': totals.diff } : {})
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auswertung");
+    XLSX.writeFile(wb, `Auswertung_${vorgangsId || 'export'}.xlsx`);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -612,6 +668,18 @@ export default function Dashboard() {
               </div>
             )}
 
+            <div className="flex justify-end mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportSummaryToExcel}
+                data-testid="button-export-summary"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t('dashboard.exportExcel')}
+              </Button>
+            </div>
+
             <DataTable 
               summaries={summaries} 
               monthHeaders={monthHeaders} 
@@ -793,7 +861,15 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={exportTransactionsToExcel}
+              data-testid="button-export-transactions"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {t('dashboard.exportExcel')}
+            </Button>
             <Button onClick={() => setTransactionsDialogOpen(false)}>
               {t('common.close')}
             </Button>

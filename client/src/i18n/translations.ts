@@ -54,6 +54,7 @@ export const translations = {
       status: 'Status',
       readyToProcess: 'Bereit zur Verarbeitung',
       awaitingFiles: 'Warte auf Dateien...',
+      exportExcel: 'Als Excel exportieren',
       loadProcessDialog: {
         title: 'Vorgang laden',
         description: 'Geben Sie Ihre Vorgangs-ID ein, um einen bestehenden Vorgang zu laden.',
@@ -248,6 +249,7 @@ export const translations = {
       status: 'Status',
       readyToProcess: 'Ready to process',
       awaitingFiles: 'Waiting for files...',
+      exportExcel: 'Export as Excel',
       loadProcessDialog: {
         title: 'Load Process',
         description: 'Enter your Process ID to load an existing process.',
@@ -442,6 +444,7 @@ export const translations = {
       status: 'Durum',
       readyToProcess: 'İşlemeye hazır',
       awaitingFiles: 'Dosyalar bekleniyor...',
+      exportExcel: 'Excel olarak dışa aktar',
       loadProcessDialog: {
         title: 'İşlem Yükle',
         description: 'Mevcut bir işlemi yüklemek için İşlem Kimliğinizi girin.',
@@ -636,6 +639,7 @@ export const translations = {
       status: 'الحالة',
       readyToProcess: 'جاهز للمعالجة',
       awaitingFiles: 'في انتظار الملفات...',
+      exportExcel: 'تصدير كملف Excel',
       loadProcessDialog: {
         title: 'تحميل العملية',
         description: 'أدخل معرف العملية لتحميل عملية موجودة.',
