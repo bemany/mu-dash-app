@@ -67,6 +67,7 @@ export function processTripsAndTransactions(trips: UberTrip[], transactions: Ube
   };
 
   trips.forEach(trip => {
+    // Nur completed Fahrten zählen
     if (trip["Fahrtstatus"] !== "completed") return;
 
     const date = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
