@@ -26,12 +26,18 @@ declare module "http" {
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "uber-retter-secret-key-change-in-production";
 
+// Trust proxy for production (behind reverse proxy)
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 const sessionMiddleware = session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: {
     secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   },
 });
