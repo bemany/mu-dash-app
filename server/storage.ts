@@ -4,12 +4,15 @@ import {
   sessions,
   trips,
   transactions,
+  uploads,
   type Session,
   type InsertSession,
   type Trip,
   type InsertTrip,
   type Transaction,
   type InsertTransaction,
+  type Upload,
+  type InsertUpload,
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -46,6 +49,12 @@ export interface IStorage {
   
   // Session data cleanup
   deleteSession(sessionId: string): Promise<void>;
+  
+  // Upload management
+  createUpload(upload: InsertUpload): Promise<Upload>;
+  getUploadsBySession(sessionId: string): Promise<Upload[]>;
+  getUploadById(uploadId: string): Promise<Upload | null>;
+  deleteUploadsForSession(sessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -223,7 +232,33 @@ export class DatabaseStorage implements IStorage {
     // Delete all related data
     await this.deleteTripsForSession(sessionId);
     await this.deleteTransactionsForSession(sessionId);
+    await this.deleteUploadsForSession(sessionId);
     await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+  }
+
+  async createUpload(upload: InsertUpload): Promise<Upload> {
+    const result = await db.insert(uploads).values(upload).returning();
+    return result[0];
+  }
+
+  async getUploadsBySession(sessionId: string): Promise<Upload[]> {
+    return await db
+      .select()
+      .from(uploads)
+      .where(eq(uploads.sessionId, sessionId));
+  }
+
+  async getUploadById(uploadId: string): Promise<Upload | null> {
+    const result = await db
+      .select()
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async deleteUploadsForSession(sessionId: string): Promise<void> {
+    await db.delete(uploads).where(eq(uploads.sessionId, sessionId));
   }
 }
 

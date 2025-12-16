@@ -38,6 +38,18 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Uploads table - stores original CSV files
+export const uploads = pgTable("uploads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull(),
+  fileType: text("file_type").notNull(), // 'trips' or 'payments'
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(), // in bytes
+  content: text("content").notNull(), // base64 encoded file content
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertSessionSchema = createInsertSchema(sessions).omit({
   id: true,
@@ -55,6 +67,11 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 });
 
+export const insertUploadSchema = createInsertSchema(uploads).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
@@ -64,3 +81,6 @@ export type InsertTrip = z.infer<typeof insertTripSchema>;
 
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+
+export type Upload = typeof uploads.$inferSelect;
+export type InsertUpload = z.infer<typeof insertUploadSchema>;

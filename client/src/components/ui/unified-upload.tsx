@@ -65,6 +65,52 @@ function getMonthKey(date: Date): string {
   return format(date, 'yyyy-MM');
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadOriginalFiles(files: File[], fileTypes: Map<string, 'trips' | 'payments'>): Promise<void> {
+  const filesToUpload = [];
+  for (const file of files) {
+    const fileType = fileTypes.get(file.name);
+    if (fileType) {
+      try {
+        const content = await fileToBase64(file);
+        filesToUpload.push({
+          filename: file.name,
+          fileType,
+          mimeType: file.type || 'text/csv',
+          content,
+        });
+      } catch (error) {
+        console.error('Error converting file to base64:', error);
+      }
+    }
+  }
+
+  if (filesToUpload.length > 0) {
+    try {
+      await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ files: filesToUpload }),
+      });
+    } catch (error) {
+      console.error('Error uploading original files:', error);
+    }
+  }
+}
+
 export function UnifiedUpload({ 
   onDataLoaded,
   testId = "unified-upload",
@@ -110,6 +156,7 @@ export function UnifiedUpload({
     const allTrips: UberTrip[] = [];
     const allPayments: UberTransaction[] = [];
     const results: FileResult[] = [];
+    const fileTypeMap = new Map<string, 'trips' | 'payments'>();
 
     for (const file of files) {
       const fileType = detectFileType(file.name);
@@ -125,20 +172,24 @@ export function UnifiedUpload({
             if (fileType === 'trips') {
               allTrips.push(...(validData as UberTrip[]));
               results.push({ filename: file.name, type: 'trips', rowCount: validData.length });
+              fileTypeMap.set(file.name, 'trips');
             } else if (fileType === 'payments') {
               const processed = processPaymentCSV(validData);
               allPayments.push(...processed);
               results.push({ filename: file.name, type: 'payments', rowCount: processed.length });
+              fileTypeMap.set(file.name, 'payments');
             } else {
               const firstRow = validData[0] as any;
               if (firstRow) {
                 if (firstRow["Kennzeichen"] && firstRow["Zeitpunkt der Fahrtbestellung"]) {
                   allTrips.push(...(validData as UberTrip[]));
                   results.push({ filename: file.name, type: 'trips', rowCount: validData.length });
+                  fileTypeMap.set(file.name, 'trips');
                 } else if (firstRow["Beschreibung"] || firstRow["An dein Unternehmen gezahlt"]) {
                   const processed = processPaymentCSV(validData);
                   allPayments.push(...processed);
                   results.push({ filename: file.name, type: 'payments', rowCount: processed.length });
+                  fileTypeMap.set(file.name, 'payments');
                 } else {
                   results.push({ filename: file.name, type: 'unknown', rowCount: validData.length });
                 }
@@ -191,6 +242,9 @@ export function UnifiedUpload({
     setFileResults(results);
     setIsProcessing(false);
     onDataLoaded(allTrips, allPayments);
+    
+    // Upload original files in the background
+    uploadOriginalFiles(files, fileTypeMap);
   };
 
   const dateWarning = useMemo(() => {

@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check } from "lucide-react";
+import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check, Download, FileText, Car, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
 import { format } from "date-fns";
@@ -91,6 +91,26 @@ export default function AdminPage() {
     },
     enabled: !!selectedSession && detailsModalOpen,
   });
+
+  const { data: sessionUploads } = useQuery({
+    queryKey: ["admin-session-uploads", selectedSession],
+    queryFn: async () => {
+      if (!selectedSession) return null;
+      const res = await fetch(`/api/admin/sessions/${selectedSession}/uploads`);
+      if (!res.ok) throw new Error("Failed to fetch uploads");
+      return res.json();
+    },
+    enabled: !!selectedSession && detailsModalOpen,
+  });
+
+  const handleDownloadFile = (uploadId: string, filename: string) => {
+    const link = document.createElement('a');
+    link.href = `/api/admin/uploads/${uploadId}/download`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const deleteSessionMutation = useMutation({
     mutationFn: async (sessionId: string) => {
@@ -524,6 +544,53 @@ export default function AdminPage() {
           
           {processedData ? (
             <div className="space-y-4 mt-4">
+              {sessionUploads?.uploads && sessionUploads.uploads.length > 0 && (
+                <Card className="border-slate-100 shadow-sm">
+                  <CardHeader className="py-3 px-4">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Hochgeladene Dateien
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {sessionUploads.uploads.map((upload: any) => (
+                        <div
+                          key={upload.id}
+                          className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100"
+                          data-testid={`upload-file-${upload.id}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {upload.fileType === 'trips' ? (
+                              <Car className="w-4 h-4 text-emerald-600 shrink-0" />
+                            ) : (
+                              <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-700 truncate">
+                                {upload.filename}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {(upload.size / 1024).toFixed(1)} KB • {format(new Date(upload.createdAt), 'dd.MM.yyyy HH:mm', { locale: de })}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadFile(upload.id, upload.filename)}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 shrink-0"
+                            data-testid={`button-download-${upload.id}`}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="border-slate-100 shadow-sm bg-blue-50/50">
                   <CardContent className="p-4">

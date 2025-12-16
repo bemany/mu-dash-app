@@ -527,5 +527,101 @@ export async function registerRoutes(
     }
   });
 
+  // Upload file storage endpoint
+  app.post("/api/uploads", async (req, res) => {
+    try {
+      const sessionId = req.session.uberRetterSessionId!;
+      const { files } = req.body;
+
+      if (!Array.isArray(files)) {
+        return res.status(400).json({ error: "Invalid files data" });
+      }
+
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const results = [];
+
+      for (const file of files) {
+        if (!file.filename || !file.content || !file.fileType) {
+          continue;
+        }
+
+        // Validate size (base64 is ~33% larger than original)
+        const estimatedSize = Math.ceil(file.content.length * 0.75);
+        if (estimatedSize > MAX_FILE_SIZE) {
+          return res.status(400).json({ 
+            error: `File ${file.filename} exceeds maximum size of 10MB` 
+          });
+        }
+
+        const upload = await storage.createUpload({
+          sessionId,
+          fileType: file.fileType,
+          filename: file.filename,
+          mimeType: file.mimeType || "text/csv",
+          size: estimatedSize,
+          content: file.content,
+        });
+
+        results.push({
+          id: upload.id,
+          filename: upload.filename,
+          fileType: upload.fileType,
+          size: upload.size,
+        });
+      }
+
+      res.json({ success: true, uploads: results });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ error: "Failed to upload files" });
+    }
+  });
+
+  // Admin: Get uploads for a session
+  app.get("/api/admin/sessions/:sessionId/uploads", requireAdmin, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const uploads = await storage.getUploadsBySession(sessionId);
+      
+      // Return metadata only, not content
+      const uploadMetadata = uploads.map(u => ({
+        id: u.id,
+        fileType: u.fileType,
+        filename: u.filename,
+        mimeType: u.mimeType,
+        size: u.size,
+        createdAt: u.createdAt,
+      }));
+
+      res.json({ uploads: uploadMetadata });
+    } catch (error) {
+      console.error("Error fetching uploads:", error);
+      res.status(500).json({ error: "Failed to fetch uploads" });
+    }
+  });
+
+  // Admin: Download a specific upload
+  app.get("/api/admin/uploads/:uploadId/download", requireAdmin, async (req, res) => {
+    try {
+      const { uploadId } = req.params;
+      const upload = await storage.getUploadById(uploadId);
+
+      if (!upload) {
+        return res.status(404).json({ error: "Upload not found" });
+      }
+
+      // Decode base64 content
+      const buffer = Buffer.from(upload.content, "base64");
+
+      res.setHeader("Content-Type", upload.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename="${upload.filename}"`);
+      res.setHeader("Content-Length", buffer.length);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error downloading upload:", error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
   return httpServer;
 }

@@ -95,6 +95,13 @@ The application follows a 3-step workflow:
   - **Payments Export**: In the payments dialog, exports all matched and unmatched payments
 - Files are named with the Vorgangs-ID (e.g., `Auswertung_ABC123.xlsx`)
 
+### Original File Storage
+- Original CSV files are stored in database when uploaded
+- Files stored as base64 in the `uploads` table with metadata (filename, type, size, createdAt)
+- Maximum file size: 10MB per file
+- Admin panel shows uploaded files in session details with download button
+- Files are grouped by type (trips/payments) with icons and metadata display
+
 ### Build System
 - Client builds to `dist/public` via Vite
 - Server bundles to `dist/index.cjs` via esbuild
