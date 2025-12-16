@@ -563,9 +563,19 @@ export default function Dashboard() {
                   onClick={handleGoToAbgleich} 
                   className="bg-white text-emerald-900 hover:bg-emerald-50 border-none relative z-10 font-semibold"
                   size="lg"
+                  disabled={updateStepMutation.isPending}
                 >
-                  {t('dashboard.continueToComparison')}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {updateStepMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      {t('dashboard.processing')}
+                    </>
+                  ) : (
+                    <>
+                      {t('dashboard.continueToComparison')}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </div>
             )}
