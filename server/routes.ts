@@ -365,6 +365,17 @@ export async function registerRoutes(
         });
       });
 
+      // Extract company name from first transaction with "Name des Unternehmens" or "Firmenname"
+      const firstTxWithCompany = transactions.find((tx: any) => 
+        tx["Name des Unternehmens"] || tx["Firmenname"]
+      );
+      if (firstTxWithCompany) {
+        const companyName = firstTxWithCompany["Name des Unternehmens"] || firstTxWithCompany["Firmenname"];
+        if (companyName) {
+          await storage.updateCompanyName(sessionId, companyName);
+        }
+      }
+
       progressBroker.broadcast(expressSessionId, {
         phase: "transactions",
         total,
@@ -453,6 +464,10 @@ export async function registerRoutes(
   app.get("/api/admin/sessions/:sessionId", requireAdmin, async (req, res) => {
     try {
       const { sessionId } = req.params;
+      const session = await storage.getSessionById(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Session not found" });
+      }
       const trips = await storage.getTripsBySession(sessionId);
       const transactions = await storage.getTransactionsBySession(sessionId);
 
@@ -473,6 +488,7 @@ export async function registerRoutes(
       }));
 
       res.json({
+        session,
         trips: frontendTrips,
         transactions: frontendTransactions,
       });

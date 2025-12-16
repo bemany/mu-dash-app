@@ -8,6 +8,7 @@ export const sessions = pgTable("sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionId: text("session_id").notNull().unique(),
   vorgangsId: text("vorgangs_id").unique(),
+  companyName: text("company_name"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastActivityAt: timestamp("last_activity_at").notNull().defaultNow(),
   currentStep: integer("current_step").notNull().default(1),

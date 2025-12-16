@@ -26,11 +26,13 @@ export type OnProgressCallback = (processed: number, total: number) => void;
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
+  getSessionById(sessionId: string): Promise<Session | null>;
   updateSessionActivity(sessionId: string, currentStep: number): Promise<void>;
   getAllSessions(): Promise<Session[]>;
   getSessionByVorgangsId(vorgangsId: string): Promise<Session | null>;
   generateVorgangsId(sessionId: string): Promise<string>;
   clearVorgangsId(sessionId: string): Promise<void>;
+  updateCompanyName(sessionId: string, companyName: string): Promise<void>;
   
   // Trip management
   createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
@@ -64,6 +66,16 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return newSession[0];
+  }
+
+  async getSessionById(sessionId: string): Promise<Session | null> {
+    const result = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.sessionId, sessionId))
+      .limit(1);
+    
+    return result.length > 0 ? result[0] : null;
   }
 
   async updateSessionActivity(sessionId: string, currentStep: number): Promise<void> {
@@ -135,6 +147,13 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(sessions)
       .set({ vorgangsId: null })
+      .where(eq(sessions.sessionId, sessionId));
+  }
+
+  async updateCompanyName(sessionId: string, companyName: string): Promise<void> {
+    await db
+      .update(sessions)
+      .set({ companyName })
       .where(eq(sessions.sessionId, sessionId));
   }
 

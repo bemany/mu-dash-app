@@ -41,7 +41,8 @@ export function processPaymentCSV(rawData: any[]): UberTransaction[] {
         "Kennzeichen": licensePlate || "",
         "Zeitpunkt": timestamp,
         "Betrag": amount,
-        "Beschreibung": description
+        "Beschreibung": description,
+        "Firmenname": row["Name des Unternehmens"] || ""
       };
     })
     .filter(tx => tx["Kennzeichen"]);

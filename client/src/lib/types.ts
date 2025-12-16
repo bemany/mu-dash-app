@@ -11,6 +11,7 @@ export interface UberTransaction {
   "Zeitpunkt": string; // Date of payment
   "Betrag": number;
   "Beschreibung"?: string;
+  "Firmenname"?: string;
   [key: string]: any;
 }
 

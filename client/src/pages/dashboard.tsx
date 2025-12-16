@@ -361,9 +361,12 @@ export default function Dashboard() {
         row['Differenz'] = s.totalDifference;
       }
       monthHeaders.forEach(month => {
-        const monthData = s.months[month];
+        const monthData = s.stats[month];
         if (monthData) {
           row[`${month} Fahrten`] = monthData.count;
+          if (currentStep === 3) {
+            row[`${month} Differenz`] = monthData.difference;
+          }
         }
       });
       return row;

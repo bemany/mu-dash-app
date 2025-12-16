@@ -81,7 +81,19 @@ The application follows a 3-step workflow:
 
 ### CSV Formats
 - **Trips CSV**: Must have "Kennzeichen", "Zeitpunkt der Fahrtbestellung", "Fahrtstatus" columns
-- **Payments CSV**: Uses "Beschreibung" (to extract license plate via regex), "An dein Unternehmen gezahlt" (amount), "vs-Berichterstattung" (timestamp)
+- **Payments CSV**: Uses "Beschreibung" (to extract license plate via regex), "An dein Unternehmen gezahlt" (amount), "vs-Berichterstattung" (timestamp), "Name des Unternehmens" (company name - stored with session)
+
+### Company Name Feature
+- Company name is automatically extracted from the "Name des Unternehmens" column in payment CSVs
+- Stored in the sessions table under `company_name` column
+- Displayed in admin panel next to the Vorgangs-ID for each session
+- Helps identify which company a session belongs to
+
+### Excel Export
+- Two export buttons available:
+  - **Summary Export**: "Als Excel exportieren" button exports the evaluation table with all license plates, trip counts, bonuses, payments, and differences per month
+  - **Payments Export**: In the payments dialog, exports all matched and unmatched payments
+- Files are named with the Vorgangs-ID (e.g., `Auswertung_ABC123.xlsx`)
 
 ### Build System
 - Client builds to `dist/public` via Vite

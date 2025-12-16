@@ -441,6 +441,11 @@ export default function AdminPage() {
                                       )}
                                     </button>
                                   )}
+                                  {session.companyName && (
+                                    <span className="text-sm text-slate-600 font-medium">
+                                      — {session.companyName}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">
                                   {format(new Date(session.createdAt), "HH:mm", { locale: de })} {t('admin.time')}
@@ -508,7 +513,12 @@ export default function AdminPage() {
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>{t('admin.sessionDetails')}: {sessionDetails?.session?.vorgangsId || selectedSession}</span>
+              <span>
+                {t('admin.sessionDetails')}: {sessionDetails?.session?.vorgangsId || selectedSession}
+                {sessionDetails?.session?.companyName && (
+                  <span className="text-slate-500 font-normal ml-2">— {sessionDetails.session.companyName}</span>
+                )}
+              </span>
             </DialogTitle>
           </DialogHeader>
           
