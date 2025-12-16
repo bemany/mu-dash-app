@@ -181,10 +181,16 @@ export async function registerRoutes(
         )
       );
 
-      // Filter out invalid trips and duplicates (including same-batch duplicates)
+      // Filter out invalid trips, non-completed trips, and duplicates (including same-batch duplicates)
       const validTrips = trips.filter((trip: any) => {
         // Must have required fields
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
+          return false;
+        }
+        
+        // Only import completed trips
+        const status = (trip["Fahrtstatus"] || "").toString().toLowerCase();
+        if (status !== "completed") {
           return false;
         }
         
