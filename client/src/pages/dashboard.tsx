@@ -266,6 +266,7 @@ export default function Dashboard() {
   }, [isTransitioning, isFetching]);
 
   const handleGoToAbgleich = async () => {
+    setIsTransitioning(true);
     await updateStepMutation.mutateAsync(3);
   };
 
