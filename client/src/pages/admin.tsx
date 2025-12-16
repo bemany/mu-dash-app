@@ -302,7 +302,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.activeSessions')}</p>
-                  <p className="text-3xl font-bold text-slate-800 mt-2">{sessions?.length || 0}</p>
+                  <p className="text-3xl font-bold text-slate-800 mt-2">{(sessions?.length || 0).toLocaleString('de-DE')}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <Users className="w-6 h-6 text-blue-600" />
@@ -317,7 +317,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.totalTrips')}</p>
                   <p className="text-3xl font-bold text-slate-800 mt-2">
-                    {sessions?.reduce((acc: number, s: any) => acc + s.tripCount, 0) || 0}
+                    {(sessions?.reduce((acc: number, s: any) => acc + s.tripCount, 0) || 0).toLocaleString('de-DE')}
                   </p>
                 </div>
                 <div className="p-3 bg-purple-50 rounded-lg">
@@ -333,7 +333,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">{t('admin.totalPayments')}</p>
                   <p className="text-3xl font-bold text-slate-800 mt-2">
-                    {sessions?.reduce((acc: number, s: any) => acc + s.transactionCount, 0) || 0}
+                    {(sessions?.reduce((acc: number, s: any) => acc + s.transactionCount, 0) || 0).toLocaleString('de-DE')}
                   </p>
                 </div>
                 <div className="p-3 bg-emerald-50 rounded-lg">
@@ -453,7 +453,7 @@ export default function AdminPage() {
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <p className="text-sm font-medium text-slate-600">
-                                {session.tripCount} {t('admin.trips')} • {session.transactionCount} {t('admin.payments')}
+                                {session.tripCount.toLocaleString('de-DE')} {t('admin.trips')} • {session.transactionCount.toLocaleString('de-DE')} {t('admin.payments')}
                               </p>
                               <p className="text-xs text-slate-500 mt-1">{t('admin.step')} {session.currentStep}/4</p>
                             </div>
