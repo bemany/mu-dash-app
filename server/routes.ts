@@ -177,7 +177,7 @@ export async function registerRoutes(
       const existingTrips = await storage.getTripsBySession(sessionId);
       const existingIds = new Set(
         existingTrips.map(t => 
-          t.tripId || `${t.licensePlate}-${t.orderTime.toISOString()}`
+          t.tripId || `${t.licensePlate}-${t.orderTime.getTime()}`
         )
       );
 
@@ -187,7 +187,14 @@ export async function registerRoutes(
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
           return false;
         }
-        const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${trip["Zeitpunkt der Fahrtbestellung"]}`;
+        
+        // Normalize the timestamp for comparison
+        const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
+        if (!orderTime || isNaN(orderTime.getTime())) {
+          return false;
+        }
+        
+        const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
         if (existingIds.has(id)) {
           return false;
         }
