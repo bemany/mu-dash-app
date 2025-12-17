@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, processAggregatedTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch, AggregatedTrip } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download, AlertCircle } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, ArrowLeft, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download, AlertCircle, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -282,6 +282,17 @@ export default function Dashboard() {
   const handleGoToAbgleich = async () => {
     setIsTransitioning(true);
     await updateStepMutation.mutateAsync(3);
+  };
+
+  const handleGoToKalkulation = async () => {
+    setIsTransitioning(true);
+    await updateStepMutation.mutateAsync(2);
+  };
+
+  const handleExitSession = async () => {
+    if (confirm(t('dashboard.exitSessionConfirm'))) {
+      await resetSessionMutation.mutateAsync();
+    }
   };
 
   const reset = async () => {
@@ -635,6 +646,32 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            <div className="flex items-center gap-3">
+              {currentStep === 3 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGoToKalkulation}
+                  disabled={updateStepMutation.isPending}
+                  className="border-slate-300"
+                  data-testid="button-back-to-kalkulation"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {t('dashboard.backToCalculation')}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleExitSession}
+                className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+                data-testid="button-exit-session"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                {t('dashboard.exitSession')}
+              </Button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <KpiCard 
