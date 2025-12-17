@@ -14,7 +14,7 @@ import {
   type Upload,
   type InsertUpload,
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql, count } from "drizzle-orm";
 
 const { Pool } = pg;
 
@@ -40,11 +40,13 @@ export interface IStorage {
   // Trip management
   createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
   getTripsBySession(sessionId: string): Promise<Trip[]>;
+  getTripCountBySession(sessionId: string): Promise<number>;
   deleteTripsForSession(sessionId: string): Promise<void>;
   
   // Transaction management
   createTransactions(transactions: InsertTransaction[], onProgress?: OnProgressCallback): Promise<Transaction[]>;
   getTransactionsBySession(sessionId: string): Promise<Transaction[]>;
+  getTransactionCountBySession(sessionId: string): Promise<number>;
   deleteTransactionsForSession(sessionId: string): Promise<void>;
   
   // Session data cleanup
@@ -193,6 +195,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trips.sessionId, sessionId));
   }
 
+  async getTripCountBySession(sessionId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(trips)
+      .where(eq(trips.sessionId, sessionId));
+    return result[0]?.count || 0;
+  }
+
   async deleteTripsForSession(sessionId: string): Promise<void> {
     await db.delete(trips).where(eq(trips.sessionId, sessionId));
   }
@@ -222,6 +232,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(transactions)
       .where(eq(transactions.sessionId, sessionId));
+  }
+
+  async getTransactionCountBySession(sessionId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(transactions)
+      .where(eq(transactions.sessionId, sessionId));
+    return result[0]?.count || 0;
   }
 
   async deleteTransactionsForSession(sessionId: string): Promise<void> {

@@ -451,13 +451,15 @@ export async function registerRoutes(
       
       const sessionsWithCounts = await Promise.all(
         sessions.map(async (session) => {
-          const trips = await storage.getTripsBySession(session.sessionId);
-          const transactions = await storage.getTransactionsBySession(session.sessionId);
+          const [tripCount, transactionCount] = await Promise.all([
+            storage.getTripCountBySession(session.sessionId),
+            storage.getTransactionCountBySession(session.sessionId),
+          ]);
           
           return {
             ...session,
-            tripCount: trips.length,
-            transactionCount: transactions.length,
+            tripCount,
+            transactionCount,
           };
         })
       );
