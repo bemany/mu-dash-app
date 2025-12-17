@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [urlLoadAttempted, setUrlLoadAttempted] = useState(false);
+  const [uploadResetKey, setUploadResetKey] = useState(0);
 
   const { data: sessionData, isLoading, isFetching } = useQuery({
     queryKey: ["session"],
@@ -124,6 +125,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["session"] });
       setPendingTrips([]);
       setPendingPayments([]);
+      setUploadResetKey(prev => prev + 1);
     },
   });
 
@@ -241,8 +243,9 @@ export default function Dashboard() {
   };
 
   const handleUnifiedUpload = (trips: UberTrip[], payments: UberTransaction[]) => {
-    setPendingTrips(trips);
-    setPendingPayments(payments);
+    // Append to existing pending data instead of replacing
+    setPendingTrips(prev => [...prev, ...trips]);
+    setPendingPayments(prev => [...prev, ...payments]);
   };
 
   const handleContinue = async () => {
@@ -298,6 +301,11 @@ export default function Dashboard() {
       setIsTransitioning(false);
     }
   }, [isTransitioning, isFetching]);
+
+  // Set page title
+  useEffect(() => {
+    document.title = "Dashboard - U-Retter";
+  }, []);
 
   // Auto-load session from URL parameter
   useEffect(() => {
@@ -544,6 +552,7 @@ export default function Dashboard() {
                   onDataLoaded={handleUnifiedUpload}
                   testId="unified-upload"
                   compact={true}
+                  resetKey={uploadResetKey}
                 />
               </div>
               
@@ -1020,6 +1029,7 @@ export default function Dashboard() {
             <UnifiedUpload 
               onDataLoaded={handleAdditionalDataUpload}
               testId="additional-upload"
+              resetKey={uploadResetKey}
             />
             
             {uploadProgress && (

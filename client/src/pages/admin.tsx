@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,10 @@ export default function AdminPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = "Admin - U-Retter";
+  }, []);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
   const [password, setPassword] = useState("");

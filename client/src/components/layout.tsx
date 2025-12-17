@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useTranslation } from '@/i18n';
@@ -85,6 +85,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+              
+              <NavItem 
+                icon={<Sparkles className="w-5 h-5" />} 
+                label={t('layout.navUpdates')} 
+                active={location === '/updates'} 
+                onClick={() => setLocation('/updates')}
+                testId="nav-updates"
+              />
               
               <NavItem 
                 icon={<Shield className="w-5 h-5" />} 

@@ -23,6 +23,7 @@ interface UnifiedUploadProps {
   onDataLoaded: (trips: UberTrip[], payments: UberTransaction[]) => void;
   testId?: string;
   compact?: boolean;
+  resetKey?: number;
 }
 
 function detectFileType(filename: string): 'trips' | 'payments' | 'unknown' {
@@ -114,7 +115,8 @@ async function uploadOriginalFiles(files: File[], fileTypes: Map<string, 'trips'
 export function UnifiedUpload({ 
   onDataLoaded,
   testId = "unified-upload",
-  compact = false
+  compact = false,
+  resetKey = 0
 }: UnifiedUploadProps) {
   const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
@@ -122,6 +124,14 @@ export function UnifiedUpload({
   const [fileResults, setFileResults] = useState<FileResult[]>([]);
   const [tripDateRange, setTripDateRange] = useState<DateRange>({ min: null, max: null, months: new Set() });
   const [paymentDateRange, setPaymentDateRange] = useState<DateRange>({ min: null, max: null, months: new Set() });
+
+  React.useEffect(() => {
+    if (resetKey > 0) {
+      setFileResults([]);
+      setTripDateRange({ min: null, max: null, months: new Set() });
+      setPaymentDateRange({ min: null, max: null, months: new Set() });
+    }
+  }, [resetKey]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -237,9 +247,21 @@ export function UnifiedUpload({
       }
     }
 
-    setTripDateRange({ min: tripMin, max: tripMax, months: tripMonths });
-    setPaymentDateRange({ min: paymentMin, max: paymentMax, months: paymentMonths });
-    setFileResults(results);
+    // Accumulate date ranges instead of replacing
+    setTripDateRange(prev => {
+      const newMonths = new Set([...Array.from(prev.months), ...Array.from(tripMonths)]);
+      const newMin = (!prev.min || (tripMin && tripMin < prev.min)) ? tripMin : prev.min;
+      const newMax = (!prev.max || (tripMax && tripMax > prev.max)) ? tripMax : prev.max;
+      return { min: newMin, max: newMax, months: newMonths };
+    });
+    setPaymentDateRange(prev => {
+      const newMonths = new Set([...Array.from(prev.months), ...Array.from(paymentMonths)]);
+      const newMin = (!prev.min || (paymentMin && paymentMin < prev.min)) ? paymentMin : prev.min;
+      const newMax = (!prev.max || (paymentMax && paymentMax > prev.max)) ? paymentMax : prev.max;
+      return { min: newMin, max: newMax, months: newMonths };
+    });
+    // Accumulate file results instead of replacing
+    setFileResults(prev => [...prev, ...results]);
     setIsProcessing(false);
     onDataLoaded(allTrips, allPayments);
     

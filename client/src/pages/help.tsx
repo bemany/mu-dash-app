@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -23,6 +23,10 @@ import fileUploadImage from "@assets/generated_images/file_upload_drop_zone.png"
 
 export default function HelpPage() {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    document.title = "Hilfe - U-Retter";
+  }, []);
   
   return (
     <DashboardLayout>
