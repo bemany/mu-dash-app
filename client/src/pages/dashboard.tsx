@@ -657,8 +657,17 @@ export default function Dashboard() {
                   className="border-slate-300"
                   data-testid="button-back-to-kalkulation"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  {t('dashboard.backToCalculation')}
+                  {updateStepMutation.isPending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      {t('dashboard.processing')}
+                    </>
+                  ) : (
+                    <>
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      {t('dashboard.backToCalculation')}
+                    </>
+                  )}
                 </Button>
               )}
               <Button
