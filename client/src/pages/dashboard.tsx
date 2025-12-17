@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [additionalTrips, setAdditionalTrips] = useState<UberTrip[]>([]);
   const [additionalPayments, setAdditionalPayments] = useState<UberTransaction[]>([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const { data: sessionData, isLoading, isFetching } = useQuery({
     queryKey: ["session"],
@@ -148,11 +149,13 @@ export default function Dashboard() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["session"] });
+    onSuccess: async () => {
       setLoadDialogOpen(false);
       setLoadVorgangsId("");
       setLoadError("");
+      setIsLoadingSession(true);
+      await queryClient.invalidateQueries({ queryKey: ["session"] });
+      setIsLoadingSession(false);
     },
     onError: (error: Error) => {
       setLoadError(error.message);
@@ -413,6 +416,19 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
+      {isLoadingSession && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center" data-testid="session-loading-overlay">
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+              <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-slate-800">{t('dashboard.loadingSession')}</p>
+              <p className="text-sm text-slate-500 mt-1">{t('dashboard.pleaseWait')}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
