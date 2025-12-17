@@ -26,12 +26,12 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
               </th>
               
               {/* Total Column Moved to Start */}
-              <th colSpan={showDiff ? 3 : 2} className="px-2 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[120px]">
+              <th colSpan={showDiff ? 4 : 2} className="px-2 py-2 text-center border-l border-slate-200 bg-slate-100/50 font-bold text-slate-800 min-w-[120px]">
                 {t('dataTable.total')}
               </th>
 
               {monthHeaders.map(month => (
-                <th key={month} colSpan={showDiff ? 2 : 1} className="px-1 py-2 text-center border-l border-slate-200 min-w-[80px]">
+                <th key={month} colSpan={showDiff ? 3 : 1} className="px-1 py-2 text-center border-l border-slate-200 min-w-[80px]">
                   <div className="font-semibold text-slate-700">{formatMonthHeader(month)}</div>
                 </th>
               ))}
@@ -42,12 +42,14 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
               {/* Total Subheaders */}
               <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 border-l border-slate-200 bg-slate-100/50">{t('dataTable.trips')}</th>
               <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">{t('dataTable.bonus')}</th>
+              {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-emerald-500 bg-emerald-50/50">{t('dataTable.paid')}</th>}
               {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-500 bg-slate-100/50">{t('dataTable.difference')}</th>}
 
-              {/* Monthly Subheaders - REMOVED SOLL COLUMN */}
+              {/* Monthly Subheaders */}
               {monthHeaders.map(month => (
                 <React.Fragment key={month + '-sub'}>
                   <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 border-l border-slate-200">{t('dataTable.trips')}</th>
+                  {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-emerald-500 bg-emerald-50/50">{t('dataTable.paid')}</th>}
                   {showDiff && <th className="px-1 py-1 text-center text-[10px] uppercase tracking-wider font-semibold text-slate-400 bg-slate-100/30">{t('dataTable.difference')}</th>}
                 </React.Fragment>
               ))}
@@ -72,6 +74,18 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                 <td className="px-1 py-1 text-center bg-slate-50/30 font-mono font-bold text-slate-700 text-xs">
                   {driver.totalBonus > 0 ? driver.totalBonus + " €" : "-"}
                 </td>
+                {showDiff && (
+                  <td className={cn(
+                    "px-1 py-1 text-center bg-slate-50/30 font-mono font-bold text-xs",
+                    driver.totalPaid > 0 
+                      ? driver.totalPaid >= driver.totalBonus 
+                        ? "bg-emerald-100 text-emerald-700" 
+                        : "bg-emerald-50 text-emerald-600"
+                      : "text-slate-300"
+                  )}>
+                     {driver.totalPaid > 0 ? `${driver.totalPaid} €` : "—"}
+                  </td>
+                )}
                 {showDiff && (
                   <td className={cn(
                     "px-1 py-1 text-center bg-slate-50/30 font-mono font-bold text-xs border-r border-slate-50",
@@ -108,6 +122,20 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                   {totals.bonus.toLocaleString()} €
                 </td>
                 {showDiff && (
+                  <td className={cn(
+                    "px-1 py-2 text-center bg-slate-100/50 font-mono text-xs",
+                    totals.paid > 0 
+                      ? totals.paid >= totals.bonus 
+                        ? "bg-emerald-100 text-emerald-700 font-bold" 
+                        : "bg-emerald-50 text-emerald-600 font-bold"
+                      : totals.bonus > 0 
+                        ? "text-slate-300" 
+                        : "text-slate-200"
+                  )}>
+                    {totals.paid > 0 ? `${totals.paid.toLocaleString()} €` : totals.bonus > 0 ? "—" : "-"}
+                  </td>
+                )}
+                {showDiff && (
                   <td className={cn("px-1 py-2 text-center bg-slate-100/50 font-mono text-xs", getDiffColor(totals.diff))}>
                     {formatDiff(totals.diff)}
                   </td>
@@ -115,6 +143,8 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
 
                 {monthHeaders.map(month => {
                   const monthTotalCount = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.count || 0), 0);
+                  const monthTotalBonus = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.bonus || 0), 0);
+                  const monthTotalPaid = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.paidAmount || 0), 0);
                   const monthTotalDiff = summaries.reduce((acc, curr) => acc + (curr.stats[month]?.difference || 0), 0);
                   
                   return (
@@ -122,6 +152,20 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
                       <td className="px-1 py-2 text-center border-l border-slate-200 font-mono text-xs text-slate-600">
                         {monthTotalCount.toLocaleString()}
                       </td>
+                      {showDiff && (
+                        <td className={cn(
+                          "px-1 py-2 text-center font-mono text-xs",
+                          monthTotalPaid > 0 
+                            ? monthTotalPaid >= monthTotalBonus 
+                              ? "bg-emerald-100 text-emerald-700 font-bold" 
+                              : "bg-emerald-50 text-emerald-600 font-bold"
+                            : monthTotalBonus > 0 
+                              ? "text-slate-300" 
+                              : "text-slate-200"
+                        )}>
+                          {monthTotalPaid > 0 ? `${monthTotalPaid} €` : monthTotalBonus > 0 ? "—" : "-"}
+                        </td>
+                      )}
                       {showDiff && (
                         <td className={cn("px-1 py-2 text-center font-mono text-xs", getDiffColor(monthTotalDiff))}>
                           {formatDiff(monthTotalDiff)}
@@ -140,9 +184,11 @@ export function DataTable({ summaries, monthHeaders, totals, showDiff = false }:
 
 function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff: boolean }) {
   const count = stat?.count || 0;
+  const bonus = stat?.bonus || 0;
+  const paidAmount = stat?.paidAmount || 0;
   const diff = stat?.difference || 0;
 
-  // Conditional Styling Logic
+  // Conditional Styling Logic for trip count
   let countColorClass = "text-slate-600";
   if (count >= 700) {
     countColorClass = "bg-emerald-100 text-emerald-800 font-bold"; 
@@ -152,6 +198,10 @@ function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff
     countColorClass = "text-slate-200";
   }
 
+  // Paid amount styling - highlight matched payments
+  const isPaid = paidAmount > 0;
+  const isFullyPaid = bonus > 0 && paidAmount >= bonus;
+
   return (
     <React.Fragment>
       <td className="p-0 text-center border-l border-slate-100 font-mono text-xs">
@@ -159,11 +209,30 @@ function DataCell({ stat, showDiff }: { stat: MonthlyStats | undefined, showDiff
           {count > 0 ? count : "-"}
         </div>
       </td>
-      {/* REMOVED SOLL COLUMN */}
       {showDiff && (
-        <td className={cn("px-1 py-1 text-center font-mono text-xs border-r border-slate-50", getDiffColor(diff))}>
-          {diff !== 0 ? formatDiff(diff) : "-"}
-        </td>
+        <>
+          {/* Paid column - visually highlight matched payments */}
+          <td className={cn(
+            "px-1 py-1 text-center font-mono text-xs",
+            isPaid 
+              ? isFullyPaid 
+                ? "bg-emerald-100 text-emerald-700 font-bold" 
+                : "bg-emerald-50 text-emerald-600"
+              : bonus > 0 
+                ? "text-slate-300" 
+                : "text-slate-200"
+          )}>
+            {isPaid ? (
+              <span className="flex items-center justify-center gap-0.5">
+                {paidAmount} €
+              </span>
+            ) : bonus > 0 ? "—" : "-"}
+          </td>
+          {/* Difference column */}
+          <td className={cn("px-1 py-1 text-center font-mono text-xs border-r border-slate-50", getDiffColor(diff))}>
+            {diff !== 0 ? formatDiff(diff) : bonus > 0 ? <span className="text-emerald-400">OK</span> : "-"}
+          </td>
+        </>
       )}
     </React.Fragment>
   );
