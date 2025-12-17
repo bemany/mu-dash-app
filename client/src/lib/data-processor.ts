@@ -125,7 +125,7 @@ export function processAggregatedTripsAndTransactions(
       if (stat.count > 699) {
         stat.bonus = 400;
       } else if (stat.count > 249) {
-        stat.bonus = 250;
+        stat.bonus = 150;
       } else {
         stat.bonus = 0;
       }
@@ -216,7 +216,7 @@ export function processTripsAndTransactions(trips: UberTrip[], transactions: Ube
       if (stat.count > 699) {
         stat.bonus = 400;
       } else if (stat.count > 249) {
-        stat.bonus = 250;
+        stat.bonus = 150;
       } else {
         stat.bonus = 0;
       }
