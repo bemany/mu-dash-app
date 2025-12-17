@@ -1,8 +1,8 @@
-# Uber-Retter
+# U-Retter
 
 ## Overview
 
-Uber-Retter is a multi-language web application for managing driver bonuses and promotional rewards. It provides a multi-step workflow for uploading trip data and payment transactions, calculating expected bonuses, and reconciling actual payments against theoretical earnings. The application tracks sessions to maintain user progress across the workflow steps.
+U-Retter is a multi-language web application for managing driver bonuses and promotional rewards. It provides a multi-step workflow for uploading trip data and payment transactions, calculating expected bonuses, and reconciling actual payments against theoretical earnings. The application tracks sessions to maintain user progress across the workflow steps.
 
 ### Multi-Language Support
 - Supported languages: German (DE), English (EN), Turkish (TR), Arabic (AR)
