@@ -12,6 +12,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/v/:vorgangsId" component={Dashboard} />
       <Route path="/help" component={HelpPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />

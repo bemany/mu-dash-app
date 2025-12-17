@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useParams, useLocation } from "wouter";
 import { UnifiedUpload } from "@/components/ui/unified-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ import * as XLSX from "xlsx";
 export default function Dashboard() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const params = useParams<{ vorgangsId?: string }>();
+  const [, setLocation] = useLocation();
   
   const steps = [
     t('dashboard.steps.0'),
@@ -45,6 +48,7 @@ export default function Dashboard() {
   const [additionalPayments, setAdditionalPayments] = useState<UberTransaction[]>([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
+  const [urlLoadAttempted, setUrlLoadAttempted] = useState(false);
 
   const { data: sessionData, isLoading, isFetching } = useQuery({
     queryKey: ["session"],
@@ -147,18 +151,32 @@ export default function Dashboard() {
         const data = await res.json();
         throw new Error(data.error || "Failed to load session");
       }
-      return res.json();
+      return { ...await res.json(), loadedVorgangsId: vorgangsId };
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       setLoadDialogOpen(false);
       setLoadVorgangsId("");
       setLoadError("");
       setIsLoadingSession(true);
       await queryClient.invalidateQueries({ queryKey: ["session"] });
       setIsLoadingSession(false);
+      // Update URL to include the Vorgangs-ID
+      if (data.loadedVorgangsId) {
+        setLocation(`/v/${data.loadedVorgangsId}`);
+      }
     },
     onError: (error: Error) => {
       setLoadError(error.message);
+      setIsLoadingSession(false);
+      // If loading from URL failed, navigate to home
+      if (params.vorgangsId) {
+        toast({
+          variant: "destructive",
+          title: t('dashboard.loadProcessDialog.title'),
+          description: error.message,
+        });
+        window.location.href = '/';
+      }
     },
   });
 
@@ -166,7 +184,9 @@ export default function Dashboard() {
 
   const copyVorgangsId = () => {
     if (vorgangsId) {
-      navigator.clipboard.writeText(vorgangsId);
+      // Copy the full URL so users can share directly
+      const shareUrl = `${window.location.origin}/v/${vorgangsId}`;
+      navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -279,6 +299,26 @@ export default function Dashboard() {
     }
   }, [isTransitioning, isFetching]);
 
+  // Auto-load session from URL parameter
+  useEffect(() => {
+    const urlVorgangsId = params.vorgangsId;
+    if (urlVorgangsId && !urlLoadAttempted && !isLoading) {
+      setUrlLoadAttempted(true);
+      // Only load if the current session doesn't match the URL
+      if (vorgangsId !== urlVorgangsId.toUpperCase()) {
+        setIsLoadingSession(true);
+        loadSessionMutation.mutate(urlVorgangsId);
+      }
+    }
+  }, [params.vorgangsId, urlLoadAttempted, isLoading, vorgangsId]);
+
+  // Update URL when vorgangsId changes (e.g., after uploading data)
+  useEffect(() => {
+    if (vorgangsId && !params.vorgangsId) {
+      setLocation(`/v/${vorgangsId}`, { replace: true });
+    }
+  }, [vorgangsId, params.vorgangsId, setLocation]);
+
   const handleGoToAbgleich = async () => {
     setIsTransitioning(true);
     await updateStepMutation.mutateAsync(3);
@@ -292,12 +332,14 @@ export default function Dashboard() {
   const handleExitSession = async () => {
     if (confirm(t('dashboard.exitSessionConfirm'))) {
       await resetSessionMutation.mutateAsync();
+      window.location.href = '/';
     }
   };
 
   const reset = async () => {
     if (confirm(t('dashboard.resetConfirm'))) {
       await resetSessionMutation.mutateAsync();
+      window.location.href = '/';
     }
   };
 
