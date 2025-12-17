@@ -37,14 +37,28 @@ export async function uploadInChunks<T>(
       }, phase);
     }
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [fieldName]: chunk }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [fieldName]: chunk }),
+      });
+    } catch (networkError) {
+      throw new Error(`Netzwerkfehler beim Upload von ${phase === 'trips' ? 'Fahrten' : 'Zahlungen'}. Bitte überprüfen Sie Ihre Internetverbindung.`);
+    }
 
     if (!res.ok) {
-      throw new Error(`Failed to upload ${phase} chunk ${i + 1}/${totalChunks}`);
+      let errorMessage = `Fehler beim Upload von ${phase === 'trips' ? 'Fahrten' : 'Zahlungen'}`;
+      try {
+        const errorData = await res.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        errorMessage = `Server-Fehler (${res.status}): ${res.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await res.json();

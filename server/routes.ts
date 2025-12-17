@@ -250,9 +250,10 @@ export async function registerRoutes(
       await storage.updateSessionActivity(sessionId, 2);
 
       res.json({ success: true, added: validTrips.length });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading trips:", error);
-      res.status(500).json({ error: "Failed to upload trips" });
+      const errorMessage = error?.message || "Unbekannter Fehler beim Speichern der Fahrten";
+      res.status(500).json({ error: `Fehler beim Speichern der Fahrten: ${errorMessage}` });
     }
   });
 
@@ -391,9 +392,10 @@ export async function registerRoutes(
       });
 
       res.json({ success: true, added: dbTransactions.length });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading transactions:", error);
-      res.status(500).json({ error: "Failed to upload transactions" });
+      const errorMessage = error?.message || "Unbekannter Fehler beim Speichern der Zahlungen";
+      res.status(500).json({ error: `Fehler beim Speichern der Zahlungen: ${errorMessage}` });
     }
   });
 

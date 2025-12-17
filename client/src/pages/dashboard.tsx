@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { UberTrip, UberTransaction } from "@/lib/types";
 import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
-import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download } from "lucide-react";
+import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
@@ -21,6 +22,7 @@ import * as XLSX from "xlsx";
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   
   const steps = [
     t('dashboard.steps.0'),
@@ -251,8 +253,14 @@ export default function Dashboard() {
       setPendingTrips([]);
       setPendingPayments([]);
       setIsTransitioning(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
+      const errorMessage = error?.message || "Ein unbekannter Fehler ist aufgetreten";
+      toast({
+        variant: "destructive",
+        title: "Fehler beim Upload",
+        description: errorMessage,
+      });
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
@@ -317,8 +325,14 @@ export default function Dashboard() {
       setAdditionalTrips([]);
       setAdditionalPayments([]);
       setAddMoreDataDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
+      const errorMessage = error?.message || "Ein unbekannter Fehler ist aufgetreten";
+      toast({
+        variant: "destructive",
+        title: "Fehler beim Upload",
+        description: errorMessage,
+      });
     } finally {
       setIsProcessing(false);
       setUploadProgress(null);
