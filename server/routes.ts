@@ -64,21 +64,22 @@ export async function registerRoutes(
     try {
       const sessionId = req.session.uberRetterSessionId!;
       const session = await storage.getOrCreateSession(sessionId);
-      const trips = await storage.getTripsBySession(sessionId);
-      const transactions = await storage.getTransactionsBySession(sessionId);
+      
+      // Use count to check if there's data
+      const [tripCount, transactionCount] = await Promise.all([
+        storage.getTripCountBySession(sessionId),
+        storage.getTransactionCountBySession(sessionId),
+      ]);
 
       let vorgangsId = session.vorgangsId;
-      if (!vorgangsId && trips.length > 0) {
+      if (!vorgangsId && tripCount > 0) {
         vorgangsId = await storage.generateVorgangsId(sessionId);
       }
 
-      const frontendTrips = trips.map(t => ({
-        "Kennzeichen": t.licensePlate,
-        "Zeitpunkt der Fahrtbestellung": t.orderTime.toISOString(),
-        "Fahrtstatus": t.tripStatus,
-        "Fahrt-ID": t.tripId || undefined,
-        ...t.rawData as any,
-      }));
+      // For sessions with many trips, use aggregated data
+      // This prevents loading 260,000+ rows into memory
+      const aggregatedTrips = await storage.getAggregatedTripsBySession(sessionId);
+      const transactions = await storage.getTransactionsBySession(sessionId);
 
       const frontendTransactions = transactions.map(tx => ({
         "Kennzeichen": tx.licensePlate,
@@ -92,7 +93,8 @@ export async function registerRoutes(
         sessionId,
         vorgangsId,
         currentStep: session.currentStep,
-        trips: frontendTrips,
+        tripCount,
+        aggregatedTrips,
         transactions: frontendTransactions,
       });
     } catch (error) {
@@ -127,17 +129,18 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Keine Session mit dieser Vorgangs-ID gefunden" });
       }
 
-      const trips = await storage.getTripsBySession(session.sessionId);
+      // Use count instead of loading all trips
+      const tripCount = await storage.getTripCountBySession(session.sessionId);
       
-      if (trips.length === 0) {
+      if (tripCount === 0) {
         return res.status(404).json({ error: "Dieser Vorgang enthält keine Daten mehr" });
       }
 
       req.session.uberRetterSessionId = session.sessionId;
       
-      if (session.currentStep === 1 && trips.length > 0) {
-        const transactions = await storage.getTransactionsBySession(session.sessionId);
-        const newStep = transactions.length > 0 ? 3 : 2;
+      if (session.currentStep === 1 && tripCount > 0) {
+        const transactionCount = await storage.getTransactionCountBySession(session.sessionId);
+        const newStep = transactionCount > 0 ? 3 : 2;
         await storage.updateSessionActivity(session.sessionId, newStep);
       }
       

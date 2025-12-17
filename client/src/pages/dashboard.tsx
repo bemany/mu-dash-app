@@ -8,7 +8,7 @@ import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { UberTrip, UberTransaction } from "@/lib/types";
-import { processTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch } from "@/lib/data-processor";
+import { processTripsAndTransactions, processAggregatedTripsAndTransactions, getMonthHeaders, analyzeTransactions, TransactionMatch, AggregatedTrip } from "@/lib/data-processor";
 import { generateMockTrips, generateMockTransactions } from "@/lib/mock-data";
 import { RefreshCw, CarFront, BadgeEuro, ArrowRight, CheckCircle, AlertTriangle, Copy, Check, FolderOpen, Eye, CheckCircle2, XCircle, Plus, Upload, Download, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +58,8 @@ export default function Dashboard() {
   const showProgress = isProcessing || progress.isActive || uploadProgress !== null;
 
   const currentStep = sessionData?.currentStep || 1;
-  const trips = sessionData?.trips || [];
+  const aggregatedTrips: AggregatedTrip[] = sessionData?.aggregatedTrips || [];
+  const tripCount = sessionData?.tripCount || 0;
   const transactions = sessionData?.transactions || [];
 
   const updateStepMutation = useMutation({
@@ -176,14 +177,15 @@ export default function Dashboard() {
   };
 
   const { summaries, monthHeaders, totals, transactionAnalysis } = useMemo(() => {
-    if (trips.length === 0) return { 
+    if (aggregatedTrips.length === 0) return { 
       summaries: [], 
       monthHeaders: [], 
       totals: { trips: 0, bonus: 0, paid: 0, diff: 0 },
       transactionAnalysis: { matched: [], unmatched: [] }
     };
 
-    const processed = processTripsAndTransactions(trips, transactions);
+    // Use server-side aggregated trip data instead of processing raw trips
+    const processed = processAggregatedTripsAndTransactions(aggregatedTrips, transactions);
     const months = getMonthHeaders(processed);
     
     const totalTrips = processed.reduce((acc, curr) => acc + curr.totalCount, 0);
@@ -200,7 +202,7 @@ export default function Dashboard() {
       totals: { trips: totalTrips, bonus: totalBonus, paid: totalPaid, diff: totalDiff },
       transactionAnalysis: analysis
     };
-  }, [trips, transactions]);
+  }, [aggregatedTrips, transactions]);
 
   const loadMockData = async () => {
     setIsProcessing(true);
@@ -339,7 +341,7 @@ export default function Dashboard() {
     }
   };
 
-  const canContinue = pendingTrips.length > 0 || trips.length > 0;
+  const canContinue = pendingTrips.length > 0 || tripCount > 0;
 
   const exportTransactionsToExcel = () => {
     const matchedData = transactionAnalysis.matched.map(item => ({
@@ -433,7 +435,7 @@ export default function Dashboard() {
               <FolderOpen className="w-4 h-4 mr-2" />
               {t('dashboard.loadProcess')}
             </Button>
-            {(currentStep === 2 || currentStep === 3) && trips.length > 0 && (
+            {(currentStep === 2 || currentStep === 3) && tripCount > 0 && (
               <Button 
                 data-testid="button-add-more-data"
                 variant="outline" 
@@ -444,7 +446,7 @@ export default function Dashboard() {
                 {t('dashboard.addMoreData')}
               </Button>
             )}
-            {(trips.length > 0 || pendingTrips.length > 0) && (
+            {(tripCount > 0 || pendingTrips.length > 0) && (
               <Button 
                 data-testid="button-reset"
                 variant="ghost" 
@@ -577,7 +579,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {!isTransitioning && (currentStep === 2 || currentStep === 3) && trips.length > 0 && (
+        {!isTransitioning && (currentStep === 2 || currentStep === 3) && tripCount > 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {vorgangsId && (

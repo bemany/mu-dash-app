@@ -48,6 +48,102 @@ export function processPaymentCSV(rawData: any[]): UberTransaction[] {
     .filter(tx => tx["Kennzeichen"]);
 }
 
+export interface AggregatedTrip {
+  licensePlate: string;
+  month: string;
+  count: number;
+}
+
+export function processAggregatedTripsAndTransactions(
+  aggregatedTrips: AggregatedTrip[], 
+  transactions: UberTransaction[] = []
+): DriverSummary[] {
+  const driverMap = new Map<string, DriverSummary>();
+
+  const getDriver = (plate: string) => {
+    if (!plate) return null;
+    const normalizedPlate = plate.trim().toUpperCase().replace(/\s/g, '');
+    if (!driverMap.has(normalizedPlate)) {
+      driverMap.set(normalizedPlate, {
+        licensePlate: normalizedPlate,
+        stats: {},
+        totalCount: 0,
+        totalBonus: 0,
+        totalPaid: 0,
+        totalDifference: 0
+      });
+    }
+    return driverMap.get(normalizedPlate)!;
+  };
+
+  // Process pre-aggregated trip data from server
+  aggregatedTrips.forEach(agg => {
+    const driver = getDriver(agg.licensePlate);
+    if (!driver) return;
+    
+    const monthKey = agg.month;
+    if (!driver.stats[monthKey]) {
+      driver.stats[monthKey] = { monthKey, count: 0, bonus: 0, paidAmount: 0, difference: 0 };
+    }
+
+    driver.stats[monthKey].count += agg.count;
+  });
+
+  transactions.forEach(tx => {
+    const timestamp = tx["Zeitpunkt"];
+    let date: Date;
+    
+    if (timestamp.includes('+')) {
+      date = parsePaymentTimestamp(timestamp);
+    } else {
+      date = parseISO(timestamp);
+    }
+    
+    const monthKey = format(startOfMonth(date), "yyyy-MM");
+    
+    const driver = getDriver(tx["Kennzeichen"]);
+    if (!driver) return;
+
+    if (!driver.stats[monthKey]) {
+      driver.stats[monthKey] = { monthKey, count: 0, bonus: 0, paidAmount: 0, difference: 0 };
+    }
+
+    const amount = typeof tx["Betrag"] === 'string' 
+      ? parseFloat((tx["Betrag"] as string).replace(',', '.')) 
+      : (tx["Betrag"] || 0);
+      
+    driver.stats[monthKey].paidAmount += amount;
+  });
+
+  const summaries = Array.from(driverMap.values()).map(driver => {
+    let totalCount = 0;
+    let totalBonus = 0;
+    let totalPaid = 0;
+    let totalDifference = 0;
+
+    Object.values(driver.stats).forEach(stat => {
+      if (stat.count > 699) {
+        stat.bonus = 400;
+      } else if (stat.count > 249) {
+        stat.bonus = 250;
+      } else {
+        stat.bonus = 0;
+      }
+      
+      stat.difference = stat.bonus - stat.paidAmount;
+
+      totalCount += stat.count;
+      totalBonus += stat.bonus;
+      totalPaid += stat.paidAmount;
+      totalDifference += stat.difference;
+    });
+
+    return { ...driver, totalCount, totalBonus, totalPaid, totalDifference };
+  });
+
+  return summaries.sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
+}
+
 export function processTripsAndTransactions(trips: UberTrip[], transactions: UberTransaction[] = []): DriverSummary[] {
   const driverMap = new Map<string, DriverSummary>();
 

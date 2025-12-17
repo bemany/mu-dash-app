@@ -41,6 +41,7 @@ export interface IStorage {
   createTrips(trips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]>;
   getTripsBySession(sessionId: string): Promise<Trip[]>;
   getTripCountBySession(sessionId: string): Promise<number>;
+  getAggregatedTripsBySession(sessionId: string): Promise<{ licensePlate: string; month: string; count: number }[]>;
   deleteTripsForSession(sessionId: string): Promise<void>;
   
   // Transaction management
@@ -201,6 +202,20 @@ export class DatabaseStorage implements IStorage {
       .from(trips)
       .where(eq(trips.sessionId, sessionId));
     return result[0]?.count || 0;
+  }
+
+  async getAggregatedTripsBySession(sessionId: string): Promise<{ licensePlate: string; month: string; count: number }[]> {
+    const result = await db.execute(sql`
+      SELECT 
+        license_plate as "licensePlate",
+        TO_CHAR(order_time, 'YYYY-MM') as month,
+        COUNT(*)::int as count
+      FROM trips
+      WHERE session_id = ${sessionId}
+      GROUP BY license_plate, TO_CHAR(order_time, 'YYYY-MM')
+      ORDER BY license_plate, month
+    `);
+    return result.rows as { licensePlate: string; month: string; count: number }[];
   }
 
   async deleteTripsForSession(sessionId: string): Promise<void> {
