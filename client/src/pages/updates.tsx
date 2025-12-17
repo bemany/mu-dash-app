@@ -17,6 +17,14 @@ interface Update {
 const updates: Update[] = [
   {
     date: "17.12.2024",
+    version: "1.5.0",
+    items: [
+      { type: 'feature', text: "Neue 'Gezahlt'-Spalte zeigt ausgezahlte Boni mit grüner Hervorhebung" },
+      { type: 'fix', text: "Bonus-Berechnung korrigiert: 150€ ab 250 Fahrten, 400€ ab 700 Fahrten" },
+    ]
+  },
+  {
+    date: "17.12.2024",
     version: "1.4.0",
     items: [
       { type: 'feature', text: "URL-basierte Sitzungsverwaltung - Vorgänge können jetzt per Link geteilt werden" },
@@ -59,7 +67,7 @@ const updates: Update[] = [
     items: [
       { type: 'feature', text: "Erste Version von U-Retter" },
       { type: 'feature', text: "CSV-Import für Fahrten und Zahlungen" },
-      { type: 'feature', text: "Automatische Bonusberechnung (250€ bei >249 Fahrten, 400€ bei >699 Fahrten)" },
+      { type: 'feature', text: "Automatische Bonusberechnung basierend auf Fahrtenzahl" },
       { type: 'feature', text: "Abgleich zwischen erwarteten und tatsächlichen Zahlungen" },
     ]
   },
