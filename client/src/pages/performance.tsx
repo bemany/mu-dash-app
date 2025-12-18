@@ -9,8 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enUS, tr, ar, type Locale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/context";
 import {
   CalendarIcon,
   Clock,
@@ -170,9 +171,11 @@ function KpiCard({ title, value, subtitle, icon, onClick, testId, className }: K
 interface DatePickerWithRangeProps {
   date: DateRange | undefined;
   onDateChange: (date: DateRange | undefined) => void;
+  placeholder: string;
+  dateLocale: Locale;
 }
 
-function DatePickerWithRange({ date, onDateChange }: DatePickerWithRangeProps) {
+function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale }: DatePickerWithRangeProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -188,14 +191,14 @@ function DatePickerWithRange({ date, onDateChange }: DatePickerWithRangeProps) {
           {date?.from ? (
             date.to ? (
               <>
-                {format(date.from, "dd.MM.yyyy", { locale: de })} -{" "}
-                {format(date.to, "dd.MM.yyyy", { locale: de })}
+                {format(date.from, "dd.MM.yyyy", { locale: dateLocale })} -{" "}
+                {format(date.to, "dd.MM.yyyy", { locale: dateLocale })}
               </>
             ) : (
-              format(date.from, "dd.MM.yyyy", { locale: de })
+              format(date.from, "dd.MM.yyyy", { locale: dateLocale })
             )
           ) : (
-            <span>Zeitraum wählen</span>
+            <span>{placeholder}</span>
           )}
         </Button>
       </PopoverTrigger>
@@ -206,14 +209,24 @@ function DatePickerWithRange({ date, onDateChange }: DatePickerWithRangeProps) {
           selected={date}
           onSelect={onDateChange}
           numberOfMonths={2}
-          locale={de}
+          locale={dateLocale}
         />
       </PopoverContent>
     </Popover>
   );
 }
 
+const dateLocaleMap: Record<string, Locale> = {
+  de: de,
+  en: enUS,
+  tr: tr,
+  ar: ar,
+};
+
 export default function PerformancePage() {
+  const { t, language } = useTranslation();
+  const dateLocale = dateLocaleMap[language] || de;
+  
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -222,8 +235,8 @@ export default function PerformancePage() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Performance - U-Retter";
-  }, []);
+    document.title = `${t('performance.title')} - U-Retter`;
+  }, [t]);
 
   const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "";
   const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : "";
@@ -303,13 +316,18 @@ export default function PerformancePage() {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="performance-title">
-              Performance Dashboard
+              {t('performance.title')}
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Kennzahlen und Leistungsübersicht
+              {t('performance.subtitle')}
             </p>
           </div>
-          <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+          <DatePickerWithRange 
+            date={dateRange} 
+            onDateChange={setDateRange} 
+            placeholder={t('performance.datePickerPlaceholder')}
+            dateLocale={dateLocale}
+          />
         </div>
 
         {isLoading ? (
@@ -319,56 +337,56 @@ export default function PerformancePage() {
         ) : !kpis ? (
           <Card className="p-12 text-center" data-testid="empty-state">
             <p className="text-slate-500">
-              Keine Daten für den ausgewählten Zeitraum verfügbar.
+              {t('performance.emptyState')}
             </p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <KpiCard
               testId="kpi-revenue-per-hour"
-              title="€/Stunde"
+              title={t('performance.kpiRevenuePerHour')}
               value={formatCurrency(kpis.revenuePerHour * 100)}
-              subtitle="Umsatz pro Arbeitsstunde"
+              subtitle={t('performance.kpiRevenuePerHourSubtitle')}
               icon={<Clock className="w-6 h-6" />}
               onClick={() => setActiveModal("hourly")}
             />
             <KpiCard
               testId="kpi-revenue-per-km"
-              title="€/km"
+              title={t('performance.kpiRevenuePerKm')}
               value={`${formatNumber(kpis.revenuePerKm)} €`}
-              subtitle="Umsatz pro Kilometer"
+              subtitle={t('performance.kpiRevenuePerKmSubtitle')}
               icon={<Route className="w-6 h-6" />}
               onClick={() => setActiveModal("km")}
             />
             <KpiCard
               testId="kpi-revenue-per-day"
-              title="€/Tag"
+              title={t('performance.kpiRevenuePerDay')}
               value={formatCurrency(kpis.revenuePerDay * 100)}
-              subtitle="Durchschnitt pro Tag"
+              subtitle={t('performance.kpiRevenuePerDaySubtitle')}
               icon={<CalendarIconSolid className="w-6 h-6" />}
               onClick={() => setActiveModal("daily")}
             />
             <KpiCard
               testId="kpi-revenue-per-driver"
-              title="€/Fahrer"
+              title={t('performance.kpiRevenuePerDriver')}
               value={formatCurrency(kpis.revenuePerDriver * 100)}
-              subtitle={`${driversData?.drivers?.length || 0} Fahrer`}
+              subtitle={`${driversData?.drivers?.length || 0} ${t('performance.drivers')}`}
               icon={<User className="w-6 h-6" />}
               onClick={() => setActiveModal("drivers")}
             />
             <KpiCard
               testId="kpi-revenue-per-vehicle"
-              title="€/Fahrzeug"
+              title={t('performance.kpiRevenuePerVehicle')}
               value={formatCurrency(kpis.revenuePerVehicle * 100)}
-              subtitle={`${vehiclesData?.vehicles?.length || 0} Fahrzeuge`}
+              subtitle={`${vehiclesData?.vehicles?.length || 0} ${t('performance.vehicles')}`}
               icon={<Car className="w-6 h-6" />}
               onClick={() => setActiveModal("vehicles")}
             />
             <KpiCard
               testId="kpi-shifts"
-              title="Schichten"
+              title={t('performance.kpiShifts')}
               value={kpis.totalShifts.toString()}
-              subtitle={`${kpis.dayShifts} Tag / ${kpis.nightShifts} Nacht`}
+              subtitle={`${kpis.dayShifts} ${t('performance.shiftDay')} / ${kpis.nightShifts} ${t('performance.shiftNight')}`}
               icon={<Sun className="w-6 h-6" />}
               onClick={() => setActiveModal("shifts")}
             />
@@ -378,23 +396,23 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "hourly"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-2xl" data-testid="modal-hourly">
             <DialogHeader>
-              <DialogTitle>€/Stunde - Details</DialogTitle>
-              <DialogDescription>Umsatz pro Arbeitsstunde nach Tag</DialogDescription>
+              <DialogTitle>{t('performance.modalHourlyTitle')}</DialogTitle>
+              <DialogDescription>{t('performance.modalHourlyDescription')}</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tag</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
-                    <TableHead className="text-right">Stunden</TableHead>
-                    <TableHead className="text-right">€/Stunde</TableHead>
+                    <TableHead>{t('performance.tableDay')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableHours')}</TableHead>
+                    <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {kpisData?.byDay?.map((day) => (
                     <TableRow key={day.day}>
-                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: de })}</TableCell>
+                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                       <TableCell className="text-right">{formatNumber(day.hoursWorked, 1)}</TableCell>
                       <TableCell className="text-right">
@@ -404,7 +422,7 @@ export default function PerformancePage() {
                   )) || (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -417,17 +435,17 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "km"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-2xl" data-testid="modal-km">
             <DialogHeader>
-              <DialogTitle>€/km - Details</DialogTitle>
-              <DialogDescription>Umsatz pro Kilometer nach Tag</DialogDescription>
+              <DialogTitle>{t('performance.modalKmTitle')}</DialogTitle>
+              <DialogDescription>{t('performance.modalKmDescription')}</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tag</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
-                    <TableHead className="text-right">Kilometer</TableHead>
-                    <TableHead className="text-right">€/km</TableHead>
+                    <TableHead>{t('performance.tableDay')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableKilometers')}</TableHead>
+                    <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -435,7 +453,7 @@ export default function PerformancePage() {
                     const km = cmToKm(day.distance);
                     return (
                       <TableRow key={day.day}>
-                        <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: de })}</TableCell>
+                        <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
                         <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                         <TableCell className="text-right">{formatNumber(km, 1)} km</TableCell>
                         <TableCell className="text-right">
@@ -446,7 +464,7 @@ export default function PerformancePage() {
                   }) || (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -459,29 +477,29 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "daily"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-2xl" data-testid="modal-daily">
             <DialogHeader>
-              <DialogTitle>€/Tag - Details</DialogTitle>
-              <DialogDescription>Tagesübersicht</DialogDescription>
+              <DialogTitle>{t('performance.modalDailyTitle')}</DialogTitle>
+              <DialogDescription>{t('performance.modalDailyDescription')}</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tag</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
-                    <TableHead className="text-right">Fahrten</TableHead>
+                    <TableHead>{t('performance.tableDay')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {kpisData?.byDay?.map((day) => (
                     <TableRow key={day.day}>
-                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: de })}</TableCell>
+                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                       <TableCell className="text-right">{day.tripCount}</TableCell>
                     </TableRow>
                   )) || (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -494,18 +512,18 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "drivers"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-3xl" data-testid="modal-drivers">
             <DialogHeader>
-              <DialogTitle>€/Fahrer - Details</DialogTitle>
-              <DialogDescription>Umsatz pro Fahrer</DialogDescription>
+              <DialogTitle>{t('performance.modalDriversTitle')}</DialogTitle>
+              <DialogDescription>{t('performance.modalDriversDescription')}</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fahrer</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
-                    <TableHead className="text-right">Fahrten</TableHead>
-                    <TableHead className="text-right">Stunden</TableHead>
-                    <TableHead className="text-right">€/Stunde</TableHead>
+                    <TableHead>{t('performance.tableDriver')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableHours')}</TableHead>
+                    <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -522,7 +540,7 @@ export default function PerformancePage() {
                   )) || (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -535,18 +553,18 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "vehicles"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-3xl" data-testid="modal-vehicles">
             <DialogHeader>
-              <DialogTitle>€/Fahrzeug - Details</DialogTitle>
-              <DialogDescription>Umsatz pro Fahrzeug</DialogDescription>
+              <DialogTitle>{t('performance.modalVehiclesTitle')}</DialogTitle>
+              <DialogDescription>{t('performance.modalVehiclesDescription')}</DialogDescription>
             </DialogHeader>
             <div className="max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Kennzeichen</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
-                    <TableHead className="text-right">Fahrten</TableHead>
-                    <TableHead className="text-right">Kilometer</TableHead>
-                    <TableHead className="text-right">€/km</TableHead>
+                    <TableHead>{t('performance.tableLicensePlate')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableKilometers')}</TableHead>
+                    <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -566,7 +584,7 @@ export default function PerformancePage() {
                   }) || (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -579,22 +597,22 @@ export default function PerformancePage() {
         <Dialog open={activeModal === "shifts"} onOpenChange={() => closeModal()}>
           <DialogContent className="max-w-4xl" data-testid="modal-shifts">
             <DialogHeader>
-              <DialogTitle>Schichten - Details</DialogTitle>
+              <DialogTitle>{t('performance.modalShiftsTitle')}</DialogTitle>
               <DialogDescription>
-                Übersicht aller Schichten ({shiftsData?.summary?.totalShifts || 0} gesamt)
+                {t('performance.modalShiftsDescription')} ({shiftsData?.summary?.totalShifts || 0} {t('performance.total')})
               </DialogDescription>
             </DialogHeader>
             <div className="mb-4 flex gap-4">
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg">
                 <Sun className="w-4 h-4 text-amber-600" />
                 <span className="text-sm font-medium text-amber-700">
-                  {shiftsData?.summary?.dayShifts || 0} Tagschichten
+                  {shiftsData?.summary?.dayShifts || 0} {t('performance.dayShifts')}
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-lg">
                 <Moon className="w-4 h-4 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-700">
-                  {shiftsData?.summary?.nightShifts || 0} Nachtschichten
+                  {shiftsData?.summary?.nightShifts || 0} {t('performance.nightShifts')}
                 </span>
               </div>
             </div>
@@ -602,12 +620,12 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fahrer</TableHead>
-                    <TableHead>Fahrzeug</TableHead>
-                    <TableHead>Start</TableHead>
-                    <TableHead>Ende</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead className="text-right">Umsatz</TableHead>
+                    <TableHead>{t('performance.tableDriver')}</TableHead>
+                    <TableHead>{t('performance.tableVehicle')}</TableHead>
+                    <TableHead>{t('performance.tableStart')}</TableHead>
+                    <TableHead>{t('performance.tableEnd')}</TableHead>
+                    <TableHead>{t('performance.tableType')}</TableHead>
+                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -615,8 +633,8 @@ export default function PerformancePage() {
                     <TableRow key={`${shift.driverName}-${shift.shiftStart}-${index}`}>
                       <TableCell className="font-medium">{shift.driverName}</TableCell>
                       <TableCell className="font-mono">{shift.licensePlate}</TableCell>
-                      <TableCell>{format(new Date(shift.shiftStart), "dd.MM. HH:mm", { locale: de })}</TableCell>
-                      <TableCell>{format(new Date(shift.shiftEnd), "dd.MM. HH:mm", { locale: de })}</TableCell>
+                      <TableCell>{format(new Date(shift.shiftStart), "dd.MM. HH:mm", { locale: dateLocale })}</TableCell>
+                      <TableCell>{format(new Date(shift.shiftEnd), "dd.MM. HH:mm", { locale: dateLocale })}</TableCell>
                       <TableCell>
                         <span
                           className={cn(
@@ -628,11 +646,11 @@ export default function PerformancePage() {
                         >
                           {shift.shiftType === "day" ? (
                             <>
-                              <Sun className="w-3 h-3" /> Tag
+                              <Sun className="w-3 h-3" /> {t('performance.shiftDay')}
                             </>
                           ) : (
                             <>
-                              <Moon className="w-3 h-3" /> Nacht
+                              <Moon className="w-3 h-3" /> {t('performance.shiftNight')}
                             </>
                           )}
                         </span>
@@ -642,7 +660,7 @@ export default function PerformancePage() {
                   )) || (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-slate-500">
-                        Keine Daten
+                        {t('performance.noData')}
                       </TableCell>
                     </TableRow>
                   )}
