@@ -501,18 +501,26 @@ interface ShiftsDialogProps {
 }
 
 function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps) {
-  const shifts = isDemo ? mockShiftReport.shifts : [];
-  const byDriver = isDemo ? mockShiftReport.byDriver : [];
+  const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
   
   const driverShiftData = useMemo(() => {
     return drivers.map(d => ({
       name: `${d.firstName} ${d.lastName}`,
       shiftCount: d.shiftCount || 0,
+      dayShiftCount: d.dayShiftCount || 0,
+      nightShiftCount: d.nightShiftCount || 0,
       hoursWorked: d.timeInTrip,
       revenue: d.avgFarePerTrip * d.completedTrips,
       trips: d.completedTrips,
+      isNightDriver: (d.nightShiftCount || 0) > (d.dayShiftCount || 0),
     }));
   }, [drivers]);
+
+  const filteredData = useMemo(() => {
+    if (shiftFilter === "all") return driverShiftData;
+    if (shiftFilter === "day") return driverShiftData.filter(d => !d.isNightDriver);
+    return driverShiftData.filter(d => d.isNightDriver);
+  }, [driverShiftData, shiftFilter]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -523,29 +531,93 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
             Schichten-Übersicht
           </DialogTitle>
         </DialogHeader>
+        <div className="flex items-center gap-2 pb-3 border-b">
+          <span className="text-sm text-slate-500">Filter:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setShiftFilter("all")}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-full transition-all",
+                shiftFilter === "all"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              )}
+            >
+              Alle
+            </button>
+            <button
+              onClick={() => setShiftFilter("day")}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-full transition-all inline-flex items-center gap-1",
+                shiftFilter === "day"
+                  ? "bg-amber-500 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              )}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              Tagschicht
+            </button>
+            <button
+              onClick={() => setShiftFilter("night")}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-full transition-all inline-flex items-center gap-1",
+                shiftFilter === "night"
+                  ? "bg-indigo-500 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              )}
+            >
+              <Moon className="w-3.5 h-3.5" />
+              Nachtschicht
+            </button>
+          </div>
+        </div>
         <div className="overflow-auto flex-1">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Fahrer</TableHead>
+                <TableHead className="text-center">Typ</TableHead>
                 <TableHead className="text-right">Schichten</TableHead>
+                <TableHead className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    Tag
+                  </div>
+                </TableHead>
+                <TableHead className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Moon className="w-3.5 h-3.5 text-indigo-500" />
+                    Nacht
+                  </div>
+                </TableHead>
                 <TableHead className="text-right">Arbeitsstunden</TableHead>
                 <TableHead className="text-right">Fahrten</TableHead>
                 <TableHead className="text-right">Umsatz</TableHead>
-                <TableHead className="text-right">Ø Std/Schicht</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {driverShiftData.map((driver, idx) => (
+              {filteredData.map((driver, idx) => (
                 <TableRow key={idx}>
                   <TableCell className="font-medium whitespace-nowrap">{driver.name}</TableCell>
+                  <TableCell className="text-center whitespace-nowrap">
+                    {driver.isNightDriver ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
+                        <Moon className="w-3 h-3" />
+                        Nacht
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                        <Sun className="w-3 h-3" />
+                        Tag
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right whitespace-nowrap">{driver.shiftCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.dayShiftCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.nightShiftCount}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.hoursWorked, 0)} h</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{driver.trips}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.revenue)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    {driver.shiftCount > 0 ? formatNumber(driver.hoursWorked / driver.shiftCount, 1) : '-'} h
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
