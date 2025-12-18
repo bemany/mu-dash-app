@@ -320,11 +320,13 @@ interface DriversTabProps {
   data: { summary: DriverReportSummary; drivers: DriverReportRow[] } | undefined;
   isLoading: boolean;
   isDemo: boolean;
+  timeMetric: string;
+  setTimeMetric: (value: string) => void;
+  distanceMetric: string;
+  setDistanceMetric: (value: string) => void;
 }
 
-function DriversTab({ data, isLoading, isDemo }: DriversTabProps) {
-  const [timeMetric, setTimeMetric] = useState<string>("hour");
-  const [distanceMetric, setDistanceMetric] = useState<string>("km");
+function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric }: DriversTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -460,11 +462,13 @@ interface VehiclesTabProps {
   data: { summary: VehicleReportSummary; vehicles: VehicleReportRow[] } | undefined;
   isLoading: boolean;
   isDemo: boolean;
+  timeMetric: string;
+  setTimeMetric: (value: string) => void;
+  distanceMetric: string;
+  setDistanceMetric: (value: string) => void;
 }
 
-function VehiclesTab({ data, isLoading, isDemo }: VehiclesTabProps) {
-  const [timeMetric, setTimeMetric] = useState<string>("hour");
-  const [distanceMetric, setDistanceMetric] = useState<string>("km");
+function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric }: VehiclesTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -701,6 +705,8 @@ export default function PerformancePage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
   const [activeTab, setActiveTab] = useState("drivers");
+  const [timeMetric, setTimeMetric] = useState<string>("hour");
+  const [distanceMetric, setDistanceMetric] = useState<string>("km");
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -891,14 +897,22 @@ export default function PerformancePage() {
             <DriversTab 
               data={driversData} 
               isLoading={driversLoading} 
-              isDemo={isDemo} 
+              isDemo={isDemo}
+              timeMetric={timeMetric}
+              setTimeMetric={setTimeMetric}
+              distanceMetric={distanceMetric}
+              setDistanceMetric={setDistanceMetric}
             />
           </TabsContent>
           <TabsContent value="vehicles" className="mt-0">
             <VehiclesTab 
               data={vehiclesData} 
               isLoading={vehiclesLoading} 
-              isDemo={isDemo} 
+              isDemo={isDemo}
+              timeMetric={timeMetric}
+              setTimeMetric={setTimeMetric}
+              distanceMetric={distanceMetric}
+              setDistanceMetric={setDistanceMetric}
             />
           </TabsContent>
           <TabsContent value="promo" className="mt-0">
