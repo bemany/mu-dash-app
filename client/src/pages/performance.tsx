@@ -681,6 +681,8 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
       'Akzeptanzrate': driver.acceptanceRate,
       'Zeit in Fahrt (h)': driver.timeInTrip,
     }));
+    dataToExport.push({} as any);
+    dataToExport.push({ 'Vorname': 'Er lässt Grüßen' } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Fahrer");
@@ -1022,6 +1024,8 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
       'Akzeptanzrate': vehicle.acceptanceRate,
       'Zeit in Fahrt (h)': vehicle.timeInTrip,
     }));
+    dataToExport.push({} as any);
+    dataToExport.push({ 'Kennzeichen': 'Er lässt Grüßen' } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Fahrzeuge");
@@ -1213,6 +1217,8 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
       'Ausgezahlt': row.actualPaid,
       'Differenz': row.difference,
     }));
+    dataToExport.push({} as any);
+    dataToExport.push({ 'Kennzeichen': 'Er lässt Grüßen' } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Werbegelder");
