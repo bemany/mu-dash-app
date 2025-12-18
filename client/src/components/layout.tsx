@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2 } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useLocation } from 'wouter';
 import { useTranslation } from '@/i18n';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   const { t, language, setLanguage, languages } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [inputVorgangsId, setInputVorgangsId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
 
   const { data: sessionData } = useQuery({
     queryKey: ["session"],
@@ -43,6 +48,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
+  const loadVorgangsId = async () => {
+    if (!inputVorgangsId.trim()) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/session/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vorgangsId: inputVorgangsId.trim().toUpperCase() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Nicht gefunden');
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ['session'] });
+      setInputVorgangsId('');
+      setLocation('/');
+    } catch (err) {
+      setError('Fehler beim Laden');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
       <aside 
@@ -59,7 +89,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </h1>
           </div>
           
-          {sessionData?.vorgangsId && (
+          {sessionData?.vorgangsId ? (
             <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -79,6 +109,36 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Building2 className="w-3.5 h-3.5 text-slate-500" />
                   <span className="text-xs text-slate-400 truncate">{sessionData.companyName}</span>
                 </div>
+              )}
+            </div>
+          ) : (
+            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={inputVorgangsId}
+                  onChange={(e) => {
+                    setInputVorgangsId(e.target.value.toUpperCase());
+                    setError('');
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && loadVorgangsId()}
+                  placeholder="Vorgangs-ID"
+                  className="h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 font-mono text-sm"
+                  maxLength={6}
+                  data-testid="sidebar-vorgangs-id-input"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={loadVorgangsId}
+                  disabled={isLoading || !inputVorgangsId.trim()}
+                  className="h-8 px-2 hover:bg-slate-700"
+                  data-testid="sidebar-load-vorgangs-id"
+                >
+                  <Search className="w-4 h-4 text-slate-400" />
+                </Button>
+              </div>
+              {error && (
+                <p className="text-xs text-red-400 mt-1">{error}</p>
               )}
             </div>
           )}
