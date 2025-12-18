@@ -360,12 +360,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPerformanceMetrics(sessionId: string, startDate?: Date, endDate?: Date): Promise<PerformanceMetrics> {
-    const dateFilter = this.buildDateFilter(startDate, endDate);
+    const dateFilter = this.buildTripDateFilter(startDate, endDate);
     
     const [totalsResult, byDriverResult, byVehicleResult, byDayResult, byMonthResult] = await Promise.all([
       db.execute(sql`
         SELECT 
-          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as revenue,
           COALESCE(SUM(
             CASE 
               WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
@@ -393,19 +399,25 @@ export class DatabaseStorage implements IStorage {
             END
           ), 0)::numeric as hours_worked,
           COUNT(*)::int as trip_count
-        FROM transactions
+        FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
       `),
       
       db.execute(sql`
         SELECT 
-          CONCAT(
+          TRIM(CONCAT(
             COALESCE(raw_data->>'Vorname des Fahrers', ''),
             ' ',
             COALESCE(raw_data->>'Nachname des Fahrers', '')
-          ) as driver_name,
-          COALESCE(SUM(amount), 0)::bigint as revenue,
+          )) as driver_name,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as revenue,
           COALESCE(SUM(
             CASE 
               WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
@@ -433,7 +445,7 @@ export class DatabaseStorage implements IStorage {
             END
           ), 0)::numeric as hours_worked,
           COUNT(*)::int as trip_count
-        FROM transactions
+        FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
         GROUP BY driver_name
@@ -448,7 +460,13 @@ export class DatabaseStorage implements IStorage {
       db.execute(sql`
         SELECT 
           license_plate,
-          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as revenue,
           COALESCE(SUM(
             CASE 
               WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
@@ -476,7 +494,7 @@ export class DatabaseStorage implements IStorage {
             END
           ), 0)::numeric as hours_worked,
           COUNT(*)::int as trip_count
-        FROM transactions
+        FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
         GROUP BY license_plate
@@ -485,8 +503,14 @@ export class DatabaseStorage implements IStorage {
       
       db.execute(sql`
         SELECT 
-          TO_CHAR(transaction_time, 'YYYY-MM-DD') as date,
-          COALESCE(SUM(amount), 0)::bigint as revenue,
+          TO_CHAR(order_time, 'YYYY-MM-DD') as date,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as revenue,
           COALESCE(SUM(
             CASE 
               WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
@@ -514,7 +538,7 @@ export class DatabaseStorage implements IStorage {
             END
           ), 0)::numeric as hours_worked,
           COUNT(*)::int as trip_count
-        FROM transactions
+        FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
         GROUP BY date
@@ -523,8 +547,14 @@ export class DatabaseStorage implements IStorage {
       
       db.execute(sql`
         SELECT 
-          TO_CHAR(transaction_time, 'YYYY-MM') as month,
-          COALESCE(SUM(amount), 0)::bigint as revenue,
+          TO_CHAR(order_time, 'YYYY-MM') as month,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as revenue,
           COALESCE(SUM(
             CASE 
               WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
@@ -552,7 +582,7 @@ export class DatabaseStorage implements IStorage {
             END
           ), 0)::numeric as hours_worked,
           COUNT(*)::int as trip_count
-        FROM transactions
+        FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
         GROUP BY month
@@ -611,25 +641,40 @@ export class DatabaseStorage implements IStorage {
     return sql``;
   }
 
+  private buildTripDateFilter(startDate?: Date, endDate?: Date): ReturnType<typeof sql> {
+    if (startDate && endDate) {
+      return sql`AND order_time >= ${startDate} AND order_time <= ${endDate}`;
+    } else if (startDate) {
+      return sql`AND order_time >= ${startDate}`;
+    } else if (endDate) {
+      return sql`AND order_time <= ${endDate}`;
+    }
+    return sql``;
+  }
+
   async getShiftAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<ShiftAnalysis> {
     let dateCondition = '';
     const params: any[] = [sessionId];
     
     if (startDate) {
       params.push(startDate);
-      dateCondition += ` AND transaction_time >= $${params.length}`;
+      dateCondition += ` AND order_time >= $${params.length}`;
     }
     if (endDate) {
       params.push(endDate);
-      dateCondition += ` AND transaction_time <= $${params.length}`;
+      dateCondition += ` AND order_time <= $${params.length}`;
     }
 
     const tripsQuery = `
       SELECT 
         id,
         license_plate,
-        transaction_time,
-        amount,
+        order_time,
+        CASE 
+          WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
+          THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+          ELSE 0
+        END as revenue,
         raw_data->>'Vorname des Fahrers' as first_name,
         raw_data->>'Nachname des Fahrers' as last_name,
         CASE 
@@ -639,13 +684,13 @@ export class DatabaseStorage implements IStorage {
         END as distance,
         raw_data->>'Startzeit der Fahrt' as start_time,
         raw_data->>'Ankunftszeit der Fahrt' as end_time
-      FROM transactions
+      FROM trips
       WHERE session_id = $1
       ${dateCondition}
       ORDER BY 
         CONCAT(raw_data->>'Vorname des Fahrers', ' ', raw_data->>'Nachname des Fahrers'),
         license_plate,
-        transaction_time
+        order_time
     `;
 
     const result = await pool.query(tripsQuery, params);
@@ -672,7 +717,7 @@ export class DatabaseStorage implements IStorage {
       licensePlate: string;
       trips: Array<{
         time: Date;
-        amount: number;
+        revenue: number;
         distance: number;
         startTime?: Date;
         endTime?: Date;
@@ -682,8 +727,8 @@ export class DatabaseStorage implements IStorage {
     for (const trip of tripRows) {
       const driverName = `${trip.first_name || ''} ${trip.last_name || ''}`.trim() || 'Unbekannt';
       const licensePlate = trip.license_plate || 'Unbekannt';
-      const tripTime = new Date(trip.transaction_time);
-      const amount = Number(trip.amount) || 0;
+      const tripTime = new Date(trip.order_time);
+      const revenue = Number(trip.revenue) || 0;
       const distance = Number(trip.distance) || 0;
       
       let startTime: Date | undefined;
@@ -702,7 +747,7 @@ export class DatabaseStorage implements IStorage {
         } catch { endTime = undefined; }
       }
 
-      const tripData = { time: tripTime, amount, distance, startTime, endTime };
+      const tripData = { time: tripTime, revenue, distance, startTime, endTime };
 
       if (!currentShift || 
           currentShift.driverName !== driverName || 
@@ -750,7 +795,7 @@ export class DatabaseStorage implements IStorage {
     licensePlate: string;
     trips: Array<{
       time: Date;
-      amount: number;
+      revenue: number;
       distance: number;
       startTime?: Date;
       endTime?: Date;
@@ -760,7 +805,7 @@ export class DatabaseStorage implements IStorage {
     const shiftStart = trips[0].time;
     const shiftEnd = trips[trips.length - 1].time;
     
-    const revenue = trips.reduce((sum, t) => sum + t.amount, 0);
+    const revenue = trips.reduce((sum, t) => sum + t.revenue, 0);
     const distance = trips.reduce((sum, t) => sum + t.distance, 0);
     
     let hoursWorked = 0;
