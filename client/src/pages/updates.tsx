@@ -17,6 +17,17 @@ interface Update {
 const updates: Update[] = [
   {
     date: "18.12.2024",
+    version: "1.7.0",
+    items: [
+      { type: 'feature', text: "App umbenannt zu MU-Dash (Mietwagen Unternehmer Dashboard)" },
+      { type: 'feature', text: "Schichten-Popup beim Klick auf die Schichten-KPI-Kachel" },
+      { type: 'feature', text: "Vorgangs-ID Eingabefeld in Sidebar wenn kein Vorgang geladen" },
+      { type: 'feature', text: "Excel-Export für alle Tabellen (Fahrer, Fahrzeuge, Werbegelder)" },
+      { type: 'improvement', text: "KPI-Kacheln zeigen Hover-Effekt nur wenn anklickbar" },
+    ]
+  },
+  {
+    date: "18.12.2024",
     version: "1.6.0",
     items: [
       { type: 'feature', text: "Vorgangs-ID und Firmenname werden in der Sidebar angezeigt" },

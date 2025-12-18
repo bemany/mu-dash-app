@@ -84,8 +84,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-slate-800">
             <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">U</span>
-              {t('layout.appName')}
+              <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white text-sm font-bold">MU</span>
+              MU-Dash
             </h1>
           </div>
           

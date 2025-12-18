@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Calendar } from "@/components/ui/calendar";
@@ -24,6 +25,7 @@ import {
   mockDriverReport,
   mockVehicleReport,
   mockPromoReport,
+  mockShiftReport,
   type DriverReportRow,
   type DriverReportSummary,
   type VehicleReportRow,
@@ -45,6 +47,9 @@ import {
   ChevronDown,
   Filter,
   Download,
+  Sun,
+  Moon,
+  X,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -82,8 +87,8 @@ function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCa
     <Card
       data-testid={testId}
       className={cn(
-        "transition-all hover:shadow-lg hover:border-emerald-300",
-        onClick && "cursor-pointer hover:scale-[1.02]",
+        "transition-all",
+        onClick && "cursor-pointer hover:shadow-lg hover:border-emerald-300 hover:scale-[1.02]",
         className
       )}
       onClick={onClick}
@@ -493,8 +498,72 @@ function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSumma
   };
 }
 
+interface ShiftsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  drivers: DriverReportRow[];
+  isDemo: boolean;
+}
+
+function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps) {
+  const shifts = isDemo ? mockShiftReport.shifts : [];
+  const byDriver = isDemo ? mockShiftReport.byDriver : [];
+  
+  const driverShiftData = useMemo(() => {
+    return drivers.map(d => ({
+      name: `${d.firstName} ${d.lastName}`,
+      shiftCount: d.shiftCount || 0,
+      hoursWorked: d.timeInTrip,
+      revenue: d.avgFarePerTrip * d.completedTrips,
+      trips: d.completedTrips,
+    }));
+  }, [drivers]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-emerald-600" />
+            Schichten-Übersicht
+          </DialogTitle>
+        </DialogHeader>
+        <div className="overflow-auto flex-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fahrer</TableHead>
+                <TableHead className="text-right">Schichten</TableHead>
+                <TableHead className="text-right">Arbeitsstunden</TableHead>
+                <TableHead className="text-right">Fahrten</TableHead>
+                <TableHead className="text-right">Umsatz</TableHead>
+                <TableHead className="text-right">Ø Std/Schicht</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {driverShiftData.map((driver, idx) => (
+                <TableRow key={idx}>
+                  <TableCell className="font-medium whitespace-nowrap">{driver.name}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.shiftCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.hoursWorked, 0)} h</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.trips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.revenue)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    {driver.shiftCount > 0 ? formatNumber(driver.hoursWorked / driver.shiftCount, 1) : '-'} h
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
+  const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -619,8 +688,16 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           title="Schichten"
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
+          onClick={() => setShowShiftsDialog(true)}
         />
       </div>
+      
+      <ShiftsDialog
+        open={showShiftsDialog}
+        onOpenChange={setShowShiftsDialog}
+        drivers={filteredDrivers}
+        isDemo={isDemo}
+      />
       
       <Card>
         <div className="overflow-x-auto">
@@ -730,8 +807,81 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[]): VehicleReportS
   };
 }
 
+interface VehicleShiftsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  vehicles: VehicleReportRow[];
+  isDemo: boolean;
+}
+
+function VehicleShiftsDialog({ open, onOpenChange, vehicles, isDemo }: VehicleShiftsDialogProps) {
+  const vehicleShiftData = useMemo(() => {
+    return vehicles.map(v => ({
+      licensePlate: v.licensePlate,
+      shiftCount: v.shiftCount || 0,
+      dayShifts: v.dayShiftCount || 0,
+      nightShifts: v.nightShiftCount || 0,
+      hoursWorked: v.timeInTrip,
+      revenue: v.totalRevenue,
+      trips: v.completedTrips,
+    }));
+  }, [vehicles]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-emerald-600" />
+            Schichten nach Fahrzeug
+          </DialogTitle>
+        </DialogHeader>
+        <div className="overflow-auto flex-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Kennzeichen</TableHead>
+                <TableHead className="text-right">Schichten</TableHead>
+                <TableHead className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    Tag
+                  </div>
+                </TableHead>
+                <TableHead className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Moon className="w-3.5 h-3.5 text-blue-500" />
+                    Nacht
+                  </div>
+                </TableHead>
+                <TableHead className="text-right">Arbeitsstunden</TableHead>
+                <TableHead className="text-right">Fahrten</TableHead>
+                <TableHead className="text-right">Umsatz</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vehicleShiftData.map((vehicle, idx) => (
+                <TableRow key={idx}>
+                  <TableCell className="font-mono font-medium whitespace-nowrap">{vehicle.licensePlate}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.shiftCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.dayShifts}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.nightShifts}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.hoursWorked, 0)} h</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.trips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.revenue)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedVehicles, setSelectedVehicles }: VehiclesTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
+  const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -856,8 +1006,16 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           title="Schichten"
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
+          onClick={() => setShowShiftsDialog(true)}
         />
       </div>
+      
+      <VehicleShiftsDialog
+        open={showShiftsDialog}
+        onOpenChange={setShowShiftsDialog}
+        vehicles={filteredVehicles}
+        isDemo={isDemo}
+      />
       
       <Card>
         <div className="overflow-x-auto">
