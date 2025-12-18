@@ -612,8 +612,8 @@ export async function registerRoutes(
           filename: file.originalname,
           fileType: tripFiles.includes(file) ? "trips" : "payments",
           mimeType: file.mimetype || "text/csv",
-          fileSize: file.size,
-          fileContent: file.buffer.toString("base64"),
+          size: file.size,
+          content: file.buffer.toString("base64"),
         });
       }
 
@@ -1008,6 +1008,54 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching shift analysis:", error);
       res.status(500).json({ error: "Fehler beim Abrufen der Schicht-Analyse" });
+    }
+  });
+
+  app.get("/api/reports/drivers", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const report = await storage.getDriverReport(sessionId, startDate, endDate);
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching driver report:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen des Fahrerberichts" });
+    }
+  });
+
+  app.get("/api/reports/vehicles", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const report = await storage.getVehicleReport(sessionId, startDate, endDate);
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching vehicle report:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen des Fahrzeugberichts" });
+    }
+  });
+
+  app.get("/api/reports/promo", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const report = await storage.getPromoReport(sessionId);
+      
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching promo report:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen des Werbegelder-Berichts" });
     }
   });
 

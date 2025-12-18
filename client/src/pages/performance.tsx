@@ -1,143 +1,56 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   format, 
-  subDays, 
   startOfMonth, 
   endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  startOfYear,
-  endOfYear,
-  subWeeks,
-  subMonths,
-  subYears
+  subMonths
 } from "date-fns";
 import { de, enUS, tr, ar, type Locale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/context";
 import {
-  mockPerformanceKpis,
-  mockPerformanceDrivers,
-  mockPerformanceVehicles,
-  mockPerformanceShifts,
-  mockBonusPayouts,
-  mockBonusSummary,
+  mockDriverReport,
+  mockVehicleReport,
+  mockPromoReport,
+  type DriverReportRow,
+  type DriverReportSummary,
+  type VehicleReportRow,
+  type VehicleReportSummary,
+  type PromoReportRow,
+  type PromoReportSummary,
 } from "@/lib/mock-data";
 import {
   CalendarIcon,
   Clock,
   Car,
   User,
-  Euro,
-  Sun,
-  Moon,
-  TrendingUp,
   Route,
-  Calendar as CalendarIconSolid,
   AlertCircle,
   Gift,
   Upload,
   Copy,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
 
-interface KpiTotals {
-  totalRevenue: number;
-  totalDistance: number;
-  totalHoursWorked: number;
-  tripCount: number;
-}
-
-interface DayKpi {
-  day: string;
-  revenue: number;
-  distance: number;
-  hoursWorked: number;
-  tripCount: number;
-}
-
-interface MonthKpi {
-  month: string;
-  revenue: number;
-  distance: number;
-  hoursWorked: number;
-  tripCount: number;
-}
-
-interface KpisResponse {
-  totals: KpiTotals;
-  byDay: DayKpi[];
-  byMonth: MonthKpi[];
-}
-
-interface DriverData {
-  driverName: string;
-  revenue: number;
-  distance: number;
-  hoursWorked: number;
-  tripCount: number;
-}
-
-interface DriversResponse {
-  drivers: DriverData[];
-  totals: KpiTotals;
-}
-
-interface VehicleData {
-  licensePlate: string;
-  revenue: number;
-  distance: number;
-  hoursWorked: number;
-  tripCount: number;
-}
-
-interface VehiclesResponse {
-  vehicles: VehicleData[];
-  totals: KpiTotals;
-}
-
-interface ShiftData {
-  driverName: string;
-  licensePlate: string;
-  shiftStart: string;
-  shiftEnd: string;
-  shiftType: "day" | "night";
-  revenue: number;
-  distance: number;
-  hoursWorked: number;
-  tripCount: number;
-}
-
-interface ShiftsSummary {
-  totalShifts: number;
-  dayShifts: number;
-  nightShifts: number;
-  avgShiftDuration: number;
-  avgRevenuePerShift: number;
-}
-
-interface ShiftsResponse {
-  shifts: ShiftData[];
-  summary: ShiftsSummary;
-}
-
-function formatCurrency(cents: number): string {
+function formatCurrency(value: number): string {
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
     currency: "EUR",
-  }).format(cents / 100);
+  }).format(value);
 }
 
 function formatNumber(value: number, decimals: number = 2): string {
@@ -147,32 +60,60 @@ function formatNumber(value: number, decimals: number = 2): string {
   }).format(value);
 }
 
-function cmToKm(cm: number): number {
-  return cm / 100000;
-}
-
-function centsToEur(cents: number): number {
-  return cents / 100;
-}
-
-function safeFormatDate(dateStr: string | Date, formatStr: string, locale: Locale): string {
-  try {
-    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    if (isNaN(date.getTime())) return '-';
-    return format(date, formatStr, { locale });
-  } catch {
-    return '-';
-  }
-}
-
 interface KpiCardProps {
   title: string;
   value: string;
-  subtitle?: string;
   icon: React.ReactNode;
-  onClick?: () => void;
   testId: string;
   className?: string;
+  dropdown?: {
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  };
+  onClick?: () => void;
+}
+
+function KpiCard({ title, value, icon, testId, className, dropdown, onClick }: KpiCardProps) {
+  return (
+    <Card
+      data-testid={testId}
+      className={cn(
+        "transition-all hover:shadow-lg hover:border-emerald-300",
+        onClick && "cursor-pointer hover:scale-[1.02]",
+        className
+      )}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            {dropdown ? (
+              <Select value={dropdown.value} onValueChange={dropdown.onChange}>
+                <SelectTrigger className="h-6 w-auto gap-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-500 shadow-none hover:bg-slate-50" data-testid={`${testId}-dropdown`}>
+                  <SelectValue />
+                  <ChevronDown className="h-3 w-3" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dropdown.options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-sm font-medium text-slate-500">{title}</p>
+            )}
+            <p className="text-2xl font-bold text-slate-900" data-testid={`${testId}-value`}>
+              {value}
+            </p>
+          </div>
+          <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function VorgangsIdDisplay({ vorgangsId }: { vorgangsId: string }) {
@@ -208,36 +149,6 @@ function VorgangsIdDisplay({ vorgangsId }: { vorgangsId: string }) {
   );
 }
 
-function KpiCard({ title, value, subtitle, icon, onClick, testId, className }: KpiCardProps) {
-  return (
-    <Card
-      data-testid={testId}
-      className={cn(
-        "cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-emerald-300",
-        className
-      )}
-      onClick={onClick}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="text-2xl font-bold text-slate-900" data-testid={`${testId}-value`}>
-              {value}
-            </p>
-            {subtitle && (
-              <p className="text-xs text-slate-400" data-testid={`${testId}-subtitle`}>
-                {subtitle}
-              </p>
-            )}
-          </div>
-          <div className="p-3 bg-emerald-100 rounded-lg text-emerald-600">{icon}</div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 interface DatePickerWithRangeProps {
   date: DateRange | undefined;
   onDateChange: (date: DateRange | undefined) => void;
@@ -254,7 +165,7 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, pres
           data-testid="date-range-picker"
           variant="outline"
           className={cn(
-            "w-[280px] justify-start text-left font-normal",
+            "w-[260px] justify-start text-left font-normal",
             !date && "text-muted-foreground"
           )}
         >
@@ -359,45 +270,22 @@ function getLastFullMonth(availableMonths: string[]): { from: Date; to: Date } |
   };
 }
 
-export default function PerformancePage() {
-  const { t, language } = useTranslation();
-  const dateLocale = dateLocaleMap[language] || de;
-  
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
-  
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
-  
-  type SortDirection = "asc" | "desc";
-  type SortConfig = { key: string; direction: SortDirection };
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "", direction: "desc" });
-  
-  const handleSort = (key: string) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
-    }));
-  };
-  
-  const sortData = <T extends Record<string, any>>(data: T[] | undefined, key: string): T[] => {
-    if (!data || !key) return data || [];
-    return [...data].sort((a, b) => {
-      const aVal = a[key] ?? 0;
-      const bVal = b[key] ?? 0;
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return sortConfig.direction === "asc" 
-          ? aVal.localeCompare(bVal) 
-          : bVal.localeCompare(aVal);
-      }
-      return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
-    });
-  };
-  
-  const SortHeader = ({ label, sortKey, className }: { label: string; sortKey: string; className?: string }) => (
+type SortDirection = "asc" | "desc";
+type SortConfig = { key: string; direction: SortDirection };
+
+interface SortHeaderProps {
+  label: string;
+  sortKey: string;
+  sortConfig: SortConfig;
+  onSort: (key: string) => void;
+  className?: string;
+}
+
+function SortHeader({ label, sortKey, sortConfig, onSort, className }: SortHeaderProps) {
+  return (
     <TableHead 
-      className={cn("cursor-pointer hover:bg-slate-100 select-none", className)}
-      onClick={() => handleSort(sortKey)}
+      className={cn("cursor-pointer hover:bg-slate-100 select-none whitespace-nowrap", className)}
+      onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">
         {label}
@@ -407,6 +295,407 @@ export default function PerformancePage() {
       </div>
     </TableHead>
   );
+}
+
+function sortData<T extends Record<string, any>>(data: T[] | undefined, sortConfig: SortConfig): T[] {
+  if (!data || !sortConfig.key) return data || [];
+  return [...data].sort((a, b) => {
+    const aVal = a[sortConfig.key] ?? 0;
+    const bVal = b[sortConfig.key] ?? 0;
+    if (typeof aVal === "string" && typeof bVal === "string") {
+      return sortConfig.direction === "asc" 
+        ? aVal.localeCompare(bVal) 
+        : bVal.localeCompare(aVal);
+    }
+    return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
+  });
+}
+
+interface DriversTabProps {
+  data: { summary: DriverReportSummary; drivers: DriverReportRow[] } | undefined;
+  isLoading: boolean;
+  isDemo: boolean;
+}
+
+function DriversTab({ data, isLoading, isDemo }: DriversTabProps) {
+  const [timeMetric, setTimeMetric] = useState<string>("hour");
+  const [distanceMetric, setDistanceMetric] = useState<string>("km");
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
+  
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
+    }));
+  };
+  
+  const reportData = isDemo ? mockDriverReport : data;
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner className="w-8 h-8 text-emerald-500" />
+      </div>
+    );
+  }
+  
+  if (!reportData) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-slate-500">Keine Daten vorhanden</p>
+      </Card>
+    );
+  }
+  
+  const { summary, drivers } = reportData;
+  
+  const timeValue = timeMetric === "hour" 
+    ? summary.avgRevenuePerHour 
+    : timeMetric === "day" 
+      ? summary.avgRevenuePerDay 
+      : summary.avgRevenuePerMonth;
+      
+  const distanceValue = distanceMetric === "km" 
+    ? summary.avgRevenuePerKm 
+    : summary.avgRevenuePerTrip;
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          testId="kpi-driver-time"
+          title=""
+          value={formatCurrency(timeValue)}
+          icon={<Clock className="w-5 h-5" />}
+          dropdown={{
+            value: timeMetric,
+            options: [
+              { value: "hour", label: "€/Stunde" },
+              { value: "day", label: "€/Tag" },
+              { value: "month", label: "€/Monat" },
+            ],
+            onChange: setTimeMetric,
+          }}
+        />
+        <KpiCard
+          testId="kpi-driver-distance"
+          title=""
+          value={`${formatNumber(distanceValue)} €`}
+          icon={<Route className="w-5 h-5" />}
+          dropdown={{
+            value: distanceMetric,
+            options: [
+              { value: "km", label: "€/km" },
+              { value: "trip", label: "€/Fahrt" },
+            ],
+            onChange: setDistanceMetric,
+          }}
+        />
+        <KpiCard
+          testId="kpi-driver-revenue"
+          title="€/Fahrer"
+          value={formatCurrency(summary.avgRevenuePerDriver)}
+          icon={<User className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-driver-shifts"
+          title="Schichten"
+          value={summary.totalShifts.toString()}
+          icon={<Clock className="w-5 h-5" />}
+        />
+      </div>
+      
+      <Card>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <SortHeader label="Vorname" sortKey="firstName" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label="Nachname" sortKey="lastName" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label="Abgeschl. Fahrten" sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Storniert" sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Gesamt" sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Ø Fahrpreis" sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Gefahrene km" sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="€/km" sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz/Tag" sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz/Std" sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Fahrten/Std" sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Akzeptanzrate" sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Zeit in Fahrt" sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortData(drivers, sortConfig).map((driver, idx) => (
+                <TableRow key={`${driver.firstName}-${driver.lastName}-${idx}`}>
+                  <TableCell className="font-medium">{driver.firstName}</TableCell>
+                  <TableCell>{driver.lastName}</TableCell>
+                  <TableCell className="text-right">{driver.completedTrips}</TableCell>
+                  <TableCell className="text-right">{driver.cancelledTrips}</TableCell>
+                  <TableCell className="text-right">{driver.totalTrips}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(driver.avgFarePerTrip)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(driver.distanceInTrip, 0)} km</TableCell>
+                  <TableCell className="text-right">{formatNumber(driver.pricePerKm)} €</TableCell>
+                  <TableCell className="text-right">{formatCurrency(driver.revenuePerDay)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(driver.revenuePerHour)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(driver.tripsPerHour)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(driver.acceptanceRate, 1)}%</TableCell>
+                  <TableCell className="text-right">{formatNumber(driver.timeInTrip, 0)} h</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+interface VehiclesTabProps {
+  data: { summary: VehicleReportSummary; vehicles: VehicleReportRow[] } | undefined;
+  isLoading: boolean;
+  isDemo: boolean;
+}
+
+function VehiclesTab({ data, isLoading, isDemo }: VehiclesTabProps) {
+  const [timeMetric, setTimeMetric] = useState<string>("hour");
+  const [distanceMetric, setDistanceMetric] = useState<string>("km");
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
+  
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
+    }));
+  };
+  
+  const reportData = isDemo ? mockVehicleReport : data;
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner className="w-8 h-8 text-emerald-500" />
+      </div>
+    );
+  }
+  
+  if (!reportData) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-slate-500">Keine Daten vorhanden</p>
+      </Card>
+    );
+  }
+  
+  const { summary, vehicles } = reportData;
+  
+  const timeValue = timeMetric === "hour" 
+    ? summary.avgRevenuePerHour 
+    : timeMetric === "day" 
+      ? summary.avgRevenuePerDay 
+      : summary.avgRevenuePerMonth;
+      
+  const distanceValue = distanceMetric === "km" 
+    ? summary.avgRevenuePerKm 
+    : summary.avgRevenuePerTrip;
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          testId="kpi-vehicle-time"
+          title=""
+          value={formatCurrency(timeValue)}
+          icon={<Clock className="w-5 h-5" />}
+          dropdown={{
+            value: timeMetric,
+            options: [
+              { value: "hour", label: "€/Stunde" },
+              { value: "day", label: "€/Tag" },
+              { value: "month", label: "€/Monat" },
+            ],
+            onChange: setTimeMetric,
+          }}
+        />
+        <KpiCard
+          testId="kpi-vehicle-distance"
+          title=""
+          value={`${formatNumber(distanceValue)} €`}
+          icon={<Route className="w-5 h-5" />}
+          dropdown={{
+            value: distanceMetric,
+            options: [
+              { value: "km", label: "€/km" },
+              { value: "trip", label: "€/Fahrt" },
+            ],
+            onChange: setDistanceMetric,
+          }}
+        />
+        <KpiCard
+          testId="kpi-vehicle-revenue"
+          title="€/Fahrzeug"
+          value={formatCurrency(summary.avgRevenuePerVehicle)}
+          icon={<Car className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-vehicle-shifts"
+          title="Schichten"
+          value={summary.totalShifts.toString()}
+          icon={<Clock className="w-5 h-5" />}
+        />
+      </div>
+      
+      <Card>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <SortHeader label="Kennzeichen" sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label="Abgeschl. Fahrten" sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Storniert" sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Gesamt" sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Ø Fahrpreis" sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Gefahrene km" sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="€/km" sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz/Tag" sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz Nacht" sortKey="revenueNightShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz Tag" sortKey="revenueDayShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Gesamtumsatz" sortKey="totalRevenue" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Umsatz/Std" sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Fahrten/Std" sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Akzeptanzrate" sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Zeit in Fahrt" sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortData(vehicles, sortConfig).map((vehicle) => (
+                <TableRow key={vehicle.licensePlate}>
+                  <TableCell className="font-mono font-medium">{vehicle.licensePlate}</TableCell>
+                  <TableCell className="text-right">{vehicle.completedTrips}</TableCell>
+                  <TableCell className="text-right">{vehicle.cancelledTrips}</TableCell>
+                  <TableCell className="text-right">{vehicle.totalTrips}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vehicle.avgFarePerTrip)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(vehicle.distanceInTrip, 0)} km</TableCell>
+                  <TableCell className="text-right">{formatNumber(vehicle.pricePerKm)} €</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vehicle.revenuePerDay)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vehicle.revenueNightShift)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vehicle.revenueDayShift)}</TableCell>
+                  <TableCell className="text-right font-medium">{formatCurrency(vehicle.totalRevenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(vehicle.revenuePerHour)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(vehicle.tripsPerHour)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(vehicle.acceptanceRate, 1)}%</TableCell>
+                  <TableCell className="text-right">{formatNumber(vehicle.timeInTrip, 0)} h</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+interface PromoTabProps {
+  data: { summary: PromoReportSummary; rows: PromoReportRow[] } | undefined;
+  isLoading: boolean;
+  isDemo: boolean;
+}
+
+function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "month", direction: "desc" });
+  
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
+    }));
+  };
+  
+  const reportData = isDemo ? mockPromoReport : data;
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner className="w-8 h-8 text-emerald-500" />
+      </div>
+    );
+  }
+  
+  if (!reportData) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-slate-500">Keine Daten vorhanden</p>
+      </Card>
+    );
+  }
+  
+  const { summary, rows } = reportData;
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <KpiCard
+          testId="kpi-promo-theoretical"
+          title="Theoretische Prämien"
+          value={formatCurrency(summary.totalTheoreticalBonus)}
+          icon={<Gift className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-promo-paid"
+          title="Ausgezahlte Prämien"
+          value={formatCurrency(summary.totalActualPaid)}
+          icon={<Gift className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-promo-difference"
+          title="Differenz"
+          value={formatCurrency(summary.totalDifference)}
+          icon={<Gift className="w-5 h-5" />}
+          className={summary.totalDifference < 0 ? "border-red-200 bg-red-50" : ""}
+        />
+      </div>
+      
+      <Card>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <SortHeader label="Kennzeichen" sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label="Monat" sortKey="month" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label="Fahrten" sortKey="tripCount" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Theor. Prämie" sortKey="theoreticalBonus" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Ausgezahlt" sortKey="actualPaid" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label="Differenz" sortKey="difference" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortData(rows, sortConfig).map((row, idx) => (
+                <TableRow key={`${row.licensePlate}-${row.month}-${idx}`}>
+                  <TableCell className="font-mono font-medium">{row.licensePlate}</TableCell>
+                  <TableCell>{row.month}</TableCell>
+                  <TableCell className="text-right">{row.tripCount}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(row.theoreticalBonus)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(row.actualPaid)}</TableCell>
+                  <TableCell className={cn("text-right font-medium", row.difference < 0 && "text-red-600")}>
+                    {formatCurrency(row.difference)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+export default function PerformancePage() {
+  const { t, language } = useTranslation();
+  const dateLocale = dateLocaleMap[language] || de;
+  
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
+  const [activeTab, setActiveTab] = useState("drivers");
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -461,79 +750,35 @@ export default function PerformancePage() {
   const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "";
   const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : "";
 
-  const { data: apiKpisData, isLoading: kpisLoading } = useQuery<KpisResponse>({
-    queryKey: ["performance-kpis", startDate, endDate],
+  const { data: driversData, isLoading: driversLoading } = useQuery<{ summary: DriverReportSummary; drivers: DriverReportRow[] }>({
+    queryKey: ["reports-drivers", startDate, endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/performance/kpis?startDate=${startDate}&endDate=${endDate}`);
-      if (!res.ok) throw new Error("Failed to fetch KPIs");
+      const res = await fetch(`/api/reports/drivers?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error("Failed to fetch drivers report");
       return res.json();
     },
     enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const { data: apiDriversData, isLoading: driversLoading } = useQuery<DriversResponse>({
-    queryKey: ["performance-drivers", startDate, endDate],
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery<{ summary: VehicleReportSummary; vehicles: VehicleReportRow[] }>({
+    queryKey: ["reports-vehicles", startDate, endDate],
     queryFn: async () => {
-      const res = await fetch(`/api/performance/drivers?startDate=${startDate}&endDate=${endDate}`);
-      if (!res.ok) throw new Error("Failed to fetch drivers");
+      const res = await fetch(`/api/reports/vehicles?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error("Failed to fetch vehicles report");
       return res.json();
     },
     enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const { data: apiVehiclesData, isLoading: vehiclesLoading } = useQuery<VehiclesResponse>({
-    queryKey: ["performance-vehicles", startDate, endDate],
+  const { data: promoData, isLoading: promoLoading } = useQuery<{ summary: PromoReportSummary; rows: PromoReportRow[] }>({
+    queryKey: ["reports-promo"],
     queryFn: async () => {
-      const res = await fetch(`/api/performance/vehicles?startDate=${startDate}&endDate=${endDate}`);
-      if (!res.ok) throw new Error("Failed to fetch vehicles");
+      const res = await fetch("/api/reports/promo");
+      if (!res.ok) throw new Error("Failed to fetch promo report");
       return res.json();
     },
-    enabled: !!startDate && !!endDate && !isDemo,
+    enabled: !isDemo,
   });
-
-  const { data: apiShiftsData, isLoading: shiftsLoading } = useQuery<ShiftsResponse>({
-    queryKey: ["performance-shifts", startDate, endDate],
-    queryFn: async () => {
-      const res = await fetch(`/api/performance/shifts?startDate=${startDate}&endDate=${endDate}`);
-      if (!res.ok) throw new Error("Failed to fetch shifts");
-      return res.json();
-    },
-    enabled: !!startDate && !!endDate && !isDemo,
-  });
-
-  const kpisData = isDemo ? mockPerformanceKpis : apiKpisData;
-  const driversData = isDemo ? mockPerformanceDrivers : apiDriversData;
-  const vehiclesData = isDemo ? mockPerformanceVehicles : apiVehiclesData;
-  const shiftsData = isDemo ? mockPerformanceShifts : apiShiftsData;
-
-  const isLoading = !isDemo && (kpisLoading || driversLoading || vehiclesLoading || shiftsLoading);
-
-  const kpis = useMemo(() => {
-    if (!kpisData?.totals) return null;
-    
-    const { totalRevenue, totalDistance, totalHoursWorked, tripCount } = kpisData.totals;
-    const driverCount = driversData?.drivers?.length || 1;
-    const vehicleCount = vehiclesData?.vehicles?.length || 1;
-    const numDays = dateRange?.from && dateRange?.to 
-      ? Math.max(1, Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-      : 1;
-
-    const totalKm = cmToKm(totalDistance);
-    const totalEur = centsToEur(totalRevenue);
-
-    return {
-      revenuePerHour: totalHoursWorked > 0 ? totalEur / totalHoursWorked : 0,
-      revenuePerKm: totalKm > 0 ? totalEur / totalKm : 0,
-      revenuePerDay: totalEur / numDays,
-      revenuePerDriver: totalEur / driverCount,
-      revenuePerVehicle: totalEur / vehicleCount,
-      totalShifts: shiftsData?.summary?.totalShifts || 0,
-      dayShifts: shiftsData?.summary?.dayShifts || 0,
-      nightShifts: shiftsData?.summary?.nightShifts || 0,
-    };
-  }, [kpisData, driversData, vehiclesData, shiftsData, dateRange]);
-
-  const closeModal = () => setActiveModal(null);
 
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
@@ -542,7 +787,6 @@ export default function PerformancePage() {
       const today = new Date();
       return [
         { label: t('performance.presetLastMonth'), from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) },
-        { label: t('performance.presetThisYear'), from: startOfYear(today), to: endOfYear(today) },
       ];
     }
 
@@ -589,7 +833,7 @@ export default function PerformancePage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1920px] mx-auto space-y-6 pb-20">
+      <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="performance-title">
@@ -599,13 +843,22 @@ export default function PerformancePage() {
               {t('performance.subtitle')}
             </p>
           </div>
-          <DatePickerWithRange 
-            date={dateRange} 
-            onDateChange={setDateRange} 
-            placeholder={t('performance.datePickerPlaceholder')}
-            dateLocale={dateLocale}
-            presets={presets}
-          />
+          <div className="flex items-center gap-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="drivers" data-testid="tab-drivers">Fahrer</TabsTrigger>
+                <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fahrzeug</TabsTrigger>
+                <TabsTrigger value="promo" data-testid="tab-promo">Werbegelder</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <DatePickerWithRange 
+              date={dateRange} 
+              onDateChange={setDateRange} 
+              placeholder={t('performance.datePickerPlaceholder')}
+              dateLocale={dateLocale}
+              presets={presets}
+            />
+          </div>
         </div>
 
         {isDemo ? (
@@ -628,448 +881,29 @@ export default function PerformancePage() {
           <VorgangsIdDisplay vorgangsId={sessionData.vorgangsId} />
         )}
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20" data-testid="loading-spinner">
-            <Spinner className="w-8 h-8 text-emerald-500" />
-          </div>
-        ) : !kpis ? (
-          <Card className="p-12 text-center" data-testid="empty-state">
-            <p className="text-slate-500">
-              {t('performance.emptyState')}
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <KpiCard
-              testId="kpi-revenue-per-hour"
-              title={t('performance.kpiRevenuePerHour')}
-              value={formatCurrency(kpis.revenuePerHour * 100)}
-              subtitle={t('performance.kpiRevenuePerHourSubtitle')}
-              icon={<Clock className="w-6 h-6" />}
-              onClick={() => setActiveModal("hourly")}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsContent value="drivers" className="mt-0">
+            <DriversTab 
+              data={driversData} 
+              isLoading={driversLoading} 
+              isDemo={isDemo} 
             />
-            <KpiCard
-              testId="kpi-revenue-per-km"
-              title={t('performance.kpiRevenuePerKm')}
-              value={`${formatNumber(kpis.revenuePerKm)} €`}
-              subtitle={t('performance.kpiRevenuePerKmSubtitle')}
-              icon={<Route className="w-6 h-6" />}
-              onClick={() => setActiveModal("km")}
+          </TabsContent>
+          <TabsContent value="vehicles" className="mt-0">
+            <VehiclesTab 
+              data={vehiclesData} 
+              isLoading={vehiclesLoading} 
+              isDemo={isDemo} 
             />
-            <KpiCard
-              testId="kpi-revenue-per-day"
-              title={t('performance.kpiRevenuePerDay')}
-              value={formatCurrency(kpis.revenuePerDay * 100)}
-              subtitle={t('performance.kpiRevenuePerDaySubtitle')}
-              icon={<CalendarIconSolid className="w-6 h-6" />}
-              onClick={() => setActiveModal("daily")}
+          </TabsContent>
+          <TabsContent value="promo" className="mt-0">
+            <PromoTab 
+              data={promoData} 
+              isLoading={promoLoading} 
+              isDemo={isDemo} 
             />
-            <KpiCard
-              testId="kpi-revenue-per-driver"
-              title={t('performance.kpiRevenuePerDriver')}
-              value={formatCurrency(kpis.revenuePerDriver * 100)}
-              subtitle={`${driversData?.drivers?.length || 0} ${t('performance.drivers')}`}
-              icon={<User className="w-6 h-6" />}
-              onClick={() => setActiveModal("drivers")}
-            />
-            <KpiCard
-              testId="kpi-revenue-per-vehicle"
-              title={t('performance.kpiRevenuePerVehicle')}
-              value={formatCurrency(kpis.revenuePerVehicle * 100)}
-              subtitle={`${vehiclesData?.vehicles?.length || 0} ${t('performance.vehicles')}`}
-              icon={<Car className="w-6 h-6" />}
-              onClick={() => setActiveModal("vehicles")}
-            />
-            <KpiCard
-              testId="kpi-shifts"
-              title={t('performance.kpiShifts')}
-              value={kpis.totalShifts.toString()}
-              subtitle={`${kpis.dayShifts} ${t('performance.shiftDay')} / ${kpis.nightShifts} ${t('performance.shiftNight')}`}
-              icon={<Sun className="w-6 h-6" />}
-              onClick={() => setActiveModal("shifts")}
-            />
-          </div>
-        )}
-
-        {(isDemo || kpis) && (
-          <Card className="mt-6" data-testid="bonus-payouts-section">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-emerald-600" />
-                {t('performance.bonusTitle')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-slate-50 p-4 rounded-lg">
-                  <p className="text-sm text-slate-500">{t('performance.bonusTheoretical')}</p>
-                  <p className="text-2xl font-bold text-slate-900" data-testid="bonus-theoretical">
-                    {formatCurrency(mockBonusSummary.totalTheoretical)}
-                  </p>
-                </div>
-                <div className="bg-emerald-50 p-4 rounded-lg">
-                  <p className="text-sm text-slate-500">{t('performance.bonusActual')}</p>
-                  <p className="text-2xl font-bold text-emerald-600" data-testid="bonus-actual">
-                    {formatCurrency(mockBonusSummary.totalActual)}
-                  </p>
-                </div>
-                <div className={cn(
-                  "p-4 rounded-lg",
-                  mockBonusSummary.totalDifference < 0 ? "bg-red-50" : "bg-green-50"
-                )}>
-                  <p className="text-sm text-slate-500">{t('performance.bonusDifference')}</p>
-                  <p className={cn(
-                    "text-2xl font-bold",
-                    mockBonusSummary.totalDifference < 0 ? "text-red-600" : "text-green-600"
-                  )} data-testid="bonus-difference">
-                    {formatCurrency(mockBonusSummary.totalDifference)}
-                  </p>
-                </div>
-              </div>
-              <div className="overflow-auto max-h-80">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('performance.tableLicensePlate')}</TableHead>
-                      <TableHead>{t('performance.tableMonth')}</TableHead>
-                      <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
-                      <TableHead className="text-right">{t('performance.bonusTheoretical')}</TableHead>
-                      <TableHead className="text-right">{t('performance.bonusActual')}</TableHead>
-                      <TableHead className="text-right">{t('performance.bonusDifference')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockBonusPayouts.map((payout, idx) => (
-                      <TableRow key={`${payout.licensePlate}-${payout.month}-${idx}`}>
-                        <TableCell className="font-mono">{payout.licensePlate}</TableCell>
-                        <TableCell>{payout.month}</TableCell>
-                        <TableCell className="text-right">{payout.tripCount}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(payout.theoreticalBonus)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(payout.actualPayment)}</TableCell>
-                        <TableCell className={cn(
-                          "text-right font-medium",
-                          payout.difference < 0 ? "text-red-600" : payout.difference > 0 ? "text-green-600" : "text-slate-500"
-                        )}>
-                          {formatCurrency(payout.difference)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Dialog open={activeModal === "hourly"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-2xl" data-testid="modal-hourly">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalHourlyTitle')}</DialogTitle>
-              <DialogDescription>{t('performance.modalHourlyDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                    <SortHeader label={t('performance.tableHours')} sortKey="hoursWorked" className="text-right" />
-                    <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => (
-                    <TableRow key={day.day}>
-                      <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
-                      <TableCell className="text-right">{formatNumber(day.hoursWorked, 1)}</TableCell>
-                      <TableCell className="text-right">
-                        {day.hoursWorked > 0 ? formatCurrency(day.revenue / day.hoursWorked) : "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={activeModal === "km"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-2xl" data-testid="modal-km">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalKmTitle')}</DialogTitle>
-              <DialogDescription>{t('performance.modalKmDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                    <SortHeader label={t('performance.tableKilometers')} sortKey="distance" className="text-right" />
-                    <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => {
-                    const km = cmToKm(day.distance);
-                    return (
-                      <TableRow key={day.day}>
-                        <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(km, 1)} km</TableCell>
-                        <TableCell className="text-right">
-                          {km > 0 ? `${formatNumber(centsToEur(day.revenue) / km)} €` : "-"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={activeModal === "daily"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-2xl" data-testid="modal-daily">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalDailyTitle')}</DialogTitle>
-              <DialogDescription>{t('performance.modalDailyDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => (
-                    <TableRow key={day.day}>
-                      <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
-                      <TableCell className="text-right">{day.tripCount}</TableCell>
-                    </TableRow>
-                  ))}
-                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={activeModal === "drivers"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-3xl" data-testid="modal-drivers">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalDriversTitle')}</DialogTitle>
-              <DialogDescription>{t('performance.modalDriversDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableDriver')} sortKey="driverName" />
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
-                    <SortHeader label={t('performance.tableShifts')} sortKey="shiftCount" className="text-right" />
-                    <SortHeader label={t('performance.tableHours')} sortKey="hoursWorked" className="text-right" />
-                    <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(driversData?.drivers, sortConfig.key).map((driver) => (
-                    <TableRow key={driver.driverName}>
-                      <TableCell className="font-medium">{driver.driverName}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(driver.revenue)}</TableCell>
-                      <TableCell className="text-right">{driver.tripCount}</TableCell>
-                      <TableCell className="text-right">{driver.shiftCount || 0}</TableCell>
-                      <TableCell className="text-right">{formatNumber(driver.hoursWorked, 1)}</TableCell>
-                      <TableCell className="text-right">
-                        {driver.hoursWorked > 0 ? formatCurrency(driver.revenue / driver.hoursWorked) : "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!driversData?.drivers || driversData.drivers.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={activeModal === "vehicles"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-3xl" data-testid="modal-vehicles">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalVehiclesTitle')}</DialogTitle>
-              <DialogDescription>{t('performance.modalVehiclesDescription')}</DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" />
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
-                    <SortHeader label={t('performance.tableKilometers')} sortKey="distance" className="text-right" />
-                    <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(vehiclesData?.vehicles, sortConfig.key).map((vehicle) => {
-                    const km = cmToKm(vehicle.distance);
-                    return (
-                      <TableRow key={vehicle.licensePlate}>
-                        <TableCell className="font-medium font-mono">{vehicle.licensePlate}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(vehicle.revenue)}</TableCell>
-                        <TableCell className="text-right">{vehicle.tripCount}</TableCell>
-                        <TableCell className="text-right">{formatNumber(km, 1)} km</TableCell>
-                        <TableCell className="text-right">
-                          {km > 0 ? `${formatNumber(centsToEur(vehicle.revenue) / km)} €` : "-"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {(!vehiclesData?.vehicles || vehiclesData.vehicles.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={activeModal === "shifts"} onOpenChange={() => { closeModal(); setShiftFilter("all"); setSortConfig({ key: "", direction: "desc" }); }}>
-          <DialogContent className="max-w-4xl" data-testid="modal-shifts">
-            <DialogHeader>
-              <DialogTitle>{t('performance.modalShiftsTitle')}</DialogTitle>
-              <DialogDescription>
-                {t('performance.modalShiftsDescription')} ({shiftsData?.summary?.totalShifts || 0} {t('performance.total')})
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mb-4 flex gap-2">
-              <button
-                onClick={() => setShiftFilter("all")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  shiftFilter === "all"
-                    ? "bg-slate-200 text-slate-800 ring-2 ring-slate-400"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                )}
-                data-testid="filter-all-shifts"
-              >
-                {t('performance.allShifts')}
-              </button>
-              <button
-                onClick={() => setShiftFilter("day")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  shiftFilter === "day"
-                    ? "bg-amber-200 text-amber-800 ring-2 ring-amber-400"
-                    : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                )}
-                data-testid="filter-day-shifts"
-              >
-                <Sun className="w-4 h-4" />
-                {shiftsData?.summary?.dayShifts || 0} {t('performance.dayShifts')}
-              </button>
-              <button
-                onClick={() => setShiftFilter("night")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  shiftFilter === "night"
-                    ? "bg-indigo-200 text-indigo-800 ring-2 ring-indigo-400"
-                    : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                )}
-                data-testid="filter-night-shifts"
-              >
-                <Moon className="w-4 h-4" />
-                {shiftsData?.summary?.nightShifts || 0} {t('performance.nightShifts')}
-              </button>
-            </div>
-            <div className="max-h-96 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <SortHeader label={t('performance.tableDriver')} sortKey="driverName" />
-                    <SortHeader label={t('performance.tableVehicle')} sortKey="licensePlate" />
-                    <SortHeader label={t('performance.tableStart')} sortKey="shiftStart" />
-                    <SortHeader label={t('performance.tableEnd')} sortKey="shiftEnd" />
-                    <TableHead>{t('performance.tableType')}</TableHead>
-                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortData(shiftsData?.shifts?.filter(shift => shiftFilter === "all" || shift.shiftType === shiftFilter), sortConfig.key).map((shift, index) => (
-                    <TableRow key={`${shift.driverName}-${shift.shiftStart}-${index}`}>
-                      <TableCell className="font-medium">{shift.driverName}</TableCell>
-                      <TableCell className="font-mono">{shift.licensePlate}</TableCell>
-                      <TableCell>{safeFormatDate(shift.shiftStart, "dd.MM. HH:mm", dateLocale)}</TableCell>
-                      <TableCell>{safeFormatDate(shift.shiftEnd, "dd.MM. HH:mm", dateLocale)}</TableCell>
-                      <TableCell>
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                            shift.shiftType === "day"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-indigo-100 text-indigo-700"
-                          )}
-                        >
-                          {shift.shiftType === "day" ? (
-                            <>
-                              <Sun className="w-3 h-3" /> {t('performance.shiftDay')}
-                            </>
-                          ) : (
-                            <>
-                              <Moon className="w-3 h-3" /> {t('performance.shiftNight')}
-                            </>
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(shift.revenue)}</TableCell>
-                    </TableRow>
-                  )) || (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-slate-500">
-                        {t('performance.noData')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

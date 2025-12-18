@@ -86,6 +86,92 @@ export interface ShiftAnalysis {
   };
 }
 
+export interface DriverReportRow {
+  firstName: string;
+  lastName: string;
+  completedTrips: number;
+  cancelledTrips: number;
+  totalTrips: number;
+  avgFarePerTrip: number;
+  distanceInTrip: number;
+  pricePerKm: number;
+  revenuePerDay: number;
+  revenuePerHour: number;
+  tripsPerHour: number;
+  acceptanceRate: number;
+  timeInTrip: number;
+  shiftCount: number;
+}
+
+export interface DriverReportSummary {
+  totalRevenue: number;
+  totalDistance: number;
+  totalHoursWorked: number;
+  totalTrips: number;
+  totalShifts: number;
+  uniqueDrivers: number;
+  avgRevenuePerHour: number;
+  avgRevenuePerDay: number;
+  avgRevenuePerMonth: number;
+  avgRevenuePerKm: number;
+  avgRevenuePerTrip: number;
+  avgRevenuePerDriver: number;
+}
+
+export interface VehicleReportRow {
+  licensePlate: string;
+  completedTrips: number;
+  cancelledTrips: number;
+  totalTrips: number;
+  avgFarePerTrip: number;
+  distanceInTrip: number;
+  pricePerKm: number;
+  revenuePerDay: number;
+  revenueNightShift: number;
+  revenueDayShift: number;
+  totalRevenue: number;
+  revenuePerHour: number;
+  tripsPerHour: number;
+  acceptanceRate: number;
+  timeInTrip: number;
+  shiftCount: number;
+  dayShiftCount: number;
+  nightShiftCount: number;
+}
+
+export interface VehicleReportSummary {
+  totalRevenue: number;
+  totalDistance: number;
+  totalHoursWorked: number;
+  totalTrips: number;
+  totalShifts: number;
+  uniqueVehicles: number;
+  avgRevenuePerHour: number;
+  avgRevenuePerDay: number;
+  avgRevenuePerMonth: number;
+  avgRevenuePerKm: number;
+  avgRevenuePerTrip: number;
+  avgRevenuePerVehicle: number;
+}
+
+export interface PromoReportRow {
+  licensePlate: string;
+  month: string;
+  tripCount: number;
+  theoreticalBonus: number;
+  actualPaid: number;
+  difference: number;
+}
+
+export interface PromoReportSummary {
+  totalTheoreticalBonus: number;
+  totalActualPaid: number;
+  totalDifference: number;
+  totalTrips: number;
+  licensePlateCount: number;
+  monthCount: number;
+}
+
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
@@ -123,6 +209,15 @@ export interface IStorage {
   getPerformanceMetrics(sessionId: string, startDate?: Date, endDate?: Date): Promise<PerformanceMetrics>;
   getShiftAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<ShiftAnalysis>;
   getDataDateRange(sessionId: string): Promise<{ minDate: Date | null; maxDate: Date | null; availableMonths: string[] }>;
+  
+  // Driver report
+  getDriverReport(sessionId: string, startDate?: Date, endDate?: Date): Promise<{summary: DriverReportSummary, drivers: DriverReportRow[]}>;
+  
+  // Vehicle report
+  getVehicleReport(sessionId: string, startDate?: Date, endDate?: Date): Promise<{summary: VehicleReportSummary, vehicles: VehicleReportRow[]}>;
+  
+  // Promo/Bonus report
+  getPromoReport(sessionId: string): Promise<{summary: PromoReportSummary, rows: PromoReportRow[]}>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -872,6 +967,386 @@ export class DatabaseStorage implements IStorage {
       maxDate: row?.max_date ? new Date(row.max_date) : null,
       availableMonths: (monthsResult.rows as any[]).map(r => r.month).filter(Boolean),
     };
+  }
+
+  async getDriverReport(sessionId: string, startDate?: Date, endDate?: Date): Promise<{summary: DriverReportSummary, drivers: DriverReportRow[]}> {
+    const dateFilter = this.buildTripDateFilter(startDate, endDate);
+    
+    const result = await db.execute(sql`
+      WITH trip_data AS (
+        SELECT 
+          COALESCE(raw_data->>'Vorname des Fahrers', '') as first_name,
+          COALESCE(raw_data->>'Nachname des Fahrers', '') as last_name,
+          order_time,
+          LOWER(COALESCE(trip_status, '')) as status,
+          CASE 
+            WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            ELSE 0
+          END as fare,
+          CASE 
+            WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            ELSE 0
+          END as distance_m,
+          CASE 
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            THEN GREATEST(0, EXTRACT(EPOCH FROM (
+              (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
+              (raw_data->>'Startzeit der Fahrt')::timestamp
+            )) / 3600)
+            ELSE 0
+          END as trip_hours
+        FROM trips
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+      ),
+      shift_detection AS (
+        SELECT 
+          first_name,
+          last_name,
+          order_time,
+          status,
+          fare,
+          distance_m,
+          trip_hours,
+          CASE 
+            WHEN LAG(order_time) OVER (
+              PARTITION BY first_name, last_name 
+              ORDER BY order_time
+            ) IS NULL 
+            OR EXTRACT(EPOCH FROM (order_time - LAG(order_time) OVER (
+              PARTITION BY first_name, last_name 
+              ORDER BY order_time
+            ))) / 3600 > 5
+            THEN 1
+            ELSE 0
+          END as is_new_shift
+        FROM trip_data
+        WHERE TRIM(first_name) != '' OR TRIM(last_name) != ''
+      ),
+      driver_metrics AS (
+        SELECT 
+          first_name,
+          last_name,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed_trips,
+          COUNT(*) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
+          COUNT(*) as total_trips,
+          SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
+          SUM(distance_m) as total_distance_m,
+          SUM(trip_hours) as total_hours,
+          SUM(is_new_shift) as shift_count,
+          COUNT(DISTINCT DATE(order_time)) as active_days,
+          COUNT(DISTINCT TO_CHAR(order_time, 'YYYY-MM')) as active_months
+        FROM shift_detection
+        GROUP BY first_name, last_name
+      )
+      SELECT 
+        first_name,
+        last_name,
+        completed_trips,
+        cancelled_trips,
+        total_trips,
+        CASE WHEN completed_trips > 0 THEN total_fare / completed_trips ELSE 0 END as avg_fare_per_trip,
+        total_distance_m as distance_in_trip,
+        CASE WHEN total_distance_m > 0 THEN (total_fare * 1000) / total_distance_m ELSE 0 END as price_per_km,
+        CASE WHEN active_days > 0 THEN total_fare / active_days ELSE 0 END as revenue_per_day,
+        CASE WHEN total_hours > 0 THEN total_fare / total_hours ELSE 0 END as revenue_per_hour,
+        CASE WHEN total_hours > 0 THEN completed_trips::numeric / total_hours ELSE 0 END as trips_per_hour,
+        CASE WHEN total_trips > 0 
+          THEN (completed_trips::numeric / total_trips) * 100 
+          ELSE 0 
+        END as acceptance_rate,
+        total_hours as time_in_trip,
+        shift_count,
+        active_days,
+        active_months
+      FROM driver_metrics
+      ORDER BY total_fare DESC
+    `);
+
+    const drivers: DriverReportRow[] = (result.rows as any[]).map(row => ({
+      firstName: row.first_name || '',
+      lastName: row.last_name || '',
+      completedTrips: Number(row.completed_trips) || 0,
+      cancelledTrips: Number(row.cancelled_trips) || 0,
+      totalTrips: Number(row.total_trips) || 0,
+      avgFarePerTrip: Number(row.avg_fare_per_trip) || 0,
+      distanceInTrip: Number(row.distance_in_trip) || 0,
+      pricePerKm: Number(row.price_per_km) || 0,
+      revenuePerDay: Number(row.revenue_per_day) || 0,
+      revenuePerHour: Number(row.revenue_per_hour) || 0,
+      tripsPerHour: Number(row.trips_per_hour) || 0,
+      acceptanceRate: Number(row.acceptance_rate) || 0,
+      timeInTrip: Number(row.time_in_trip) || 0,
+      shiftCount: Number(row.shift_count) || 0,
+    }));
+
+    const totalRevenue = drivers.reduce((sum, d) => sum + d.avgFarePerTrip * d.completedTrips, 0);
+    const totalDistance = drivers.reduce((sum, d) => sum + d.distanceInTrip, 0);
+    const totalHoursWorked = drivers.reduce((sum, d) => sum + d.timeInTrip, 0);
+    const totalTrips = drivers.reduce((sum, d) => sum + d.completedTrips, 0);
+    const totalShifts = drivers.reduce((sum, d) => sum + d.shiftCount, 0);
+    const uniqueDrivers = drivers.length;
+
+    const totalActiveDays = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_days) || 0), 0);
+    const totalActiveMonths = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_months) || 0), 0);
+
+    const summary: DriverReportSummary = {
+      totalRevenue,
+      totalDistance,
+      totalHoursWorked,
+      totalTrips,
+      totalShifts,
+      uniqueDrivers,
+      avgRevenuePerHour: totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0,
+      avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
+      avgRevenuePerMonth: totalActiveMonths > 0 ? totalRevenue / totalActiveMonths : 0,
+      avgRevenuePerKm: totalDistance > 0 ? (totalRevenue * 1000) / totalDistance : 0,
+      avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
+      avgRevenuePerDriver: uniqueDrivers > 0 ? totalRevenue / uniqueDrivers : 0,
+    };
+
+    return { summary, drivers };
+  }
+
+  async getVehicleReport(sessionId: string, startDate?: Date, endDate?: Date): Promise<{summary: VehicleReportSummary, vehicles: VehicleReportRow[]}> {
+    const dateFilter = this.buildTripDateFilter(startDate, endDate);
+    
+    const result = await db.execute(sql`
+      WITH trip_data AS (
+        SELECT 
+          license_plate,
+          order_time,
+          LOWER(COALESCE(trip_status, '')) as status,
+          CASE 
+            WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            ELSE 0
+          END as fare,
+          CASE 
+            WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            ELSE 0
+          END as distance_m,
+          CASE 
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            THEN GREATEST(0, EXTRACT(EPOCH FROM (
+              (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
+              (raw_data->>'Startzeit der Fahrt')::timestamp
+            )) / 3600)
+            ELSE 0
+          END as trip_hours,
+          CASE 
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
+            ELSE EXTRACT(HOUR FROM order_time)
+          END as start_hour
+        FROM trips
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+      ),
+      trip_with_shift_type AS (
+        SELECT 
+          *,
+          CASE 
+            WHEN start_hour >= 6 AND start_hour < 18 THEN 'day'
+            ELSE 'night'
+          END as shift_type
+        FROM trip_data
+        WHERE license_plate IS NOT NULL AND license_plate != ''
+      ),
+      shift_detection AS (
+        SELECT 
+          license_plate,
+          order_time,
+          status,
+          fare,
+          distance_m,
+          trip_hours,
+          shift_type,
+          CASE 
+            WHEN LAG(order_time) OVER (
+              PARTITION BY license_plate 
+              ORDER BY order_time
+            ) IS NULL 
+            OR EXTRACT(EPOCH FROM (order_time - LAG(order_time) OVER (
+              PARTITION BY license_plate 
+              ORDER BY order_time
+            ))) / 3600 > 5
+            THEN 1
+            ELSE 0
+          END as is_new_shift
+        FROM trip_with_shift_type
+      ),
+      vehicle_metrics AS (
+        SELECT 
+          license_plate,
+          COUNT(*) FILTER (WHERE status = 'completed') as completed_trips,
+          COUNT(*) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
+          COUNT(*) as total_trips,
+          SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
+          SUM(CASE WHEN status = 'completed' AND shift_type = 'day' THEN fare ELSE 0 END) as day_fare,
+          SUM(CASE WHEN status = 'completed' AND shift_type = 'night' THEN fare ELSE 0 END) as night_fare,
+          SUM(distance_m) as total_distance_m,
+          SUM(trip_hours) as total_hours,
+          SUM(is_new_shift) as shift_count,
+          SUM(CASE WHEN is_new_shift = 1 AND shift_type = 'day' THEN 1 ELSE 0 END) as day_shift_count,
+          SUM(CASE WHEN is_new_shift = 1 AND shift_type = 'night' THEN 1 ELSE 0 END) as night_shift_count,
+          COUNT(DISTINCT DATE(order_time)) as active_days,
+          COUNT(DISTINCT TO_CHAR(order_time, 'YYYY-MM')) as active_months
+        FROM shift_detection
+        GROUP BY license_plate
+      )
+      SELECT 
+        license_plate,
+        completed_trips,
+        cancelled_trips,
+        total_trips,
+        CASE WHEN completed_trips > 0 THEN total_fare / completed_trips ELSE 0 END as avg_fare_per_trip,
+        total_distance_m as distance_in_trip,
+        CASE WHEN total_distance_m > 0 THEN (total_fare * 1000) / total_distance_m ELSE 0 END as price_per_km,
+        CASE WHEN active_days > 0 THEN total_fare / active_days ELSE 0 END as revenue_per_day,
+        night_fare as revenue_night_shift,
+        day_fare as revenue_day_shift,
+        total_fare as total_revenue,
+        CASE WHEN total_hours > 0 THEN total_fare / total_hours ELSE 0 END as revenue_per_hour,
+        CASE WHEN total_hours > 0 THEN completed_trips::numeric / total_hours ELSE 0 END as trips_per_hour,
+        CASE WHEN total_trips > 0 
+          THEN (completed_trips::numeric / total_trips) * 100 
+          ELSE 0 
+        END as acceptance_rate,
+        total_hours as time_in_trip,
+        shift_count,
+        day_shift_count,
+        night_shift_count,
+        active_days,
+        active_months
+      FROM vehicle_metrics
+      ORDER BY total_fare DESC
+    `);
+
+    const vehicles: VehicleReportRow[] = (result.rows as any[]).map(row => ({
+      licensePlate: row.license_plate || '',
+      completedTrips: Number(row.completed_trips) || 0,
+      cancelledTrips: Number(row.cancelled_trips) || 0,
+      totalTrips: Number(row.total_trips) || 0,
+      avgFarePerTrip: Number(row.avg_fare_per_trip) || 0,
+      distanceInTrip: Number(row.distance_in_trip) || 0,
+      pricePerKm: Number(row.price_per_km) || 0,
+      revenuePerDay: Number(row.revenue_per_day) || 0,
+      revenueNightShift: Number(row.revenue_night_shift) || 0,
+      revenueDayShift: Number(row.revenue_day_shift) || 0,
+      totalRevenue: Number(row.total_revenue) || 0,
+      revenuePerHour: Number(row.revenue_per_hour) || 0,
+      tripsPerHour: Number(row.trips_per_hour) || 0,
+      acceptanceRate: Number(row.acceptance_rate) || 0,
+      timeInTrip: Number(row.time_in_trip) || 0,
+      shiftCount: Number(row.shift_count) || 0,
+      dayShiftCount: Number(row.day_shift_count) || 0,
+      nightShiftCount: Number(row.night_shift_count) || 0,
+    }));
+
+    const totalRevenue = vehicles.reduce((sum, v) => sum + v.totalRevenue, 0);
+    const totalDistance = vehicles.reduce((sum, v) => sum + v.distanceInTrip, 0);
+    const totalHoursWorked = vehicles.reduce((sum, v) => sum + v.timeInTrip, 0);
+    const totalTrips = vehicles.reduce((sum, v) => sum + v.completedTrips, 0);
+    const totalShifts = vehicles.reduce((sum, v) => sum + v.shiftCount, 0);
+    const uniqueVehicles = vehicles.length;
+
+    const totalActiveDays = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_days) || 0), 0);
+    const totalActiveMonths = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_months) || 0), 0);
+
+    const summary: VehicleReportSummary = {
+      totalRevenue,
+      totalDistance,
+      totalHoursWorked,
+      totalTrips,
+      totalShifts,
+      uniqueVehicles,
+      avgRevenuePerHour: totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0,
+      avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
+      avgRevenuePerMonth: totalActiveMonths > 0 ? totalRevenue / totalActiveMonths : 0,
+      avgRevenuePerKm: totalDistance > 0 ? (totalRevenue * 1000) / totalDistance : 0,
+      avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
+      avgRevenuePerVehicle: uniqueVehicles > 0 ? totalRevenue / uniqueVehicles : 0,
+    };
+
+    return { summary, vehicles };
+  }
+
+  async getPromoReport(sessionId: string): Promise<{summary: PromoReportSummary, rows: PromoReportRow[]}> {
+    const [aggregatedTripsResult, transactionsResult] = await Promise.all([
+      db.execute(sql`
+        SELECT 
+          license_plate as "licensePlate",
+          TO_CHAR(order_time, 'YYYY-MM') as month,
+          COUNT(*)::int as count
+        FROM trips
+        WHERE session_id = ${sessionId}
+        GROUP BY license_plate, TO_CHAR(order_time, 'YYYY-MM')
+        ORDER BY license_plate, month
+      `),
+      db.execute(sql`
+        SELECT 
+          license_plate,
+          TO_CHAR(transaction_time, 'YYYY-MM') as month,
+          SUM(amount)::int as total_amount
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        GROUP BY license_plate, TO_CHAR(transaction_time, 'YYYY-MM')
+        ORDER BY license_plate, month
+      `)
+    ]);
+
+    const aggregatedTrips = aggregatedTripsResult.rows as { licensePlate: string; month: string; count: number }[];
+    const transactionsByPlateMonth = new Map<string, number>();
+    
+    for (const row of transactionsResult.rows as { license_plate: string; month: string; total_amount: number }[]) {
+      const key = `${row.license_plate}-${row.month}`;
+      transactionsByPlateMonth.set(key, (row.total_amount || 0) / 100);
+    }
+
+    const calculateBonus = (tripCount: number): number => {
+      if (tripCount >= 170) return 400;
+      if (tripCount >= 140) return 300;
+      if (tripCount >= 110) return 200;
+      if (tripCount >= 80) return 100;
+      return 0;
+    };
+
+    const rows: PromoReportRow[] = aggregatedTrips.map(agg => {
+      const tripCount = agg.count;
+      const theoreticalBonus = calculateBonus(tripCount);
+      const key = `${agg.licensePlate}-${agg.month}`;
+      const actualPaid = transactionsByPlateMonth.get(key) || 0;
+      const difference = theoreticalBonus - actualPaid;
+
+      return {
+        licensePlate: agg.licensePlate,
+        month: agg.month,
+        tripCount,
+        theoreticalBonus,
+        actualPaid,
+        difference,
+      };
+    });
+
+    const uniqueLicensePlates = new Set(rows.map(r => r.licensePlate));
+    const uniqueMonths = new Set(rows.map(r => r.month));
+
+    const summary: PromoReportSummary = {
+      totalTheoreticalBonus: rows.reduce((sum, r) => sum + r.theoreticalBonus, 0),
+      totalActualPaid: rows.reduce((sum, r) => sum + r.actualPaid, 0),
+      totalDifference: rows.reduce((sum, r) => sum + r.difference, 0),
+      totalTrips: rows.reduce((sum, r) => sum + r.tripCount, 0),
+      licensePlateCount: uniqueLicensePlates.size,
+      monthCount: uniqueMonths.size,
+    };
+
+    return { summary, rows };
   }
 }
 
