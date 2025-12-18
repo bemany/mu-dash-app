@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +44,7 @@ import {
   Check,
   ChevronDown,
   Filter,
+  Download,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -526,6 +528,28 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     return recalculateDriverSummary(filteredDrivers);
   }, [filteredDrivers, selectedDrivers.length, allDrivers.length, reportData?.summary]);
   
+  const exportToExcel = () => {
+    const dataToExport = sortData(filteredDrivers, sortConfig).map(driver => ({
+      'Vorname': driver.firstName,
+      'Nachname': driver.lastName,
+      'Abgeschl. Fahrten': driver.completedTrips,
+      'Storniert': driver.cancelledTrips,
+      'Gesamt': driver.totalTrips,
+      'Ø Fahrpreis': driver.avgFarePerTrip,
+      'Gefahrene km': driver.distanceInTrip,
+      '€/km': driver.pricePerKm,
+      'Umsatz/Tag': driver.revenuePerDay,
+      'Umsatz/Std': driver.revenuePerHour,
+      'Fahrten/Std': driver.tripsPerHour,
+      'Akzeptanzrate': driver.acceptanceRate,
+      'Zeit in Fahrt (h)': driver.timeInTrip,
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fahrer");
+    XLSX.writeFile(wb, `Fahrer_Report.xlsx`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -639,6 +663,12 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             </TableBody>
           </Table>
         </div>
+        <div className="p-3 border-t flex justify-end">
+          <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-drivers">
+            <Download className="w-4 h-4 mr-2" />
+            Als Excel exportieren
+          </Button>
+        </div>
       </Card>
     </div>
   );
@@ -733,6 +763,30 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     return recalculateVehicleSummary(filteredVehicles);
   }, [filteredVehicles, selectedVehicles.length, allVehicles.length, reportData?.summary]);
   
+  const exportToExcel = () => {
+    const dataToExport = sortData(filteredVehicles, sortConfig).map(vehicle => ({
+      'Kennzeichen': vehicle.licensePlate,
+      'Abgeschl. Fahrten': vehicle.completedTrips,
+      'Storniert': vehicle.cancelledTrips,
+      'Gesamt': vehicle.totalTrips,
+      'Ø Fahrpreis': vehicle.avgFarePerTrip,
+      'Gefahrene km': vehicle.distanceInTrip,
+      '€/km': vehicle.pricePerKm,
+      'Umsatz/Tag': vehicle.revenuePerDay,
+      'Umsatz Nacht': vehicle.revenueNightShift,
+      'Umsatz Tag': vehicle.revenueDayShift,
+      'Gesamtumsatz': vehicle.totalRevenue,
+      'Umsatz/Std': vehicle.revenuePerHour,
+      'Fahrten/Std': vehicle.tripsPerHour,
+      'Akzeptanzrate': vehicle.acceptanceRate,
+      'Zeit in Fahrt (h)': vehicle.timeInTrip,
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fahrzeuge");
+    XLSX.writeFile(wb, `Fahrzeuge_Report.xlsx`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -850,6 +904,12 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
             </TableBody>
           </Table>
         </div>
+        <div className="p-3 border-t flex justify-end">
+          <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-vehicles">
+            <Download className="w-4 h-4 mr-2" />
+            Als Excel exportieren
+          </Button>
+        </div>
       </Card>
     </div>
   );
@@ -873,6 +933,22 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
   
   const reportData = isDemo ? mockPromoReport : data;
   
+  const exportToExcel = () => {
+    if (!reportData) return;
+    const dataToExport = sortData(reportData.rows, sortConfig).map(row => ({
+      'Kennzeichen': row.licensePlate,
+      'Monat': row.month,
+      'Fahrten': row.tripCount,
+      'Theor. Prämie': row.theoreticalBonus,
+      'Ausgezahlt': row.actualPaid,
+      'Differenz': row.difference,
+    }));
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Werbegelder");
+    XLSX.writeFile(wb, `Werbegelder_Report.xlsx`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -943,6 +1019,12 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
               ))}
             </TableBody>
           </Table>
+        </div>
+        <div className="p-3 border-t flex justify-end">
+          <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-promo">
+            <Download className="w-4 h-4 mr-2" />
+            Als Excel exportieren
+          </Button>
         </div>
       </Card>
     </div>
