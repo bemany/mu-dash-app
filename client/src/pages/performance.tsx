@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   format, 
   startOfMonth, 
@@ -40,6 +41,8 @@ import {
   Upload,
   Copy,
   Check,
+  ChevronDown,
+  Filter,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -154,6 +157,107 @@ function VorgangsIdDisplay({ vorgangsId }: { vorgangsId: string }) {
   );
 }
 
+interface MultiSelectProps {
+  items: { value: string; label: string }[];
+  selectedValues: string[];
+  onSelectionChange: (values: string[]) => void;
+  placeholder: string;
+  allSelectedLabel: string;
+  selectedCountLabel: (count: number) => string;
+  testId: string;
+}
+
+function MultiSelect({ 
+  items, 
+  selectedValues, 
+  onSelectionChange, 
+  placeholder, 
+  allSelectedLabel,
+  selectedCountLabel,
+  testId 
+}: MultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  
+  const allSelected = selectedValues.length === items.length;
+  const noneSelected = selectedValues.length === 0;
+  
+  const toggleItem = (value: string) => {
+    if (selectedValues.includes(value)) {
+      onSelectionChange(selectedValues.filter(v => v !== value));
+    } else {
+      onSelectionChange([...selectedValues, value]);
+    }
+  };
+  
+  const toggleAll = () => {
+    if (allSelected) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(items.map(i => i.value));
+    }
+  };
+  
+  const displayText = allSelected 
+    ? allSelectedLabel 
+    : noneSelected 
+      ? placeholder 
+      : selectedCountLabel(selectedValues.length);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          data-testid={testId}
+          variant="outline"
+          className={cn(
+            "min-w-[180px] justify-between text-left font-normal",
+            noneSelected && "text-muted-foreground"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="truncate">{displayText}</span>
+          </div>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0" align="start">
+        <div className="p-3 border-b border-slate-200">
+          <button
+            data-testid={`${testId}-select-all`}
+            onClick={toggleAll}
+            className="flex items-center gap-3 w-full px-2 py-2 rounded-md hover:bg-slate-100 transition-colors"
+          >
+            <Checkbox 
+              checked={allSelected}
+              className="border-emerald-500 data-[state=checked]:bg-emerald-500"
+            />
+            <span className="text-sm font-medium">
+              {allSelected ? "Alle abwählen" : "Alle auswählen"}
+            </span>
+          </button>
+        </div>
+        <div className="max-h-[300px] overflow-y-auto p-2">
+          {items.map((item) => (
+            <button
+              key={item.value}
+              data-testid={`${testId}-item-${item.value}`}
+              onClick={() => toggleItem(item.value)}
+              className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-slate-100 transition-colors"
+            >
+              <Checkbox 
+                checked={selectedValues.includes(item.value)}
+                className="border-emerald-500 data-[state=checked]:bg-emerald-500"
+              />
+              <span className="text-sm">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface DatePickerWithRangeProps {
   date: DateRange | undefined;
   onDateChange: (date: DateRange | undefined) => void;
@@ -163,8 +267,17 @@ interface DatePickerWithRangeProps {
 }
 
 function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, presets }: DatePickerWithRangeProps) {
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState<Date | undefined>(date?.from);
+
+  const handlePresetClick = (preset: { from: Date; to: Date }) => {
+    onDateChange({ from: preset.from, to: preset.to });
+    setMonth(preset.from);
+    setOpen(false);
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           data-testid="date-range-picker"
@@ -191,31 +304,37 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, pres
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <div className="flex">
-          <div className="border-r border-slate-200 p-2 space-y-1 min-w-[140px]">
+          <div className="border-r border-slate-200 p-3 space-y-1 min-w-[160px] max-h-[340px] overflow-y-auto">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide px-2 mb-2">Zeitraum</p>
             {presets.map((preset) => (
               <button
                 key={preset.label}
                 data-testid={`preset-${preset.label.toLowerCase().replace(/\s/g, '-')}`}
-                onClick={() => onDateChange({ from: preset.from, to: preset.to })}
+                onClick={() => handlePresetClick(preset)}
                 className={cn(
-                  "w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-slate-100",
+                  "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-colors",
                   date?.from?.getTime() === preset.from.getTime() && 
-                  date?.to?.getTime() === preset.to.getTime() && 
-                  "bg-emerald-50 text-emerald-700 font-medium"
+                  date?.to?.getTime() === preset.to.getTime() 
+                    ? "bg-emerald-500 text-white font-medium"
+                    : "hover:bg-slate-100"
                 )}
               >
                 {preset.label}
               </button>
             ))}
           </div>
-          <Calendar
-            mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={onDateChange}
-            numberOfMonths={2}
-            locale={dateLocale}
-          />
+          <div className="p-2">
+            <Calendar
+              mode="range"
+              month={month}
+              onMonthChange={setMonth}
+              selected={date}
+              onSelect={onDateChange}
+              numberOfMonths={1}
+              locale={dateLocale}
+              captionLayout="dropdown-months"
+            />
+          </div>
         </div>
       </PopoverContent>
     </Popover>
@@ -324,9 +443,55 @@ interface DriversTabProps {
   setTimeMetric: (value: string) => void;
   distanceMetric: string;
   setDistanceMetric: (value: string) => void;
+  selectedDrivers: string[];
+  setSelectedDrivers: (drivers: string[]) => void;
 }
 
-function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric }: DriversTabProps) {
+function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSummary {
+  if (drivers.length === 0) {
+    return {
+      avgRevenuePerHour: 0,
+      avgRevenuePerDay: 0,
+      avgRevenuePerMonth: 0,
+      avgRevenuePerKm: 0,
+      avgRevenuePerTrip: 0,
+      avgRevenuePerDriver: 0,
+      totalShifts: 0,
+      totalRevenue: 0,
+      totalDistance: 0,
+      totalHoursWorked: 0,
+      totalTrips: 0,
+      uniqueDrivers: 0,
+    };
+  }
+  
+  const totalDrivers = drivers.length;
+  const totalRevenue = drivers.reduce((acc, d) => acc + (d.avgFarePerTrip * d.completedTrips), 0);
+  const totalDistanceKm = drivers.reduce((acc, d) => acc + d.distanceInTrip, 0);
+  const totalHours = drivers.reduce((acc, d) => acc + d.timeInTrip, 0);
+  const totalTrips = drivers.reduce((acc, d) => acc + d.completedTrips, 0);
+  const totalShifts = drivers.reduce((acc, d) => acc + (d.shiftCount || 0), 0);
+  
+  const activeDaysEstimate = Math.max(1, totalShifts);
+  const activeMonthsEstimate = Math.max(1, Math.ceil(activeDaysEstimate / 22));
+  
+  return {
+    avgRevenuePerHour: totalHours > 0 ? totalRevenue / totalHours : 0,
+    avgRevenuePerDay: activeDaysEstimate > 0 ? totalRevenue / activeDaysEstimate : 0,
+    avgRevenuePerMonth: activeMonthsEstimate > 0 ? totalRevenue / activeMonthsEstimate : 0,
+    avgRevenuePerKm: totalDistanceKm > 0 ? totalRevenue / totalDistanceKm : 0,
+    avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
+    avgRevenuePerDriver: totalDrivers > 0 ? totalRevenue / totalDrivers : 0,
+    totalShifts,
+    totalRevenue,
+    totalDistance: totalDistanceKm,
+    totalHoursWorked: totalHours,
+    totalTrips,
+    uniqueDrivers: totalDrivers,
+  };
+}
+
+function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -337,6 +502,35 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   };
   
   const reportData = isDemo ? mockDriverReport : data;
+  
+  const allDrivers = useMemo(() => {
+    if (!reportData?.drivers) return [];
+    return reportData.drivers.map(d => ({
+      value: `${d.firstName} ${d.lastName}`,
+      label: `${d.firstName} ${d.lastName}`,
+    }));
+  }, [reportData?.drivers]);
+  
+  useEffect(() => {
+    if (allDrivers.length > 0 && selectedDrivers.length === 0) {
+      setSelectedDrivers(allDrivers.map(d => d.value));
+    }
+  }, [allDrivers, selectedDrivers.length, setSelectedDrivers]);
+  
+  const filteredDrivers = useMemo(() => {
+    if (!reportData?.drivers) return [];
+    if (selectedDrivers.length === 0) return reportData.drivers;
+    return reportData.drivers.filter(d => 
+      selectedDrivers.includes(`${d.firstName} ${d.lastName}`)
+    );
+  }, [reportData?.drivers, selectedDrivers]);
+  
+  const filteredSummary = useMemo(() => {
+    if (selectedDrivers.length === allDrivers.length && reportData?.summary) {
+      return reportData.summary;
+    }
+    return recalculateDriverSummary(filteredDrivers);
+  }, [filteredDrivers, selectedDrivers.length, allDrivers.length, reportData?.summary]);
   
   if (isLoading) {
     return (
@@ -354,20 +548,30 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     );
   }
   
-  const { summary, drivers } = reportData;
-  
   const timeValue = timeMetric === "hour" 
-    ? summary.avgRevenuePerHour 
+    ? filteredSummary.avgRevenuePerHour 
     : timeMetric === "day" 
-      ? summary.avgRevenuePerDay 
-      : summary.avgRevenuePerMonth;
+      ? filteredSummary.avgRevenuePerDay 
+      : filteredSummary.avgRevenuePerMonth;
       
   const distanceValue = distanceMetric === "km" 
-    ? summary.avgRevenuePerKm 
-    : summary.avgRevenuePerTrip;
+    ? filteredSummary.avgRevenuePerKm 
+    : filteredSummary.avgRevenuePerTrip;
   
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <MultiSelect
+          items={allDrivers}
+          selectedValues={selectedDrivers}
+          onSelectionChange={setSelectedDrivers}
+          placeholder="Fahrer auswählen"
+          allSelectedLabel="Alle Fahrer"
+          selectedCountLabel={(count) => `${count} Fahrer ausgewählt`}
+          testId="filter-drivers"
+        />
+      </div>
+      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-driver-time"
@@ -401,13 +605,13 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
         <KpiCard
           testId="kpi-driver-revenue"
           title="€/Fahrer"
-          value={formatCurrency(summary.avgRevenuePerDriver)}
+          value={formatCurrency(filteredSummary.avgRevenuePerDriver)}
           icon={<User className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-driver-shifts"
           title="Schichten"
-          value={summary.totalShifts.toString()}
+          value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
         />
       </div>
@@ -433,7 +637,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortData(drivers, sortConfig).map((driver, idx) => (
+              {sortData(filteredDrivers, sortConfig).map((driver, idx) => (
                 <TableRow key={`${driver.firstName}-${driver.lastName}-${idx}`}>
                   <TableCell className="font-medium">{driver.firstName}</TableCell>
                   <TableCell>{driver.lastName}</TableCell>
@@ -466,9 +670,55 @@ interface VehiclesTabProps {
   setTimeMetric: (value: string) => void;
   distanceMetric: string;
   setDistanceMetric: (value: string) => void;
+  selectedVehicles: string[];
+  setSelectedVehicles: (vehicles: string[]) => void;
 }
 
-function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric }: VehiclesTabProps) {
+function recalculateVehicleSummary(vehicles: VehicleReportRow[]): VehicleReportSummary {
+  if (vehicles.length === 0) {
+    return {
+      avgRevenuePerHour: 0,
+      avgRevenuePerDay: 0,
+      avgRevenuePerMonth: 0,
+      avgRevenuePerKm: 0,
+      avgRevenuePerTrip: 0,
+      avgRevenuePerVehicle: 0,
+      totalShifts: 0,
+      totalRevenue: 0,
+      totalDistance: 0,
+      totalHoursWorked: 0,
+      totalTrips: 0,
+      uniqueVehicles: 0,
+    };
+  }
+  
+  const totalVehicles = vehicles.length;
+  const totalRevenue = vehicles.reduce((acc, v) => acc + v.totalRevenue, 0);
+  const totalDistanceKm = vehicles.reduce((acc, v) => acc + v.distanceInTrip, 0);
+  const totalHours = vehicles.reduce((acc, v) => acc + v.timeInTrip, 0);
+  const totalTrips = vehicles.reduce((acc, v) => acc + v.completedTrips, 0);
+  const totalShifts = vehicles.reduce((acc, v) => acc + (v.shiftCount || 0), 0);
+  
+  const activeDaysEstimate = Math.max(1, totalShifts);
+  const activeMonthsEstimate = Math.max(1, Math.ceil(activeDaysEstimate / 22));
+  
+  return {
+    avgRevenuePerHour: totalHours > 0 ? totalRevenue / totalHours : 0,
+    avgRevenuePerDay: activeDaysEstimate > 0 ? totalRevenue / activeDaysEstimate : 0,
+    avgRevenuePerMonth: activeMonthsEstimate > 0 ? totalRevenue / activeMonthsEstimate : 0,
+    avgRevenuePerKm: totalDistanceKm > 0 ? totalRevenue / totalDistanceKm : 0,
+    avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
+    avgRevenuePerVehicle: totalVehicles > 0 ? totalRevenue / totalVehicles : 0,
+    totalShifts,
+    totalRevenue,
+    totalDistance: totalDistanceKm,
+    totalHoursWorked: totalHours,
+    totalTrips,
+    uniqueVehicles: totalVehicles,
+  };
+}
+
+function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedVehicles, setSelectedVehicles }: VehiclesTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -479,6 +729,33 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   };
   
   const reportData = isDemo ? mockVehicleReport : data;
+  
+  const allVehicles = useMemo(() => {
+    if (!reportData?.vehicles) return [];
+    return reportData.vehicles.map(v => ({
+      value: v.licensePlate,
+      label: v.licensePlate,
+    }));
+  }, [reportData?.vehicles]);
+  
+  useEffect(() => {
+    if (allVehicles.length > 0 && selectedVehicles.length === 0) {
+      setSelectedVehicles(allVehicles.map(v => v.value));
+    }
+  }, [allVehicles, selectedVehicles.length, setSelectedVehicles]);
+  
+  const filteredVehicles = useMemo(() => {
+    if (!reportData?.vehicles) return [];
+    if (selectedVehicles.length === 0) return reportData.vehicles;
+    return reportData.vehicles.filter(v => selectedVehicles.includes(v.licensePlate));
+  }, [reportData?.vehicles, selectedVehicles]);
+  
+  const filteredSummary = useMemo(() => {
+    if (selectedVehicles.length === allVehicles.length && reportData?.summary) {
+      return reportData.summary;
+    }
+    return recalculateVehicleSummary(filteredVehicles);
+  }, [filteredVehicles, selectedVehicles.length, allVehicles.length, reportData?.summary]);
   
   if (isLoading) {
     return (
@@ -496,20 +773,30 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     );
   }
   
-  const { summary, vehicles } = reportData;
-  
   const timeValue = timeMetric === "hour" 
-    ? summary.avgRevenuePerHour 
+    ? filteredSummary.avgRevenuePerHour 
     : timeMetric === "day" 
-      ? summary.avgRevenuePerDay 
-      : summary.avgRevenuePerMonth;
+      ? filteredSummary.avgRevenuePerDay 
+      : filteredSummary.avgRevenuePerMonth;
       
   const distanceValue = distanceMetric === "km" 
-    ? summary.avgRevenuePerKm 
-    : summary.avgRevenuePerTrip;
+    ? filteredSummary.avgRevenuePerKm 
+    : filteredSummary.avgRevenuePerTrip;
   
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <MultiSelect
+          items={allVehicles}
+          selectedValues={selectedVehicles}
+          onSelectionChange={setSelectedVehicles}
+          placeholder="Fahrzeuge auswählen"
+          allSelectedLabel="Alle Fahrzeuge"
+          selectedCountLabel={(count) => `${count} Fahrzeuge ausgewählt`}
+          testId="filter-vehicles"
+        />
+      </div>
+      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-vehicle-time"
@@ -543,13 +830,13 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
         <KpiCard
           testId="kpi-vehicle-revenue"
           title="€/Fahrzeug"
-          value={formatCurrency(summary.avgRevenuePerVehicle)}
+          value={formatCurrency(filteredSummary.avgRevenuePerVehicle)}
           icon={<Car className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-vehicle-shifts"
           title="Schichten"
-          value={summary.totalShifts.toString()}
+          value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
         />
       </div>
@@ -577,7 +864,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortData(vehicles, sortConfig).map((vehicle) => (
+              {sortData(filteredVehicles, sortConfig).map((vehicle) => (
                 <TableRow key={vehicle.licensePlate}>
                   <TableCell className="font-mono font-medium">{vehicle.licensePlate}</TableCell>
                   <TableCell className="text-right">{vehicle.completedTrips}</TableCell>
@@ -707,6 +994,8 @@ export default function PerformancePage() {
   const [activeTab, setActiveTab] = useState("drivers");
   const [timeMetric, setTimeMetric] = useState<string>("hour");
   const [distanceMetric, setDistanceMetric] = useState<string>("km");
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+  const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -899,6 +1188,8 @@ export default function PerformancePage() {
             setTimeMetric={setTimeMetric}
             distanceMetric={distanceMetric}
             setDistanceMetric={setDistanceMetric}
+            selectedDrivers={selectedDrivers}
+            setSelectedDrivers={setSelectedDrivers}
           />
         </TabsContent>
         <TabsContent value="vehicles" className="mt-0">
@@ -910,6 +1201,8 @@ export default function PerformancePage() {
             setTimeMetric={setTimeMetric}
             distanceMetric={distanceMetric}
             setDistanceMetric={setDistanceMetric}
+            selectedVehicles={selectedVehicles}
+            setSelectedVehicles={setSelectedVehicles}
           />
         </TabsContent>
         <TabsContent value="promo" className="mt-0">
