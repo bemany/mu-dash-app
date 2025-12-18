@@ -150,11 +150,11 @@ export const mockPerformanceKpis = {
 
 export const mockPerformanceDrivers = {
   drivers: [
-    { driverName: "Fahrer 1", revenue: 520000, distance: 125000000, hoursWorked: 72, tripCount: 198 },
-    { driverName: "Fahrer 2", revenue: 485000, distance: 118000000, hoursWorked: 68, tripCount: 185 },
-    { driverName: "Fahrer 3", revenue: 465000, distance: 112000000, hoursWorked: 65, tripCount: 172 },
-    { driverName: "Fahrer 4", revenue: 445000, distance: 108000000, hoursWorked: 62, tripCount: 168 },
-    { driverName: "Fahrer 5", revenue: 535000, distance: 117000000, hoursWorked: 53, tripCount: 169 },
+    { driverName: "Fahrer 1", revenue: 520000, distance: 125000000, hoursWorked: 72, tripCount: 198, shiftCount: 9 },
+    { driverName: "Fahrer 2", revenue: 485000, distance: 118000000, hoursWorked: 68, tripCount: 185, shiftCount: 8 },
+    { driverName: "Fahrer 3", revenue: 465000, distance: 112000000, hoursWorked: 65, tripCount: 172, shiftCount: 8 },
+    { driverName: "Fahrer 4", revenue: 445000, distance: 108000000, hoursWorked: 62, tripCount: 168, shiftCount: 8 },
+    { driverName: "Fahrer 5", revenue: 535000, distance: 117000000, hoursWorked: 53, tripCount: 169, shiftCount: 7 },
   ],
   totals: {
     revenue: 2450000,

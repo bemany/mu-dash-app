@@ -893,6 +893,7 @@ export default function PerformancePage() {
                     <SortHeader label={t('performance.tableDriver')} sortKey="driverName" />
                     <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
                     <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
+                    <SortHeader label={t('performance.tableShifts')} sortKey="shiftCount" className="text-right" />
                     <SortHeader label={t('performance.tableHours')} sortKey="hoursWorked" className="text-right" />
                     <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
                   </TableRow>
@@ -903,6 +904,7 @@ export default function PerformancePage() {
                       <TableCell className="font-medium">{driver.driverName}</TableCell>
                       <TableCell className="text-right">{formatCurrency(driver.revenue)}</TableCell>
                       <TableCell className="text-right">{driver.tripCount}</TableCell>
+                      <TableCell className="text-right">{driver.shiftCount || 0}</TableCell>
                       <TableCell className="text-right">{formatNumber(driver.hoursWorked, 1)}</TableCell>
                       <TableCell className="text-right">
                         {driver.hoursWorked > 0 ? formatCurrency(driver.revenue / driver.hoursWorked) : "-"}
@@ -911,7 +913,7 @@ export default function PerformancePage() {
                   ))}
                   {(!driversData?.drivers || driversData.drivers.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-slate-500">
+                      <TableCell colSpan={6} className="text-center text-slate-500">
                         {t('performance.noData')}
                       </TableCell>
                     </TableRow>

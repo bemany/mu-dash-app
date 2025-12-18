@@ -947,10 +947,24 @@ export async function registerRoutes(
       const startDate = parseDateParam(req.query.startDate as string);
       const endDate = parseDateParam(req.query.endDate as string);
 
-      const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
+      const [metrics, shiftAnalysis] = await Promise.all([
+        storage.getPerformanceMetrics(sessionId, startDate, endDate),
+        storage.getShiftAnalysis(sessionId, startDate, endDate),
+      ]);
+      
+      const shiftCountByDriver: Record<string, number> = {};
+      for (const shift of shiftAnalysis.shifts) {
+        const driverName = shift.driverName || 'Unbekannt';
+        shiftCountByDriver[driverName] = (shiftCountByDriver[driverName] || 0) + 1;
+      }
+      
+      const driversWithShifts = metrics.byDriver.map(driver => ({
+        ...driver,
+        shiftCount: shiftCountByDriver[driver.driverName] || 0,
+      }));
       
       res.json({
-        drivers: metrics.byDriver,
+        drivers: driversWithShifts,
         totals: metrics.totals,
       });
     } catch (error) {
