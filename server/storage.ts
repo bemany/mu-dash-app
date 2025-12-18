@@ -1066,6 +1066,11 @@ export class DatabaseStorage implements IStorage {
       ORDER BY total_fare DESC
     `);
 
+    if (result.rows.length > 0) {
+      console.log('[DEBUG] First driver row keys:', Object.keys(result.rows[0]));
+      console.log('[DEBUG] First driver row time_in_trip:', (result.rows[0] as any).time_in_trip);
+    }
+
     const drivers: DriverReportRow[] = (result.rows as any[]).map(row => ({
       firstName: row.first_name || '',
       lastName: row.last_name || '',
