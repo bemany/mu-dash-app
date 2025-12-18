@@ -8,12 +8,14 @@ import Dashboard from "@/pages/dashboard";
 import AdminPage from "@/pages/admin";
 import HelpPage from "@/pages/help";
 import UpdatesPage from "@/pages/updates";
+import PerformancePage from "@/pages/performance";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/v/:vorgangsId" component={Dashboard} />
+      <Route path="/performance" component={PerformancePage} />
       <Route path="/help" component={HelpPage} />
       <Route path="/updates" component={UpdatesPage} />
       <Route path="/admin" component={AdminPage} />

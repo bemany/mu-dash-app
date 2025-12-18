@@ -12,6 +12,7 @@ export const translations = {
     layout: {
       appName: 'U-Retter',
       navProcess: 'Prüfvorgang',
+      navPerformance: 'Performance',
       navHelp: 'Hilfe',
       navUpdates: 'Updates',
       navAdmin: 'Admin',
@@ -220,6 +221,7 @@ export const translations = {
     layout: {
       appName: 'U-Retter',
       navProcess: 'Check Process',
+      navPerformance: 'Performance',
       navHelp: 'Help',
       navUpdates: 'Updates',
       navAdmin: 'Admin',
@@ -428,6 +430,7 @@ export const translations = {
     layout: {
       appName: 'U-Retter',
       navProcess: 'Kontrol İşlemi',
+      navPerformance: 'Performans',
       navHelp: 'Yardım',
       navUpdates: 'Güncellemeler',
       navAdmin: 'Yönetici',
@@ -636,6 +639,7 @@ export const translations = {
     layout: {
       appName: 'U-Retter',
       navProcess: 'عملية الفحص',
+      navPerformance: 'الأداء',
       navHelp: 'المساعدة',
       navUpdates: 'التحديثات',
       navAdmin: 'المسؤول',

@@ -1,9 +1,10 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useTranslation } from '@/i18n';
+import { useQuery } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location, setLocation] = useLocation();
   const { t, language, setLanguage, languages } = useTranslation();
 
+  const { data: sessionData } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const res = await fetch("/api/session");
+      if (!res.ok) throw new Error("Failed to fetch session");
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+
+  const hasSessionData = sessionData?.tripCount > 0;
   const currentLanguage = languages.find(l => l.code === language);
 
   return (
@@ -47,6 +59,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 onClick={() => setLocation('/')}
                 testId="nav-pruefvorgang"
               />
+              {hasSessionData && (
+                <NavItem 
+                  icon={<TrendingUp className="w-5 h-5" />} 
+                  label={t('layout.navPerformance')} 
+                  active={location === '/performance'} 
+                  onClick={() => setLocation('/performance')}
+                  testId="nav-performance"
+                />
+              )}
               <NavItem 
                 icon={<HelpCircle className="w-5 h-5" />} 
                 label={t('layout.navHelp')} 
