@@ -8,7 +8,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { 
+  format, 
+  subDays, 
+  startOfMonth, 
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  startOfYear,
+  endOfYear,
+  subWeeks,
+  subMonths,
+  subYears
+} from "date-fns";
 import { de, enUS, tr, ar, type Locale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/context";
@@ -128,6 +140,16 @@ function centsToEur(cents: number): number {
   return cents / 100;
 }
 
+function safeFormatDate(dateStr: string | Date, formatStr: string, locale: Locale): string {
+  try {
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return '-';
+    return format(date, formatStr, { locale });
+  } catch {
+    return '-';
+  }
+}
+
 interface KpiCardProps {
   title: string;
   value: string;
@@ -173,9 +195,10 @@ interface DatePickerWithRangeProps {
   onDateChange: (date: DateRange | undefined) => void;
   placeholder: string;
   dateLocale: Locale;
+  presets: { label: string; from: Date; to: Date }[];
 }
 
-function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale }: DatePickerWithRangeProps) {
+function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, presets }: DatePickerWithRangeProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -203,14 +226,33 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale }: Da
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="range"
-          defaultMonth={date?.from}
-          selected={date}
-          onSelect={onDateChange}
-          numberOfMonths={2}
-          locale={dateLocale}
-        />
+        <div className="flex">
+          <div className="border-r border-slate-200 p-2 space-y-1 min-w-[140px]">
+            {presets.map((preset) => (
+              <button
+                key={preset.label}
+                data-testid={`preset-${preset.label.toLowerCase().replace(/\s/g, '-')}`}
+                onClick={() => onDateChange({ from: preset.from, to: preset.to })}
+                className={cn(
+                  "w-full text-left px-3 py-2 text-sm rounded-md transition-colors hover:bg-slate-100",
+                  date?.from?.getTime() === preset.from.getTime() && 
+                  date?.to?.getTime() === preset.to.getTime() && 
+                  "bg-emerald-50 text-emerald-700 font-medium"
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <Calendar
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={onDateChange}
+            numberOfMonths={2}
+            locale={dateLocale}
+          />
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -310,6 +352,19 @@ export default function PerformancePage() {
 
   const closeModal = () => setActiveModal(null);
 
+  const today = new Date();
+  const presets = [
+    { label: t('performance.presetToday'), from: today, to: today },
+    { label: t('performance.presetYesterday'), from: subDays(today, 1), to: subDays(today, 1) },
+    { label: t('performance.presetThisWeek'), from: startOfWeek(today, { weekStartsOn: 1 }), to: endOfWeek(today, { weekStartsOn: 1 }) },
+    { label: t('performance.presetLastWeek'), from: startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }), to: endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }) },
+    { label: t('performance.presetPastTwoWeeks'), from: subWeeks(today, 2), to: today },
+    { label: t('performance.presetThisMonth'), from: startOfMonth(today), to: endOfMonth(today) },
+    { label: t('performance.presetLastMonth'), from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) },
+    { label: t('performance.presetThisYear'), from: startOfYear(today), to: endOfYear(today) },
+    { label: t('performance.presetLastYear'), from: startOfYear(subYears(today, 1)), to: endOfYear(subYears(today, 1)) },
+  ];
+
   return (
     <DashboardLayout>
       <div className="max-w-[1920px] mx-auto space-y-6 pb-20">
@@ -327,6 +382,7 @@ export default function PerformancePage() {
             onDateChange={setDateRange} 
             placeholder={t('performance.datePickerPlaceholder')}
             dateLocale={dateLocale}
+            presets={presets}
           />
         </div>
 
@@ -633,8 +689,8 @@ export default function PerformancePage() {
                     <TableRow key={`${shift.driverName}-${shift.shiftStart}-${index}`}>
                       <TableCell className="font-medium">{shift.driverName}</TableCell>
                       <TableCell className="font-mono">{shift.licensePlate}</TableCell>
-                      <TableCell>{format(new Date(shift.shiftStart), "dd.MM. HH:mm", { locale: dateLocale })}</TableCell>
-                      <TableCell>{format(new Date(shift.shiftEnd), "dd.MM. HH:mm", { locale: dateLocale })}</TableCell>
+                      <TableCell>{safeFormatDate(shift.shiftStart, "dd.MM. HH:mm", dateLocale)}</TableCell>
+                      <TableCell>{safeFormatDate(shift.shiftEnd, "dd.MM. HH:mm", dateLocale)}</TableCell>
                       <TableCell>
                         <span
                           className={cn(
