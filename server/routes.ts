@@ -611,6 +611,7 @@ export async function registerRoutes(
           sessionId,
           filename: file.originalname,
           fileType: tripFiles.includes(file) ? "trips" : "payments",
+          mimeType: file.mimetype || "text/csv",
           fileSize: file.size,
           fileContent: file.buffer.toString("base64"),
         });
