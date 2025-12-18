@@ -140,6 +140,10 @@ interface MultiSelectProps {
   placeholder: string;
   allSelectedLabel: string;
   selectedCountLabel: (count: number) => string;
+  searchPlaceholder?: string;
+  selectAllLabel?: string;
+  deselectAllLabel?: string;
+  noResultsLabel?: string;
   testId: string;
 }
 
@@ -150,6 +154,10 @@ function MultiSelect({
   placeholder, 
   allSelectedLabel,
   selectedCountLabel,
+  searchPlaceholder = "Suchen...",
+  selectAllLabel = "Alle auswählen",
+  deselectAllLabel = "Alle abwählen",
+  noResultsLabel = "Keine Ergebnisse",
   testId 
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
@@ -215,7 +223,7 @@ function MultiSelect({
               data-testid={`${testId}-search`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Suchen..."
+              placeholder={searchPlaceholder}
               className="pl-8 h-9"
             />
           </div>
@@ -231,13 +239,13 @@ function MultiSelect({
               className="border-emerald-500 data-[state=checked]:bg-emerald-500"
             />
             <span className="text-sm font-medium">
-              {allSelected ? "Alle abwählen" : "Alle auswählen"}
+              {allSelected ? deselectAllLabel : selectAllLabel}
             </span>
           </button>
         </div>
         <div className="max-h-[300px] overflow-y-auto p-2">
           {filteredItems.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4">Keine Ergebnisse</p>
+            <p className="text-sm text-slate-500 text-center py-4">{noResultsLabel}</p>
           ) : (
             filteredItems.map((item) => (
               <button
@@ -501,6 +509,7 @@ interface ShiftsDialogProps {
 }
 
 function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps) {
+  const { t } = useTranslation();
   const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
   
   const driverShiftData = useMemo(() => {
@@ -528,11 +537,11 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" />
-            Schichten-Übersicht
+            {t('performance.shiftsOverview')}
           </DialogTitle>
         </DialogHeader>
         <div className="flex items-center gap-2 pb-3 border-b">
-          <span className="text-sm text-slate-500">Filter:</span>
+          <span className="text-sm text-slate-500">{t('performance.filterLabel')}</span>
           <div className="flex gap-1">
             <button
               onClick={() => setShiftFilter("all")}
@@ -543,7 +552,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
             >
-              Alle
+              {t('performance.allShifts')}
             </button>
             <button
               onClick={() => setShiftFilter("day")}
@@ -555,7 +564,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
               )}
             >
               <Sun className="w-3.5 h-3.5" />
-              Tagschicht
+              {t('performance.dayShift')}
             </button>
             <button
               onClick={() => setShiftFilter("night")}
@@ -567,7 +576,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
               )}
             >
               <Moon className="w-3.5 h-3.5" />
-              Nachtschicht
+              {t('performance.nightShift')}
             </button>
           </div>
         </div>
@@ -575,24 +584,24 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Fahrer</TableHead>
-                <TableHead className="text-center">Typ</TableHead>
-                <TableHead className="text-right">Schichten</TableHead>
+                <TableHead>{t('performance.tableDriver')}</TableHead>
+                <TableHead className="text-center">{t('performance.tableType')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableShifts')}</TableHead>
                 <TableHead className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    Tag
+                    {t('performance.shiftDay')}
                   </div>
                 </TableHead>
                 <TableHead className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                    Nacht
+                    {t('performance.shiftNight')}
                   </div>
                 </TableHead>
-                <TableHead className="text-right">Arbeitsstunden</TableHead>
-                <TableHead className="text-right">Fahrten</TableHead>
-                <TableHead className="text-right">Umsatz</TableHead>
+                <TableHead className="text-right">{t('performance.workHours')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -603,12 +612,12 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
                     {driver.isNightDriver ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
                         <Moon className="w-3 h-3" />
-                        Nacht
+                        {t('performance.shiftNight')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                         <Sun className="w-3 h-3" />
-                        Tag
+                        {t('performance.shiftDay')}
                       </span>
                     )}
                   </TableCell>
@@ -629,6 +638,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
 }
 
 function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
+  const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   
@@ -667,26 +677,26 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   
   const exportToExcel = () => {
     const dataToExport = sortData(filteredDrivers, sortConfig).map(driver => ({
-      'Vorname': driver.firstName,
-      'Nachname': driver.lastName,
-      'Abgeschl. Fahrten': driver.completedTrips,
-      'Storniert': driver.cancelledTrips,
-      'Gesamt': driver.totalTrips,
-      'Ø Fahrpreis': driver.avgFarePerTrip,
-      'Gefahrene km': driver.distanceInTrip,
-      '€/km': driver.pricePerKm,
-      'Umsatz/Tag': driver.revenuePerDay,
-      'Umsatz/Std': driver.revenuePerHour,
-      'Fahrten/Std': driver.tripsPerHour,
-      'Akzeptanzrate': driver.acceptanceRate,
-      'Zeit in Fahrt (h)': driver.timeInTrip,
+      [t('performance.tableFirstName')]: driver.firstName,
+      [t('performance.tableLastName')]: driver.lastName,
+      [t('performance.tableCompletedTrips')]: driver.completedTrips,
+      [t('performance.tableCancelled')]: driver.cancelledTrips,
+      [t('performance.tableTotal')]: driver.totalTrips,
+      [t('performance.tableAvgFare')]: driver.avgFarePerTrip,
+      [t('performance.tableDrivenKm')]: driver.distanceInTrip,
+      [t('performance.tablePricePerKm')]: driver.pricePerKm,
+      [t('performance.tableRevenuePerDay')]: driver.revenuePerDay,
+      [t('performance.tableRevenuePerHour')]: driver.revenuePerHour,
+      [t('performance.tableTripsPerHour')]: driver.tripsPerHour,
+      [t('performance.tableAcceptanceRate')]: driver.acceptanceRate,
+      [t('performance.tableTimeInTrip')]: driver.timeInTrip,
     }));
     dataToExport.push({} as any);
-    dataToExport.push({ 'Vorname': 'Er lässt Grüßen' } as any);
+    dataToExport.push({ [t('performance.tableFirstName')]: t('performance.excelFooter') } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Fahrer");
-    XLSX.writeFile(wb, `Fahrer_Report.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetDrivers'));
+    XLSX.writeFile(wb, `${t('performance.excelSheetDrivers')}_Report.xlsx`);
   };
 
   if (isLoading) {
@@ -700,7 +710,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   if (!reportData) {
     return (
       <Card className="p-12 text-center">
-        <p className="text-slate-500">Keine Daten vorhanden</p>
+        <p className="text-slate-500">{t('performance.noDataAvailable')}</p>
       </Card>
     );
   }
@@ -726,9 +736,9 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           tags={{
             value: timeMetric,
             options: [
-              { value: "hour", label: "€/Stunde" },
-              { value: "day", label: "€/Tag" },
-              { value: "month", label: "€/Monat" },
+              { value: "hour", label: t('performance.kpiRevenuePerHour') },
+              { value: "day", label: t('performance.kpiRevenuePerDay') },
+              { value: "month", label: t('performance.kpiPerMonth') },
             ],
             onChange: setTimeMetric,
           }}
@@ -741,21 +751,21 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           tags={{
             value: distanceMetric,
             options: [
-              { value: "km", label: "€/km" },
-              { value: "trip", label: "€/Fahrt" },
+              { value: "km", label: t('performance.kpiRevenuePerKm') },
+              { value: "trip", label: t('performance.kpiPerTrip') },
             ],
             onChange: setDistanceMetric,
           }}
         />
         <KpiCard
           testId="kpi-driver-revenue"
-          title="€/Fahrer"
+          title={t('performance.kpiRevenuePerDriver')}
           value={formatCurrency(filteredSummary.avgRevenuePerDriver)}
           icon={<User className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-driver-shifts"
-          title="Schichten"
+          title={t('performance.kpiShifts')}
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
@@ -774,20 +784,20 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           <Table>
             <TableHeader>
               <TableRow>
-                <SortHeader label="Vorname" sortKey="firstName" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label="Nachname" sortKey="lastName" sortConfig={sortConfig} onSort={handleSort} />
-                <TableHead className="text-center whitespace-nowrap">Schichttyp</TableHead>
-                <SortHeader label="Abgeschl. Fahrten" sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Storniert" sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Gesamt" sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Ø Fahrpreis" sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Gefahrene km" sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="€/km" sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz/Tag" sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz/Std" sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Fahrten/Std" sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Akzeptanzrate" sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Zeit in Fahrt" sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableFirstName')} sortKey="firstName" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label={t('performance.tableLastName')} sortKey="lastName" sortConfig={sortConfig} onSort={handleSort} />
+                <TableHead className="text-center whitespace-nowrap">{t('performance.tableShiftType')}</TableHead>
+                <SortHeader label={t('performance.tableCompletedTrips')} sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableCancelled')} sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTotal')} sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableAvgFare')} sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableDrivenKm')} sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tablePricePerKm')} sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenuePerDay')} sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenuePerHour')} sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTripsPerHour')} sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableAcceptanceRate')} sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTimeInTrip')} sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -802,17 +812,17 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
                     {isMixed ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
                         <Sun className="w-3 h-3" />/<Moon className="w-3 h-3" />
-                        Gemischt
+                        {t('performance.shiftMixed')}
                       </span>
                     ) : isNightDriver ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
                         <Moon className="w-3 h-3" />
-                        Nacht
+                        {t('performance.shiftNight')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                         <Sun className="w-3 h-3" />
-                        Tag
+                        {t('performance.shiftDay')}
                       </span>
                     )}
                   </TableCell>
@@ -835,7 +845,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
         <div className="p-3 border-t flex justify-end">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-drivers">
             <Download className="w-4 h-4 mr-2" />
-            Als Excel exportieren
+            {t('performance.exportExcel')}
           </Button>
         </div>
       </Card>
@@ -907,6 +917,7 @@ interface VehicleShiftsDialogProps {
 }
 
 function VehicleShiftsDialog({ open, onOpenChange, vehicles, isDemo }: VehicleShiftsDialogProps) {
+  const { t } = useTranslation();
   const vehicleShiftData = useMemo(() => {
     return vehicles.map(v => ({
       licensePlate: v.licensePlate,
@@ -925,30 +936,30 @@ function VehicleShiftsDialog({ open, onOpenChange, vehicles, isDemo }: VehicleSh
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" />
-            Schichten nach Fahrzeug
+            {t('performance.shiftsByVehicle')}
           </DialogTitle>
         </DialogHeader>
         <div className="overflow-auto flex-1">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Kennzeichen</TableHead>
-                <TableHead className="text-right">Schichten</TableHead>
+                <TableHead>{t('performance.tableLicensePlate')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableShifts')}</TableHead>
                 <TableHead className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    Tag
+                    {t('performance.shiftDay')}
                   </div>
                 </TableHead>
                 <TableHead className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Moon className="w-3.5 h-3.5 text-blue-500" />
-                    Nacht
+                    {t('performance.shiftNight')}
                   </div>
                 </TableHead>
-                <TableHead className="text-right">Arbeitsstunden</TableHead>
-                <TableHead className="text-right">Fahrten</TableHead>
-                <TableHead className="text-right">Umsatz</TableHead>
+                <TableHead className="text-right">{t('performance.workHours')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -972,6 +983,7 @@ function VehicleShiftsDialog({ open, onOpenChange, vehicles, isDemo }: VehicleSh
 }
 
 function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedVehicles, setSelectedVehicles }: VehiclesTabProps) {
+  const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   
@@ -1008,28 +1020,28 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   
   const exportToExcel = () => {
     const dataToExport = sortData(filteredVehicles, sortConfig).map(vehicle => ({
-      'Kennzeichen': vehicle.licensePlate,
-      'Abgeschl. Fahrten': vehicle.completedTrips,
-      'Storniert': vehicle.cancelledTrips,
-      'Gesamt': vehicle.totalTrips,
-      'Ø Fahrpreis': vehicle.avgFarePerTrip,
-      'Gefahrene km': vehicle.distanceInTrip,
-      '€/km': vehicle.pricePerKm,
-      'Umsatz/Tag': vehicle.revenuePerDay,
-      'Umsatz Nacht': vehicle.revenueNightShift,
-      'Umsatz Tag': vehicle.revenueDayShift,
-      'Gesamtumsatz': vehicle.totalRevenue,
-      'Umsatz/Std': vehicle.revenuePerHour,
-      'Fahrten/Std': vehicle.tripsPerHour,
-      'Akzeptanzrate': vehicle.acceptanceRate,
-      'Zeit in Fahrt (h)': vehicle.timeInTrip,
+      [t('performance.tableLicensePlate')]: vehicle.licensePlate,
+      [t('performance.tableCompletedTrips')]: vehicle.completedTrips,
+      [t('performance.tableCancelled')]: vehicle.cancelledTrips,
+      [t('performance.tableTotal')]: vehicle.totalTrips,
+      [t('performance.tableAvgFare')]: vehicle.avgFarePerTrip,
+      [t('performance.tableDrivenKm')]: vehicle.distanceInTrip,
+      [t('performance.tablePricePerKm')]: vehicle.pricePerKm,
+      [t('performance.tableRevenuePerDay')]: vehicle.revenuePerDay,
+      [t('performance.tableRevenueNight')]: vehicle.revenueNightShift,
+      [t('performance.tableRevenueDay')]: vehicle.revenueDayShift,
+      [t('performance.tableTotalRevenue')]: vehicle.totalRevenue,
+      [t('performance.tableRevenuePerHour')]: vehicle.revenuePerHour,
+      [t('performance.tableTripsPerHour')]: vehicle.tripsPerHour,
+      [t('performance.tableAcceptanceRate')]: vehicle.acceptanceRate,
+      [t('performance.tableTimeInTrip')]: vehicle.timeInTrip,
     }));
     dataToExport.push({} as any);
-    dataToExport.push({ 'Kennzeichen': 'Er lässt Grüßen' } as any);
+    dataToExport.push({ [t('performance.tableLicensePlate')]: t('performance.excelFooter') } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Fahrzeuge");
-    XLSX.writeFile(wb, `Fahrzeuge_Report.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetVehicles'));
+    XLSX.writeFile(wb, `${t('performance.excelSheetVehicles')}_Report.xlsx`);
   };
 
   if (isLoading) {
@@ -1043,7 +1055,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   if (!reportData) {
     return (
       <Card className="p-12 text-center">
-        <p className="text-slate-500">Keine Daten vorhanden</p>
+        <p className="text-slate-500">{t('performance.noDataAvailable')}</p>
       </Card>
     );
   }
@@ -1069,9 +1081,9 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           tags={{
             value: timeMetric,
             options: [
-              { value: "hour", label: "€/Stunde" },
-              { value: "day", label: "€/Tag" },
-              { value: "month", label: "€/Monat" },
+              { value: "hour", label: t('performance.kpiRevenuePerHour') },
+              { value: "day", label: t('performance.kpiRevenuePerDay') },
+              { value: "month", label: t('performance.kpiPerMonth') },
             ],
             onChange: setTimeMetric,
           }}
@@ -1084,21 +1096,21 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           tags={{
             value: distanceMetric,
             options: [
-              { value: "km", label: "€/km" },
-              { value: "trip", label: "€/Fahrt" },
+              { value: "km", label: t('performance.kpiRevenuePerKm') },
+              { value: "trip", label: t('performance.kpiPerTrip') },
             ],
             onChange: setDistanceMetric,
           }}
         />
         <KpiCard
           testId="kpi-vehicle-revenue"
-          title="€/Fahrzeug"
+          title={t('performance.kpiRevenuePerVehicle')}
           value={formatCurrency(filteredSummary.avgRevenuePerVehicle)}
           icon={<Car className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-vehicle-shifts"
-          title="Schichten"
+          title={t('performance.kpiShifts')}
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
@@ -1117,21 +1129,21 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           <Table>
             <TableHeader>
               <TableRow>
-                <SortHeader label="Kennzeichen" sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label="Abgeschl. Fahrten" sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Storniert" sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Gesamt" sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Ø Fahrpreis" sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Gefahrene km" sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="€/km" sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz/Tag" sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz Nacht" sortKey="revenueNightShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz Tag" sortKey="revenueDayShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Gesamtumsatz" sortKey="totalRevenue" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Umsatz/Std" sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Fahrten/Std" sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Akzeptanzrate" sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Zeit in Fahrt" sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label={t('performance.tableCompletedTrips')} sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableCancelled')} sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTotal')} sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableAvgFare')} sortKey="avgFarePerTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableDrivenKm')} sortKey="distanceInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tablePricePerKm')} sortKey="pricePerKm" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenuePerDay')} sortKey="revenuePerDay" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenueNight')} sortKey="revenueNightShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenueDay')} sortKey="revenueDayShift" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTotalRevenue')} sortKey="totalRevenue" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableRevenuePerHour')} sortKey="revenuePerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTripsPerHour')} sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableAcceptanceRate')} sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTimeInTrip')} sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1160,7 +1172,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
         <div className="p-3 border-t flex justify-end">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-vehicles">
             <Download className="w-4 h-4 mr-2" />
-            Als Excel exportieren
+            {t('performance.exportExcel')}
           </Button>
         </div>
       </Card>
@@ -1176,6 +1188,7 @@ interface PromoTabProps {
 }
 
 function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) {
+  const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "month", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -1506,18 +1519,22 @@ export default function PerformancePage() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <TabsList>
-              <TabsTrigger value="drivers" data-testid="tab-drivers">Fahrer</TabsTrigger>
-              <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fahrzeug</TabsTrigger>
-              <TabsTrigger value="promo" data-testid="tab-promo">Werbegelder</TabsTrigger>
+              <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
+              <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
+              <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
             </TabsList>
             {activeTab === "drivers" && (
               <MultiSelect
                 items={allDrivers}
                 selectedValues={selectedDrivers}
                 onSelectionChange={setSelectedDrivers}
-                placeholder="Fahrer auswählen"
-                allSelectedLabel="Alle Fahrer"
-                selectedCountLabel={(count) => `${count} Fahrer`}
+                placeholder={t('performance.filterSelectDrivers')}
+                allSelectedLabel={t('performance.filterAllDrivers')}
+                selectedCountLabel={(count) => t('performance.filterDriversCount').replace('{count}', count.toString())}
+                searchPlaceholder={t('performance.searchPlaceholder')}
+                selectAllLabel={t('performance.selectAll')}
+                deselectAllLabel={t('performance.deselectAll')}
+                noResultsLabel={t('performance.noResults')}
                 testId="filter-drivers"
               />
             )}
@@ -1526,9 +1543,13 @@ export default function PerformancePage() {
                 items={allVehicles}
                 selectedValues={selectedVehicles}
                 onSelectionChange={setSelectedVehicles}
-                placeholder="Fahrzeuge auswählen"
-                allSelectedLabel="Alle Fahrzeuge"
-                selectedCountLabel={(count) => `${count} Fahrzeuge`}
+                placeholder={t('performance.filterSelectVehicles')}
+                allSelectedLabel={t('performance.filterAllVehicles')}
+                selectedCountLabel={(count) => t('performance.filterVehiclesCount').replace('{count}', count.toString())}
+                searchPlaceholder={t('performance.searchPlaceholder')}
+                selectAllLabel={t('performance.selectAll')}
+                deselectAllLabel={t('performance.deselectAll')}
+                noResultsLabel={t('performance.noResults')}
                 testId="filter-vehicles"
               />
             )}
