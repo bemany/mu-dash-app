@@ -639,19 +639,19 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             <TableBody>
               {sortData(filteredDrivers, sortConfig).map((driver, idx) => (
                 <TableRow key={`${driver.firstName}-${driver.lastName}-${idx}`}>
-                  <TableCell className="font-medium">{driver.firstName}</TableCell>
-                  <TableCell>{driver.lastName}</TableCell>
-                  <TableCell className="text-right">{driver.completedTrips}</TableCell>
-                  <TableCell className="text-right">{driver.cancelledTrips}</TableCell>
-                  <TableCell className="text-right">{driver.totalTrips}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(driver.avgFarePerTrip)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(driver.distanceInTrip, 0)} km</TableCell>
-                  <TableCell className="text-right">{formatNumber(driver.pricePerKm)} €</TableCell>
-                  <TableCell className="text-right">{formatCurrency(driver.revenuePerDay)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(driver.revenuePerHour)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(driver.tripsPerHour)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(driver.acceptanceRate, 1)}%</TableCell>
-                  <TableCell className="text-right">{formatNumber(driver.timeInTrip, 0)} h</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{driver.firstName}</TableCell>
+                  <TableCell className="whitespace-nowrap">{driver.lastName}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.completedTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.cancelledTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{driver.totalTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.avgFarePerTrip)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.distanceInTrip, 0)} km</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.pricePerKm)} €</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.revenuePerDay)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.revenuePerHour)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.tripsPerHour)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.acceptanceRate, 1)}%</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.timeInTrip, 0)} h</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -866,21 +866,21 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
             <TableBody>
               {sortData(filteredVehicles, sortConfig).map((vehicle) => (
                 <TableRow key={vehicle.licensePlate}>
-                  <TableCell className="font-mono font-medium">{vehicle.licensePlate}</TableCell>
-                  <TableCell className="text-right">{vehicle.completedTrips}</TableCell>
-                  <TableCell className="text-right">{vehicle.cancelledTrips}</TableCell>
-                  <TableCell className="text-right">{vehicle.totalTrips}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vehicle.avgFarePerTrip)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(vehicle.distanceInTrip, 0)} km</TableCell>
-                  <TableCell className="text-right">{formatNumber(vehicle.pricePerKm)} €</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vehicle.revenuePerDay)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vehicle.revenueNightShift)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vehicle.revenueDayShift)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(vehicle.totalRevenue)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(vehicle.revenuePerHour)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(vehicle.tripsPerHour)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(vehicle.acceptanceRate, 1)}%</TableCell>
-                  <TableCell className="text-right">{formatNumber(vehicle.timeInTrip, 0)} h</TableCell>
+                  <TableCell className="font-mono font-medium whitespace-nowrap">{vehicle.licensePlate}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.completedTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.cancelledTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{vehicle.totalTrips}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.avgFarePerTrip)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.distanceInTrip, 0)} km</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.pricePerKm)} €</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.revenuePerDay)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.revenueNightShift)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.revenueDayShift)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap">{formatCurrency(vehicle.totalRevenue)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.revenuePerHour)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.tripsPerHour)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.acceptanceRate, 1)}%</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatNumber(vehicle.timeInTrip, 0)} h</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -967,12 +967,12 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
             <TableBody>
               {sortData(rows, sortConfig).map((row, idx) => (
                 <TableRow key={`${row.licensePlate}-${row.month}-${idx}`}>
-                  <TableCell className="font-mono font-medium">{row.licensePlate}</TableCell>
-                  <TableCell>{row.month}</TableCell>
-                  <TableCell className="text-right">{row.tripCount}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(row.theoreticalBonus)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(row.actualPaid)}</TableCell>
-                  <TableCell className={cn("text-right font-medium", row.difference < 0 && "text-red-600")}>
+                  <TableCell className="font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
+                  <TableCell className="whitespace-nowrap">{row.month}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.theoreticalBonus)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.actualPaid)}</TableCell>
+                  <TableCell className={cn("text-right font-medium whitespace-nowrap", row.difference < 0 && "text-red-600")}>
                     {formatCurrency(row.difference)}
                   </TableCell>
                 </TableRow>
