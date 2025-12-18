@@ -16,7 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={PerformancePage} />
       <Route path="/performance" component={PerformancePage} />
-      <Route path="/process" component={UploadPage} />
+      <Route path="/process" component={Dashboard} />
       <Route path="/process/details" component={Dashboard} />
       <Route path="/v/:vorgangsId" component={Dashboard} />
       <Route path="/help" component={HelpPage} />
