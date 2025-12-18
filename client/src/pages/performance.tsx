@@ -511,12 +511,6 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     }));
   }, [reportData?.drivers]);
   
-  useEffect(() => {
-    if (allDrivers.length > 0 && selectedDrivers.length === 0) {
-      setSelectedDrivers(allDrivers.map(d => d.value));
-    }
-  }, [allDrivers, selectedDrivers.length, setSelectedDrivers]);
-  
   const filteredDrivers = useMemo(() => {
     if (!reportData?.drivers) return [];
     if (selectedDrivers.length === 0) return reportData.drivers;
@@ -560,18 +554,6 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <MultiSelect
-          items={allDrivers}
-          selectedValues={selectedDrivers}
-          onSelectionChange={setSelectedDrivers}
-          placeholder="Fahrer auswählen"
-          allSelectedLabel="Alle Fahrer"
-          selectedCountLabel={(count) => `${count} Fahrer ausgewählt`}
-          testId="filter-drivers"
-        />
-      </div>
-      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-driver-time"
@@ -738,12 +720,6 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     }));
   }, [reportData?.vehicles]);
   
-  useEffect(() => {
-    if (allVehicles.length > 0 && selectedVehicles.length === 0) {
-      setSelectedVehicles(allVehicles.map(v => v.value));
-    }
-  }, [allVehicles, selectedVehicles.length, setSelectedVehicles]);
-  
   const filteredVehicles = useMemo(() => {
     if (!reportData?.vehicles) return [];
     if (selectedVehicles.length === 0) return reportData.vehicles;
@@ -785,18 +761,6 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <MultiSelect
-          items={allVehicles}
-          selectedValues={selectedVehicles}
-          onSelectionChange={setSelectedVehicles}
-          placeholder="Fahrzeuge auswählen"
-          allSelectedLabel="Alle Fahrzeuge"
-          selectedCountLabel={(count) => `${count} Fahrzeuge ausgewählt`}
-          testId="filter-vehicles"
-        />
-      </div>
-      
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-vehicle-time"
@@ -1080,6 +1044,36 @@ export default function PerformancePage() {
     enabled: !isDemo,
   });
 
+  const allDrivers = useMemo(() => {
+    const reportData = isDemo ? mockDriverReport : driversData;
+    if (!reportData?.drivers) return [];
+    return reportData.drivers.map(d => ({
+      value: `${d.firstName} ${d.lastName}`,
+      label: `${d.firstName} ${d.lastName}`,
+    }));
+  }, [isDemo, driversData]);
+
+  const allVehicles = useMemo(() => {
+    const reportData = isDemo ? mockVehicleReport : vehiclesData;
+    if (!reportData?.vehicles) return [];
+    return reportData.vehicles.map(v => ({
+      value: v.licensePlate,
+      label: v.licensePlate,
+    }));
+  }, [isDemo, vehiclesData]);
+
+  useEffect(() => {
+    if (allDrivers.length > 0 && selectedDrivers.length === 0) {
+      setSelectedDrivers(allDrivers.map(d => d.value));
+    }
+  }, [allDrivers]);
+
+  useEffect(() => {
+    if (allVehicles.length > 0 && selectedVehicles.length === 0) {
+      setSelectedVehicles(allVehicles.map(v => v.value));
+    }
+  }, [allVehicles]);
+
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
     
@@ -1143,12 +1137,34 @@ export default function PerformancePage() {
               {t('performance.subtitle')}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <TabsList>
               <TabsTrigger value="drivers" data-testid="tab-drivers">Fahrer</TabsTrigger>
               <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fahrzeug</TabsTrigger>
               <TabsTrigger value="promo" data-testid="tab-promo">Werbegelder</TabsTrigger>
             </TabsList>
+            {activeTab === "drivers" && (
+              <MultiSelect
+                items={allDrivers}
+                selectedValues={selectedDrivers}
+                onSelectionChange={setSelectedDrivers}
+                placeholder="Fahrer auswählen"
+                allSelectedLabel="Alle Fahrer"
+                selectedCountLabel={(count) => `${count} Fahrer`}
+                testId="filter-drivers"
+              />
+            )}
+            {activeTab === "vehicles" && (
+              <MultiSelect
+                items={allVehicles}
+                selectedValues={selectedVehicles}
+                onSelectionChange={setSelectedVehicles}
+                placeholder="Fahrzeuge auswählen"
+                allSelectedLabel="Alle Fahrzeuge"
+                selectedCountLabel={(count) => `${count} Fahrzeuge`}
+                testId="filter-vehicles"
+              />
+            )}
             <DatePickerWithRange 
               date={dateRange} 
               onDateChange={setDateRange} 
