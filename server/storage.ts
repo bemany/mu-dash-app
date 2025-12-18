@@ -26,6 +26,66 @@ export const db = drizzle(pool);
 
 export type OnProgressCallback = (processed: number, total: number) => void;
 
+export interface PerformanceMetrics {
+  totals: {
+    revenue: number;
+    distance: number;
+    hoursWorked: number;
+    tripCount: number;
+  };
+  byDriver: Array<{
+    driverName: string;
+    revenue: number;
+    distance: number;
+    hoursWorked: number;
+    tripCount: number;
+  }>;
+  byVehicle: Array<{
+    licensePlate: string;
+    revenue: number;
+    distance: number;
+    hoursWorked: number;
+    tripCount: number;
+  }>;
+  byDay: Array<{
+    date: string;
+    revenue: number;
+    distance: number;
+    hoursWorked: number;
+    tripCount: number;
+  }>;
+  byMonth: Array<{
+    month: string;
+    revenue: number;
+    distance: number;
+    hoursWorked: number;
+    tripCount: number;
+  }>;
+}
+
+export interface ShiftData {
+  driverName: string;
+  licensePlate: string;
+  shiftStart: Date;
+  shiftEnd: Date;
+  shiftType: 'day' | 'night';
+  revenue: number;
+  distance: number;
+  hoursWorked: number;
+  tripCount: number;
+}
+
+export interface ShiftAnalysis {
+  shifts: ShiftData[];
+  summary: {
+    totalShifts: number;
+    dayShifts: number;
+    nightShifts: number;
+    avgShiftDuration: number;
+    avgRevenuePerShift: number;
+  };
+}
+
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
@@ -58,6 +118,10 @@ export interface IStorage {
   getUploadsBySession(sessionId: string): Promise<Upload[]>;
   getUploadById(uploadId: string): Promise<Upload | null>;
   deleteUploadsForSession(sessionId: string): Promise<void>;
+  
+  // Performance metrics
+  getPerformanceMetrics(sessionId: string, startDate?: Date, endDate?: Date): Promise<PerformanceMetrics>;
+  getShiftAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<ShiftAnalysis>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -292,6 +356,448 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUploadsForSession(sessionId: string): Promise<void> {
     await db.delete(uploads).where(eq(uploads.sessionId, sessionId));
+  }
+
+  async getPerformanceMetrics(sessionId: string, startDate?: Date, endDate?: Date): Promise<PerformanceMetrics> {
+    const dateFilter = this.buildDateFilter(startDate, endDate);
+    
+    const [totalsResult, byDriverResult, byVehicleResult, byDayResult, byMonthResult] = await Promise.all([
+      db.execute(sql`
+        SELECT 
+          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as distance,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Startzeit der Fahrt' IS NOT NULL 
+                AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
+              THEN EXTRACT(EPOCH FROM (
+                CASE 
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
+                  ELSE NULL
+                END - 
+                CASE 
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Startzeit der Fahrt')::timestamp
+                  ELSE NULL
+                END
+              )) / 3600
+              ELSE 0
+            END
+          ), 0)::numeric as hours_worked,
+          COUNT(*)::int as trip_count
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+      `),
+      
+      db.execute(sql`
+        SELECT 
+          CONCAT(
+            COALESCE(raw_data->>'Vorname des Fahrers', ''),
+            ' ',
+            COALESCE(raw_data->>'Nachname des Fahrers', '')
+          ) as driver_name,
+          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as distance,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Startzeit der Fahrt' IS NOT NULL 
+                AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
+              THEN EXTRACT(EPOCH FROM (
+                CASE 
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
+                  ELSE NULL
+                END - 
+                CASE 
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Startzeit der Fahrt')::timestamp
+                  ELSE NULL
+                END
+              )) / 3600
+              ELSE 0
+            END
+          ), 0)::numeric as hours_worked,
+          COUNT(*)::int as trip_count
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+        GROUP BY driver_name
+        HAVING TRIM(CONCAT(
+          COALESCE(raw_data->>'Vorname des Fahrers', ''),
+          ' ',
+          COALESCE(raw_data->>'Nachname des Fahrers', '')
+        )) != ''
+        ORDER BY revenue DESC
+      `),
+      
+      db.execute(sql`
+        SELECT 
+          license_plate,
+          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as distance,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Startzeit der Fahrt' IS NOT NULL 
+                AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
+              THEN EXTRACT(EPOCH FROM (
+                CASE 
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
+                  ELSE NULL
+                END - 
+                CASE 
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Startzeit der Fahrt')::timestamp
+                  ELSE NULL
+                END
+              )) / 3600
+              ELSE 0
+            END
+          ), 0)::numeric as hours_worked,
+          COUNT(*)::int as trip_count
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+        GROUP BY license_plate
+        ORDER BY revenue DESC
+      `),
+      
+      db.execute(sql`
+        SELECT 
+          TO_CHAR(transaction_time, 'YYYY-MM-DD') as date,
+          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as distance,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Startzeit der Fahrt' IS NOT NULL 
+                AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
+              THEN EXTRACT(EPOCH FROM (
+                CASE 
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
+                  ELSE NULL
+                END - 
+                CASE 
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Startzeit der Fahrt')::timestamp
+                  ELSE NULL
+                END
+              )) / 3600
+              ELSE 0
+            END
+          ), 0)::numeric as hours_worked,
+          COUNT(*)::int as trip_count
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+        GROUP BY date
+        ORDER BY date
+      `),
+      
+      db.execute(sql`
+        SELECT 
+          TO_CHAR(transaction_time, 'YYYY-MM') as month,
+          COALESCE(SUM(amount), 0)::bigint as revenue,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+              ELSE 0
+            END
+          ), 0)::bigint as distance,
+          COALESCE(SUM(
+            CASE 
+              WHEN raw_data->>'Startzeit der Fahrt' IS NOT NULL 
+                AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
+              THEN EXTRACT(EPOCH FROM (
+                CASE 
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
+                  ELSE NULL
+                END - 
+                CASE 
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  THEN (raw_data->>'Startzeit der Fahrt')::timestamp
+                  ELSE NULL
+                END
+              )) / 3600
+              ELSE 0
+            END
+          ), 0)::numeric as hours_worked,
+          COUNT(*)::int as trip_count
+        FROM transactions
+        WHERE session_id = ${sessionId}
+        ${dateFilter}
+        GROUP BY month
+        ORDER BY month
+      `),
+    ]);
+
+    const totalsRow = totalsResult.rows[0] as any;
+    
+    return {
+      totals: {
+        revenue: Number(totalsRow?.revenue || 0),
+        distance: Number(totalsRow?.distance || 0),
+        hoursWorked: Number(totalsRow?.hours_worked || 0),
+        tripCount: Number(totalsRow?.trip_count || 0),
+      },
+      byDriver: (byDriverResult.rows as any[]).map(row => ({
+        driverName: row.driver_name?.trim() || 'Unbekannt',
+        revenue: Number(row.revenue || 0),
+        distance: Number(row.distance || 0),
+        hoursWorked: Number(row.hours_worked || 0),
+        tripCount: Number(row.trip_count || 0),
+      })),
+      byVehicle: (byVehicleResult.rows as any[]).map(row => ({
+        licensePlate: row.license_plate || 'Unbekannt',
+        revenue: Number(row.revenue || 0),
+        distance: Number(row.distance || 0),
+        hoursWorked: Number(row.hours_worked || 0),
+        tripCount: Number(row.trip_count || 0),
+      })),
+      byDay: (byDayResult.rows as any[]).map(row => ({
+        date: row.date,
+        revenue: Number(row.revenue || 0),
+        distance: Number(row.distance || 0),
+        hoursWorked: Number(row.hours_worked || 0),
+        tripCount: Number(row.trip_count || 0),
+      })),
+      byMonth: (byMonthResult.rows as any[]).map(row => ({
+        month: row.month,
+        revenue: Number(row.revenue || 0),
+        distance: Number(row.distance || 0),
+        hoursWorked: Number(row.hours_worked || 0),
+        tripCount: Number(row.trip_count || 0),
+      })),
+    };
+  }
+
+  private buildDateFilter(startDate?: Date, endDate?: Date): ReturnType<typeof sql> {
+    if (startDate && endDate) {
+      return sql`AND transaction_time >= ${startDate} AND transaction_time <= ${endDate}`;
+    } else if (startDate) {
+      return sql`AND transaction_time >= ${startDate}`;
+    } else if (endDate) {
+      return sql`AND transaction_time <= ${endDate}`;
+    }
+    return sql``;
+  }
+
+  async getShiftAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<ShiftAnalysis> {
+    let dateCondition = '';
+    const params: any[] = [sessionId];
+    
+    if (startDate) {
+      params.push(startDate);
+      dateCondition += ` AND transaction_time >= $${params.length}`;
+    }
+    if (endDate) {
+      params.push(endDate);
+      dateCondition += ` AND transaction_time <= $${params.length}`;
+    }
+
+    const tripsQuery = `
+      SELECT 
+        id,
+        license_plate,
+        transaction_time,
+        amount,
+        raw_data->>'Vorname des Fahrers' as first_name,
+        raw_data->>'Nachname des Fahrers' as last_name,
+        CASE 
+          WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+          THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric * 100
+          ELSE 0
+        END as distance,
+        raw_data->>'Startzeit der Fahrt' as start_time,
+        raw_data->>'Ankunftszeit der Fahrt' as end_time
+      FROM transactions
+      WHERE session_id = $1
+      ${dateCondition}
+      ORDER BY 
+        CONCAT(raw_data->>'Vorname des Fahrers', ' ', raw_data->>'Nachname des Fahrers'),
+        license_plate,
+        transaction_time
+    `;
+
+    const result = await pool.query(tripsQuery, params);
+    const tripRows = result.rows;
+
+    if (tripRows.length === 0) {
+      return {
+        shifts: [],
+        summary: {
+          totalShifts: 0,
+          dayShifts: 0,
+          nightShifts: 0,
+          avgShiftDuration: 0,
+          avgRevenuePerShift: 0,
+        },
+      };
+    }
+
+    const SHIFT_GAP_HOURS = 5;
+    const shifts: ShiftData[] = [];
+    
+    let currentShift: {
+      driverName: string;
+      licensePlate: string;
+      trips: Array<{
+        time: Date;
+        amount: number;
+        distance: number;
+        startTime?: Date;
+        endTime?: Date;
+      }>;
+    } | null = null;
+
+    for (const trip of tripRows) {
+      const driverName = `${trip.first_name || ''} ${trip.last_name || ''}`.trim() || 'Unbekannt';
+      const licensePlate = trip.license_plate || 'Unbekannt';
+      const tripTime = new Date(trip.transaction_time);
+      const amount = Number(trip.amount) || 0;
+      const distance = Number(trip.distance) || 0;
+      
+      let startTime: Date | undefined;
+      let endTime: Date | undefined;
+      
+      if (trip.start_time) {
+        try {
+          startTime = new Date(trip.start_time.replace(/ \+\d{4} [A-Z]+$/, ''));
+          if (isNaN(startTime.getTime())) startTime = undefined;
+        } catch { startTime = undefined; }
+      }
+      if (trip.end_time) {
+        try {
+          endTime = new Date(trip.end_time.replace(/ \+\d{4} [A-Z]+$/, ''));
+          if (isNaN(endTime.getTime())) endTime = undefined;
+        } catch { endTime = undefined; }
+      }
+
+      const tripData = { time: tripTime, amount, distance, startTime, endTime };
+
+      if (!currentShift || 
+          currentShift.driverName !== driverName || 
+          currentShift.licensePlate !== licensePlate) {
+        if (currentShift && currentShift.trips.length > 0) {
+          shifts.push(this.buildShift(currentShift));
+        }
+        currentShift = { driverName, licensePlate, trips: [tripData] };
+      } else {
+        const lastTrip = currentShift.trips[currentShift.trips.length - 1];
+        const gapHours = (tripTime.getTime() - lastTrip.time.getTime()) / (1000 * 60 * 60);
+        
+        if (gapHours > SHIFT_GAP_HOURS) {
+          shifts.push(this.buildShift(currentShift));
+          currentShift = { driverName, licensePlate, trips: [tripData] };
+        } else {
+          currentShift.trips.push(tripData);
+        }
+      }
+    }
+
+    if (currentShift && currentShift.trips.length > 0) {
+      shifts.push(this.buildShift(currentShift));
+    }
+
+    const dayShifts = shifts.filter(s => s.shiftType === 'day').length;
+    const nightShifts = shifts.filter(s => s.shiftType === 'night').length;
+    const totalHours = shifts.reduce((sum, s) => sum + s.hoursWorked, 0);
+    const totalRevenue = shifts.reduce((sum, s) => sum + s.revenue, 0);
+
+    return {
+      shifts,
+      summary: {
+        totalShifts: shifts.length,
+        dayShifts,
+        nightShifts,
+        avgShiftDuration: shifts.length > 0 ? totalHours / shifts.length : 0,
+        avgRevenuePerShift: shifts.length > 0 ? totalRevenue / shifts.length : 0,
+      },
+    };
+  }
+
+  private buildShift(shiftData: {
+    driverName: string;
+    licensePlate: string;
+    trips: Array<{
+      time: Date;
+      amount: number;
+      distance: number;
+      startTime?: Date;
+      endTime?: Date;
+    }>;
+  }): ShiftData {
+    const trips = shiftData.trips;
+    const shiftStart = trips[0].time;
+    const shiftEnd = trips[trips.length - 1].time;
+    
+    const revenue = trips.reduce((sum, t) => sum + t.amount, 0);
+    const distance = trips.reduce((sum, t) => sum + t.distance, 0);
+    
+    let hoursWorked = 0;
+    for (const trip of trips) {
+      if (trip.startTime && trip.endTime) {
+        hoursWorked += (trip.endTime.getTime() - trip.startTime.getTime()) / (1000 * 60 * 60);
+      }
+    }
+    if (hoursWorked === 0) {
+      hoursWorked = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+    }
+
+    let dayMinutes = 0;
+    let nightMinutes = 0;
+    
+    for (const trip of trips) {
+      const tripHour = trip.time.getHours();
+      const tripMinutes = 1;
+      if (tripHour >= 6 && tripHour < 18) {
+        dayMinutes += tripMinutes;
+      } else {
+        nightMinutes += tripMinutes;
+      }
+    }
+
+    const shiftType: 'day' | 'night' = dayMinutes >= nightMinutes ? 'day' : 'night';
+
+    return {
+      driverName: shiftData.driverName,
+      licensePlate: shiftData.licensePlate,
+      shiftStart,
+      shiftEnd,
+      shiftType,
+      revenue,
+      distance,
+      hoursWorked,
+      tripCount: trips.length,
+    };
   }
 }
 

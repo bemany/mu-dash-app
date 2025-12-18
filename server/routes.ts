@@ -636,5 +636,110 @@ export async function registerRoutes(
     }
   });
 
+  // Performance Dashboard API Routes
+  const parseDateParam = (dateStr: string | undefined): Date | undefined => {
+    if (!dateStr) return undefined;
+    try {
+      const parsed = parseISO(dateStr);
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const validateSession = async (req: any, res: any): Promise<string | null> => {
+    const sessionId = req.session.uberRetterSessionId;
+    if (!sessionId) {
+      res.status(401).json({ error: "Keine aktive Sitzung" });
+      return null;
+    }
+    
+    const session = await storage.getSessionById(sessionId);
+    if (!session) {
+      res.status(404).json({ error: "Sitzung nicht gefunden" });
+      return null;
+    }
+    
+    return sessionId;
+  };
+
+  app.get("/api/performance/kpis", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
+      
+      res.json({
+        totals: metrics.totals,
+        byDay: metrics.byDay,
+        byMonth: metrics.byMonth,
+      });
+    } catch (error) {
+      console.error("Error fetching KPIs:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der KPIs" });
+    }
+  });
+
+  app.get("/api/performance/drivers", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
+      
+      res.json({
+        drivers: metrics.byDriver,
+        totals: metrics.totals,
+      });
+    } catch (error) {
+      console.error("Error fetching driver metrics:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der Fahrer-Statistiken" });
+    }
+  });
+
+  app.get("/api/performance/vehicles", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
+      
+      res.json({
+        vehicles: metrics.byVehicle,
+        totals: metrics.totals,
+      });
+    } catch (error) {
+      console.error("Error fetching vehicle metrics:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der Fahrzeug-Statistiken" });
+    }
+  });
+
+  app.get("/api/performance/shifts", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const analysis = await storage.getShiftAnalysis(sessionId, startDate, endDate);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error fetching shift analysis:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der Schicht-Analyse" });
+    }
+  });
+
   return httpServer;
 }
