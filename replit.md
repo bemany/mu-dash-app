@@ -68,31 +68,38 @@ Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after up
 ### Routing
 - **/** - Performance Dashboard (home page with demo data if no session loaded)
 - **/performance** - Same as above
-- **/process** - Check Process workflow (data upload and bonus calculation)
-- **/v/:vorgangsId** - Load process by Vorgangs-ID
+- **/process** - Simplified upload page for CSV files
+- **/process/details** - Detailed 3-step workflow (calculation and comparison)
+- **/v/:vorgangsId** - Load session by Vorgangs-ID
 - **/help** - Help page
 - **/updates** - Updates page
 - **/admin** - Admin panel
 
+### Customer Journey (New)
+1. User visits platform → sees Performance Dashboard with demo data
+2. User clicks "Datenimport starten" button → redirected to /process
+3. User uploads CSV files (drag & drop or file picker)
+4. Files are processed on the SERVER (parallel processing for speed)
+5. After upload → automatic redirect to Performance Dashboard with Vorgangs-ID displayed
+6. User can navigate via KPI tiles to see detailed bonus analysis
+
 ### Demo Mode
 - Performance Dashboard shows demo data automatically when no Vorgangs-ID is loaded
-- Demo mode displays a yellow banner informing users
+- Demo mode displays a yellow banner with "Datenimport starten" button
+- When session has data, shows green banner with Vorgangs-ID and copy button
 - Mock data includes realistic German driver data with KPIs, shifts, and bonus payouts
 - Mock data file: `client/src/lib/mock-data.ts`
 
-### Workflow Steps
-The application follows a 3-step workflow (accessible via /process):
-1. **Daten Import** - Upload both trip and payment CSV files (multiple files supported for each)
-2. **Kalkulation** - View calculated bonuses based on trip counts per month
-3. **Abgleich** - Compare expected bonuses against actual payments received
-
-### Data Flow
-1. Users upload CSV files on step 1 (both trips and payments can be uploaded together)
-2. Data is parsed client-side using PapaParse with multiple file support
-3. Payment CSVs are processed to extract license plates from "Beschreibung" field
-4. Parsed data is sent to backend and stored in PostgreSQL
-5. Processing logic calculates bonuses: >249 trips/month = €250, >699 trips/month = €400
-6. Results are displayed in a data table comparing expected vs actual payments
+### Data Flow (Server-Side Processing)
+1. User drops/selects CSV files on the upload page
+2. Files are sent directly to POST `/api/upload` as multipart/form-data
+3. Server parses CSVs using PapaParse (no client-side parsing)
+4. Trip and payment files are detected by header columns
+5. Files are processed IN PARALLEL for faster processing
+6. Progress is broadcast via WebSocket to the client
+7. Deduplication prevents duplicate entries
+8. Vorgangs-ID is generated automatically
+9. User is redirected to dashboard with their Vorgangs-ID
 
 ### CSV Formats
 - **Trips CSV**: Must have "Kennzeichen", "Zeitpunkt der Fahrtbestellung", "Fahrtstatus" columns

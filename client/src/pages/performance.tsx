@@ -46,7 +46,11 @@ import {
   Calendar as CalendarIconSolid,
   AlertCircle,
   Gift,
+  Upload,
+  Copy,
+  Check,
 } from "lucide-react";
+import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
 
 interface KpiTotals {
@@ -169,6 +173,39 @@ interface KpiCardProps {
   onClick?: () => void;
   testId: string;
   className?: string;
+}
+
+function VorgangsIdDisplay({ vorgangsId }: { vorgangsId: string }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = React.useState(false);
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(vorgangsId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Alert className="bg-emerald-50 border-emerald-200" data-testid="banner-vorgangs-id">
+      <Check className="h-4 w-4 text-emerald-600" />
+      <AlertDescription className="text-emerald-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <span>
+          {t('performance.yourVorgangsId')}:{" "}
+          <span className="font-mono font-bold text-lg">{vorgangsId}</span>
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={copyToClipboard}
+          className="gap-2 border-emerald-300 hover:bg-emerald-100"
+          data-testid="button-copy-vorgangs-id"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? t('performance.copied') : t('performance.copyId')}
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function KpiCard({ title, value, subtitle, icon, onClick, testId, className }: KpiCardProps) {
@@ -531,13 +568,24 @@ export default function PerformancePage() {
           />
         </div>
 
-        {isDemo && (
+        {isDemo ? (
           <Alert className="bg-amber-50 border-amber-200" data-testid="banner-demo-mode">
             <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              {t('performance.demoMode')}
+            <AlertDescription className="text-amber-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <span>{t('performance.demoMode')}</span>
+              <Link href="/process">
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  data-testid="button-start-import"
+                >
+                  <Upload className="h-4 w-4" />
+                  {t('performance.startImport')}
+                </Button>
+              </Link>
             </AlertDescription>
           </Alert>
+        ) : sessionData?.vorgangsId && (
+          <VorgangsIdDisplay vorgangsId={sessionData.vorgangsId} />
         )}
 
         {isLoading ? (

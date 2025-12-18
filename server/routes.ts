@@ -4,6 +4,13 @@ import { storage } from "./storage";
 import { progressBroker } from "./progress-broker";
 import { z } from "zod";
 import { parseISO, parse } from "date-fns";
+import multer from "multer";
+import Papa from "papaparse";
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 const LICENSE_PLATE_REGEX = /[A-Z]{1,3}-[A-Z]{1,3}\s?\d{1,4}[A-Z]?/i;
 
@@ -399,6 +406,240 @@ export async function registerRoutes(
       console.error("Error uploading transactions:", error);
       const errorMessage = error?.message || "Unbekannter Fehler beim Speichern der Zahlungen";
       res.status(500).json({ error: `Fehler beim Speichern der Zahlungen: ${errorMessage}` });
+    }
+  });
+
+  app.post("/api/upload", upload.array("files", 20), async (req, res) => {
+    try {
+      const sessionId = req.session.uberRetterSessionId!;
+      const expressSessionId = req.sessionID!;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "Keine Dateien hochgeladen" });
+      }
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "parsing",
+        total: files.length,
+        processed: 0,
+        percent: 0,
+        message: "Dateien werden analysiert...",
+      });
+
+      const tripFiles: Express.Multer.File[] = [];
+      const paymentFiles: Express.Multer.File[] = [];
+
+      for (const file of files) {
+        const content = file.buffer.toString("utf-8");
+        const firstLine = content.split("\n")[0] || "";
+        
+        if (firstLine.includes("Kennzeichen") && firstLine.includes("Zeitpunkt der Fahrtbestellung")) {
+          tripFiles.push(file);
+        } else if (firstLine.includes("Beschreibung") || firstLine.includes("An dein Unternehmen gezahlt")) {
+          paymentFiles.push(file);
+        }
+      }
+
+      const existingTrips = await storage.getTripsBySession(sessionId);
+      const existingTripIds = new Set(
+        existingTrips.map(t => t.tripId || `${t.licensePlate}-${t.orderTime.getTime()}`)
+      );
+      const existingTransactions = await storage.getTransactionsBySession(sessionId);
+      const existingTxKeys = new Set(
+        existingTransactions.map(tx => `${tx.licensePlate}-${tx.transactionTime.getTime()}-${tx.amount}`)
+      );
+
+      const parseFile = (file: Express.Multer.File): Promise<any[]> => {
+        return new Promise((resolve, reject) => {
+          const content = file.buffer.toString("utf-8");
+          Papa.parse(content, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => resolve(results.data),
+            error: (error: any) => reject(error),
+          });
+        });
+      };
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "parsing",
+        total: files.length,
+        processed: 0,
+        percent: 10,
+        message: "CSV-Dateien werden parallel verarbeitet...",
+      });
+
+      const [tripDataArrays, paymentDataArrays] = await Promise.all([
+        Promise.all(tripFiles.map(parseFile)),
+        Promise.all(paymentFiles.map(parseFile)),
+      ]);
+
+      const allTripData = tripDataArrays.flat();
+      const allPaymentData = paymentDataArrays.flat();
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "processing",
+        total: allTripData.length + allPaymentData.length,
+        processed: 0,
+        percent: 20,
+        message: "Daten werden verarbeitet...",
+      });
+
+      const validTrips = allTripData.filter((trip: any) => {
+        if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) return false;
+        const status = (trip["Fahrtstatus"] || "").toString().toLowerCase();
+        if (status !== "completed") return false;
+        const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
+        if (!orderTime || isNaN(orderTime.getTime())) return false;
+        const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
+        if (existingTripIds.has(id)) return false;
+        existingTripIds.add(id);
+        return true;
+      });
+
+      const dbTrips = validTrips.map((trip: any) => ({
+        sessionId,
+        tripId: trip["Fahrt-ID"] || null,
+        licensePlate: trip["Kennzeichen"],
+        orderTime: parseISO(trip["Zeitpunkt der Fahrtbestellung"]),
+        tripStatus: trip["Fahrtstatus"],
+        rawData: trip,
+      }));
+
+      const validTransactions = allPaymentData.filter((tx: any) => {
+        let amount: number;
+        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
+            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
+            : tx["An dein Unternehmen gezahlt"];
+        } else {
+          amount = typeof tx["Betrag"] === 'string'
+            ? parseFloat(tx["Betrag"].replace(',', '.'))
+            : tx["Betrag"];
+        }
+
+        let timestamp: Date;
+        if (tx["vs-Berichterstattung"]) {
+          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+        } else if (tx["Zeitpunkt"]) {
+          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
+        } else {
+          return false;
+        }
+
+        const licensePlate = extractLicensePlate(tx["Beschreibung"] || "");
+        if (!licensePlate || isNaN(timestamp.getTime())) return false;
+
+        const amountCents = Math.round(amount * 100);
+        const key = `${licensePlate}-${timestamp.getTime()}-${amountCents}`;
+        if (existingTxKeys.has(key)) return false;
+        existingTxKeys.add(key);
+        return true;
+      });
+
+      const dbTransactions = validTransactions.map((tx: any) => {
+        let amount: number;
+        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
+            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
+            : tx["An dein Unternehmen gezahlt"];
+        } else {
+          amount = typeof tx["Betrag"] === 'string'
+            ? parseFloat(tx["Betrag"].replace(',', '.'))
+            : tx["Betrag"];
+        }
+
+        let timestamp: Date;
+        if (tx["vs-Berichterstattung"]) {
+          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+        } else {
+          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
+        }
+
+        return {
+          sessionId,
+          licensePlate: extractLicensePlate(tx["Beschreibung"] || "")!,
+          transactionTime: timestamp,
+          amount: Math.round(amount * 100),
+          description: tx["Beschreibung"] || null,
+          rawData: tx,
+        };
+      });
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "saving",
+        total: dbTrips.length + dbTransactions.length,
+        processed: 0,
+        percent: 40,
+        message: "Daten werden gespeichert...",
+      });
+
+      const saveResults = await Promise.all([
+        dbTrips.length > 0 ? storage.createTrips(dbTrips, (processed, total) => {
+          progressBroker.broadcast(expressSessionId, {
+            phase: "saving_trips",
+            total,
+            processed,
+            percent: 40 + Math.round((processed / total) * 30),
+            message: `Fahrten speichern: ${processed}/${total}`,
+          });
+        }) : Promise.resolve([]),
+        dbTransactions.length > 0 ? storage.createTransactions(dbTransactions, (processed, total) => {
+          progressBroker.broadcast(expressSessionId, {
+            phase: "saving_transactions",
+            total,
+            processed,
+            percent: 70 + Math.round((processed / total) * 25),
+            message: `Zahlungen speichern: ${processed}/${total}`,
+          });
+        }) : Promise.resolve([]),
+      ]);
+
+      const firstTxWithCompany = allPaymentData.find((tx: any) =>
+        tx["Name des Unternehmens"] || tx["Firmenname"]
+      );
+      if (firstTxWithCompany) {
+        const companyName = firstTxWithCompany["Name des Unternehmens"] || firstTxWithCompany["Firmenname"];
+        if (companyName) {
+          await storage.updateCompanyName(sessionId, companyName);
+        }
+      }
+
+      for (const file of files) {
+        await storage.createUpload({
+          sessionId,
+          filename: file.originalname,
+          fileType: tripFiles.includes(file) ? "trips" : "payments",
+          fileSize: file.size,
+          fileContent: file.buffer.toString("base64"),
+        });
+      }
+
+      let vorgangsId = null;
+      if (dbTrips.length > 0 || dbTransactions.length > 0) {
+        vorgangsId = await storage.generateVorgangsId(sessionId);
+        await storage.updateSessionActivity(sessionId, 2);
+      }
+
+      progressBroker.broadcast(expressSessionId, {
+        phase: "complete",
+        total: dbTrips.length + dbTransactions.length,
+        processed: dbTrips.length + dbTransactions.length,
+        percent: 100,
+        message: "Upload abgeschlossen!",
+      });
+
+      res.json({
+        success: true,
+        vorgangsId,
+        tripsAdded: dbTrips.length,
+        transactionsAdded: dbTransactions.length,
+        filesProcessed: files.length,
+      });
+    } catch (error: any) {
+      console.error("Error in file upload:", error);
+      res.status(500).json({ error: `Fehler beim Upload: ${error?.message || "Unbekannter Fehler"}` });
     }
   });
 
