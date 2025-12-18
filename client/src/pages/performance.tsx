@@ -1168,9 +1168,10 @@ interface PromoTabProps {
   data: { summary: PromoReportSummary; rows: PromoReportRow[] } | undefined;
   isLoading: boolean;
   isDemo: boolean;
+  selectedVehicles: string[];
 }
 
-function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
+function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "month", direction: "desc" });
   
   const handleSort = (key: string) => {
@@ -1182,9 +1183,29 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
   
   const reportData = isDemo ? mockPromoReport : data;
   
+  const filteredRows = useMemo(() => {
+    if (!reportData?.rows) return [];
+    if (selectedVehicles.length === 0) return reportData.rows;
+    return reportData.rows.filter(row => selectedVehicles.includes(row.licensePlate));
+  }, [reportData?.rows, selectedVehicles]);
+  
+  const filteredSummary = useMemo(() => {
+    if (!reportData?.summary) return { totalTheoreticalBonus: 0, totalActualPaid: 0, totalDifference: 0 };
+    const uniqueVehiclesInData = new Set(reportData.rows.map(r => r.licensePlate)).size;
+    const allVehiclesSelected = selectedVehicles.length === 0 || selectedVehicles.length === uniqueVehiclesInData;
+    if (allVehiclesSelected) {
+      return reportData.summary;
+    }
+    return {
+      totalTheoreticalBonus: filteredRows.reduce((sum, r) => sum + r.theoreticalBonus, 0),
+      totalActualPaid: filteredRows.reduce((sum, r) => sum + r.actualPaid, 0),
+      totalDifference: filteredRows.reduce((sum, r) => sum + r.difference, 0),
+    };
+  }, [reportData, filteredRows, selectedVehicles]);
+  
   const exportToExcel = () => {
-    if (!reportData) return;
-    const dataToExport = sortData(reportData.rows, sortConfig).map(row => ({
+    if (!filteredRows.length) return;
+    const dataToExport = sortData(filteredRows, sortConfig).map(row => ({
       'Kennzeichen': row.licensePlate,
       'Monat': row.month,
       'Fahrten': row.tripCount,
@@ -1214,29 +1235,27 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
     );
   }
   
-  const { summary, rows } = reportData;
-  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard
           testId="kpi-promo-theoretical"
           title="Theoretische Prämien"
-          value={formatCurrency(summary.totalTheoreticalBonus)}
+          value={formatCurrency(filteredSummary.totalTheoreticalBonus)}
           icon={<Gift className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-promo-paid"
           title="Ausgezahlte Prämien"
-          value={formatCurrency(summary.totalActualPaid)}
+          value={formatCurrency(filteredSummary.totalActualPaid)}
           icon={<Gift className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-promo-difference"
           title="Differenz"
-          value={formatCurrency(summary.totalDifference)}
+          value={formatCurrency(filteredSummary.totalDifference)}
           icon={<Gift className="w-5 h-5" />}
-          className={summary.totalDifference < 0 ? "border-red-200 bg-red-50" : ""}
+          className={filteredSummary.totalDifference < 0 ? "border-red-200 bg-red-50" : ""}
         />
       </div>
       
@@ -1254,7 +1273,7 @@ function PromoTab({ data, isLoading, isDemo }: PromoTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortData(rows, sortConfig).map((row, idx) => (
+              {sortData(filteredRows, sortConfig).map((row, idx) => (
                 <TableRow key={`${row.licensePlate}-${row.month}-${idx}`}>
                   <TableCell className="font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.month}</TableCell>
@@ -1291,6 +1310,7 @@ export default function PerformancePage() {
   const [distanceMetric, setDistanceMetric] = useState<string>("km");
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
+  const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -1302,6 +1322,16 @@ export default function PerformancePage() {
   });
 
   const isDemo = !sessionData?.vorgangsId || sessionData?.tripCount === 0;
+
+  useEffect(() => {
+    const currentVorgangsId = sessionData?.vorgangsId || null;
+    if (lastVorgangsId !== null && currentVorgangsId !== lastVorgangsId) {
+      setSelectedDrivers([]);
+      setSelectedVehicles([]);
+      setHasInitializedDateRange(false);
+    }
+    setLastVorgangsId(currentVorgangsId);
+  }, [sessionData?.vorgangsId]);
 
   const { data: dateRangeData } = useQuery<DateRangeData>({
     queryKey: ["performance-daterange"],
@@ -1397,13 +1427,13 @@ export default function PerformancePage() {
     if (allDrivers.length > 0 && selectedDrivers.length === 0) {
       setSelectedDrivers(allDrivers.map(d => d.value));
     }
-  }, [allDrivers]);
+  }, [allDrivers, selectedDrivers.length]);
 
   useEffect(() => {
     if (allVehicles.length > 0 && selectedVehicles.length === 0) {
       setSelectedVehicles(allVehicles.map(v => v.value));
     }
-  }, [allVehicles]);
+  }, [allVehicles, selectedVehicles.length]);
 
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
@@ -1485,7 +1515,7 @@ export default function PerformancePage() {
                 testId="filter-drivers"
               />
             )}
-            {activeTab === "vehicles" && (
+            {(activeTab === "vehicles" || activeTab === "promo") && (
               <MultiSelect
                 items={allVehicles}
                 selectedValues={selectedVehicles}
@@ -1554,7 +1584,8 @@ export default function PerformancePage() {
           <PromoTab 
             data={promoData} 
             isLoading={promoLoading} 
-            isDemo={isDemo} 
+            isDemo={isDemo}
+            selectedVehicles={selectedVehicles}
           />
         </TabsContent>
       </Tabs>
