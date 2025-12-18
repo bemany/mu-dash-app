@@ -294,14 +294,49 @@ export default function UploadPage() {
               )}
 
               {(isUploading || progress.isActive) && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <RefreshCw className="w-5 h-5 text-emerald-600 animate-spin" />
-                    <span className="text-sm font-medium text-slate-700">
-                      {progress.message || t('upload.processing')}
-                    </span>
+                <div 
+                  className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-6 shadow-sm"
+                  data-testid="upload-progress-container"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <RefreshCw className="w-5 h-5 text-emerald-600 animate-spin" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-800">
+                        {progress.phase === 'complete' ? t('upload.uploadComplete') : t('upload.processing')}
+                      </h4>
+                      <p className="text-sm text-slate-600">
+                        {progress.message || t('upload.processing')}
+                      </p>
+                    </div>
                   </div>
-                  <InlineProgress progress={progress} />
+                  
+                  <div className="space-y-2">
+                    <div className="relative h-4 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${progress.percent || 0}%` }}
+                        data-testid="progress-bar-fill"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">
+                        {progress.processed > 0 ? (
+                          <>
+                            {progress.processed.toLocaleString('de-DE')} / {progress.total.toLocaleString('de-DE')} {t('upload.records')}
+                          </>
+                        ) : (
+                          t('upload.processing')
+                        )}
+                      </span>
+                      <span className="font-bold text-emerald-600" data-testid="progress-percent">
+                        {progress.percent || 0}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
