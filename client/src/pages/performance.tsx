@@ -9,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   format, 
   startOfMonth, 
@@ -41,7 +40,6 @@ import {
   Upload,
   Copy,
   Check,
-  ChevronDown,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -66,7 +64,7 @@ interface KpiCardProps {
   icon: React.ReactNode;
   testId: string;
   className?: string;
-  dropdown?: {
+  tags?: {
     value: string;
     options: { value: string; label: string }[];
     onChange: (value: string) => void;
@@ -74,7 +72,7 @@ interface KpiCardProps {
   onClick?: () => void;
 }
 
-function KpiCard({ title, value, icon, testId, className, dropdown, onClick }: KpiCardProps) {
+function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCardProps) {
   return (
     <Card
       data-testid={testId}
@@ -87,21 +85,28 @@ function KpiCard({ title, value, icon, testId, className, dropdown, onClick }: K
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            {dropdown ? (
-              <Select value={dropdown.value} onValueChange={dropdown.onChange}>
-                <SelectTrigger className="h-6 w-auto gap-1 border-0 bg-transparent p-0 text-sm font-medium text-slate-500 shadow-none hover:bg-slate-50" data-testid={`${testId}-dropdown`}>
-                  <SelectValue />
-                  <ChevronDown className="h-3 w-3" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dropdown.options.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-2 flex-1">
+            {tags ? (
+              <div className="flex flex-wrap gap-1" data-testid={`${testId}-tags`}>
+                {tags.options.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      tags.onChange(opt.value);
+                    }}
+                    className={cn(
+                      "px-2 py-0.5 text-xs font-medium rounded-full transition-all",
+                      tags.value === opt.value
+                        ? "bg-emerald-500 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    )}
+                    data-testid={`${testId}-tag-${opt.value}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             ) : (
               <p className="text-sm font-medium text-slate-500">{title}</p>
             )}
@@ -367,7 +372,7 @@ function DriversTab({ data, isLoading, isDemo }: DriversTabProps) {
           title=""
           value={formatCurrency(timeValue)}
           icon={<Clock className="w-5 h-5" />}
-          dropdown={{
+          tags={{
             value: timeMetric,
             options: [
               { value: "hour", label: "€/Stunde" },
@@ -382,7 +387,7 @@ function DriversTab({ data, isLoading, isDemo }: DriversTabProps) {
           title=""
           value={`${formatNumber(distanceValue)} €`}
           icon={<Route className="w-5 h-5" />}
-          dropdown={{
+          tags={{
             value: distanceMetric,
             options: [
               { value: "km", label: "€/km" },
@@ -507,7 +512,7 @@ function VehiclesTab({ data, isLoading, isDemo }: VehiclesTabProps) {
           title=""
           value={formatCurrency(timeValue)}
           icon={<Clock className="w-5 h-5" />}
-          dropdown={{
+          tags={{
             value: timeMetric,
             options: [
               { value: "hour", label: "€/Stunde" },
@@ -522,7 +527,7 @@ function VehiclesTab({ data, isLoading, isDemo }: VehiclesTabProps) {
           title=""
           value={`${formatNumber(distanceValue)} €`}
           icon={<Route className="w-5 h-5" />}
-          dropdown={{
+          tags={{
             value: distanceMetric,
             options: [
               { value: "km", label: "€/km" },
