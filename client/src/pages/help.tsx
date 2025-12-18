@@ -25,7 +25,7 @@ export default function HelpPage() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = "Hilfe - U-Retter";
+    document.title = "Hilfe - MU-Dash";
   }, []);
   
   return (

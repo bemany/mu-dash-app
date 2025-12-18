@@ -53,7 +53,7 @@ export default function UploadPage() {
   });
 
   useEffect(() => {
-    document.title = `${t('upload.title')} - U-Retter`;
+    document.title = `${t('upload.title')} - MU-Dash`;
   }, [t]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

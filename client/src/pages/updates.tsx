@@ -88,7 +88,7 @@ const updates: Update[] = [
     date: "13.12.2024",
     version: "1.0.0",
     items: [
-      { type: 'feature', text: "Erste Version von U-Retter" },
+      { type: 'feature', text: "Erste Version von MU-Dash" },
       { type: 'feature', text: "CSV-Import für Fahrten und Zahlungen" },
       { type: 'feature', text: "Automatische Bonusberechnung basierend auf Fahrtenzahl" },
       { type: 'feature', text: "Abgleich zwischen erwarteten und tatsächlichen Zahlungen" },
@@ -122,7 +122,7 @@ export default function UpdatesPage() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = `${t('updates.title')} - U-Retter`;
+    document.title = `${t('updates.title')} - MU-Dash`;
   }, [t]);
 
   const getTypeLabel = (type: 'feature' | 'fix' | 'improvement') => {

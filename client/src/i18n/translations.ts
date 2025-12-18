@@ -10,7 +10,7 @@ export const languages: { code: Language; name: string; nativeName: string; flag
 export const translations = {
   de: {
     layout: {
-      appName: 'U-Retter',
+      appName: 'MU-Dash',
       navProcess: 'Prüfvorgang',
       navPerformance: 'Performance',
       navHelp: 'Hilfe',
@@ -20,13 +20,13 @@ export const translations = {
       processId: 'Vorgang:',
     },
     dashboard: {
-      title: 'U-Retter Dashboard',
+      title: 'Mietwagenunternehmer Dashboard',
       subtitle: 'Verwalten Sie Ihre Werbeprämien und Bonusabrechnungen effizient.',
       steps: ['Daten Import', 'Kalkulation', 'Abgleich'],
       loadProcess: 'Vorgang laden',
       reset: 'Zurücksetzen',
       resetConfirm: 'Möchten Sie wirklich alle Daten zurücksetzen?',
-      welcome: 'Willkommen beim U-Retter',
+      welcome: 'Willkommen beim MU-Dash',
       welcomeSubtitle: 'Laden Sie alle CSV-Dateien auf einmal hoch - Fahrten und Zahlungen werden automatisch erkannt.',
       continue: 'Weiter',
       processing: 'Verarbeite...',
@@ -300,7 +300,7 @@ export const translations = {
   },
   en: {
     layout: {
-      appName: 'U-Retter',
+      appName: 'MU-Dash',
       navProcess: 'Check Process',
       navPerformance: 'Performance',
       navHelp: 'Help',
@@ -310,13 +310,13 @@ export const translations = {
       processId: 'Process:',
     },
     dashboard: {
-      title: 'U-Retter Dashboard',
+      title: 'Rental Car Entrepreneur Dashboard',
       subtitle: 'Manage your promotional bonuses and bonus settlements efficiently.',
       steps: ['Data Import', 'Calculation', 'Comparison'],
       loadProcess: 'Load Process',
       reset: 'Reset',
       resetConfirm: 'Do you really want to reset all data?',
-      welcome: 'Welcome to U-Retter',
+      welcome: 'Welcome to MU-Dash',
       welcomeSubtitle: 'Upload all CSV files at once - trips and payments are automatically recognized.',
       continue: 'Continue',
       processing: 'Processing...',
@@ -590,7 +590,7 @@ export const translations = {
   },
   tr: {
     layout: {
-      appName: 'U-Retter',
+      appName: 'MU-Dash',
       navProcess: 'Kontrol İşlemi',
       navPerformance: 'Performans',
       navHelp: 'Yardım',
@@ -600,13 +600,13 @@ export const translations = {
       processId: 'İşlem:',
     },
     dashboard: {
-      title: 'U-Retter Kontrol Paneli',
+      title: 'Kiralık Araç Girişimci Paneli',
       subtitle: 'Promosyon primlerinizi ve bonus ödemelerinizi verimli bir şekilde yönetin.',
       steps: ['Veri İçe Aktarma', 'Hesaplama', 'Karşılaştırma'],
       loadProcess: 'İşlem Yükle',
       reset: 'Sıfırla',
       resetConfirm: 'Tüm verileri gerçekten sıfırlamak istiyor musunuz?',
-      welcome: 'U-Retter\'a Hoş Geldiniz',
+      welcome: 'MU-Dash\'a Hoş Geldiniz',
       welcomeSubtitle: 'Tüm CSV dosyalarını tek seferde yükleyin - yolculuklar ve ödemeler otomatik olarak tanınır.',
       continue: 'Devam',
       processing: 'İşleniyor...',
@@ -880,7 +880,7 @@ export const translations = {
   },
   ar: {
     layout: {
-      appName: 'U-Retter',
+      appName: 'MU-Dash',
       navProcess: 'عملية الفحص',
       navPerformance: 'الأداء',
       navHelp: 'المساعدة',
@@ -890,13 +890,13 @@ export const translations = {
       processId: 'العملية:',
     },
     dashboard: {
-      title: 'لوحة تحكم U-Retter',
+      title: 'لوحة تحكم رواد أعمال تأجير السيارات',
       subtitle: 'إدارة مكافآتك الترويجية وتسويات المكافآت بكفاءة.',
       steps: ['استيراد البيانات', 'الحساب', 'المقارنة'],
       loadProcess: 'تحميل العملية',
       reset: 'إعادة تعيين',
       resetConfirm: 'هل تريد حقاً إعادة تعيين جميع البيانات؟',
-      welcome: 'مرحباً بك في U-Retter',
+      welcome: 'مرحباً بك في MU-Dash',
       welcomeSubtitle: 'قم بتحميل جميع ملفات CSV مرة واحدة - يتم التعرف على الرحلات والمدفوعات تلقائياً.',
       continue: 'متابعة',
       processing: 'جارٍ المعالجة...',

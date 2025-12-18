@@ -304,7 +304,7 @@ export default function Dashboard() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Dashboard - U-Retter";
+    document.title = "Dashboard - MU-Dash";
   }, []);
 
   // Auto-load session from URL parameter

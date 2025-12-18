@@ -1375,7 +1375,7 @@ export default function PerformancePage() {
   }, [isDemo, dateRangeData, hasInitializedDateRange]);
 
   useEffect(() => {
-    document.title = `${t('performance.title')} - U-Retter`;
+    document.title = `${t('performance.title')} - MU-Dash`;
   }, [t]);
 
   const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "";

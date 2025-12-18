@@ -20,7 +20,7 @@ export default function AdminPage() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Admin - U-Retter";
+    document.title = "Admin - MU-Dash";
   }, []);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [checkedSessions, setCheckedSessions] = useState<Set<string>>(new Set());
