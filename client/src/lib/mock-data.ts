@@ -198,6 +198,17 @@ export const mockPerformanceShifts = {
   },
 };
 
+export const mockShiftReport = {
+  shifts: mockPerformanceShifts.shifts,
+  byDriver: [
+    { driverName: "Fahrer 1", totalShifts: 8, dayShifts: 6, nightShifts: 2, totalRevenue: 480000, totalDistance: 115000000 },
+    { driverName: "Fahrer 2", totalShifts: 7, dayShifts: 5, nightShifts: 2, totalRevenue: 420000, totalDistance: 98000000 },
+    { driverName: "Fahrer 3", totalShifts: 6, dayShifts: 2, nightShifts: 4, totalRevenue: 510000, totalDistance: 125000000 },
+    { driverName: "Fahrer 4", totalShifts: 5, dayShifts: 4, nightShifts: 1, totalRevenue: 350000, totalDistance: 82000000 },
+    { driverName: "Fahrer 5", totalShifts: 4, dayShifts: 1, nightShifts: 3, totalRevenue: 380000, totalDistance: 92000000 },
+  ],
+};
+
 export interface BonusPayout {
   licensePlate: string;
   month: string;
