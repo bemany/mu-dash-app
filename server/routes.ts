@@ -409,7 +409,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/upload", upload.array("files", 20), async (req, res) => {
+  app.post("/api/upload", upload.array("files", 100), async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
       const expressSessionId = req.sessionID!;
