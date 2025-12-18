@@ -193,6 +193,15 @@ export default function AdminPage() {
   const allChecked = sessions && sessions.length > 0 && checkedSessions.size === sessions.length;
   const someChecked = checkedSessions.size > 0 && checkedSessions.size < (sessions?.length || 0);
 
+  const selectEmptySessions = () => {
+    if (!sessions) return;
+    const emptySessions = sessions.filter((s: any) => s.tripCount === 0 && s.transactionCount === 0);
+    if (emptySessions.length === 0) return;
+    setCheckedSessions(new Set(emptySessions.map((s: any) => s.sessionId)));
+  };
+
+  const emptySessionsCount = sessions?.filter((s: any) => s.tripCount === 0 && s.transactionCount === 0).length || 0;
+
   const groupedSessions = useMemo(() => {
     if (!sessions || sessions.length === 0) return {};
     
@@ -400,6 +409,17 @@ export default function AdminPage() {
                 <span className="text-sm text-slate-600">
                   {allChecked ? t('admin.deselectAll') : t('admin.selectAll')}
                 </span>
+                {emptySessionsCount > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectEmptySessions}
+                    data-testid="button-select-empty"
+                    className="ml-2"
+                  >
+                    {t('admin.selectEmpty')} ({emptySessionsCount})
+                  </Button>
+                )}
                 {checkedSessions.size > 0 && (
                   <span className="text-sm text-emerald-600 font-medium">
                     ({checkedSessions.size} {t('admin.selected')})
