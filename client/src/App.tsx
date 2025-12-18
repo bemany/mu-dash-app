@@ -13,9 +13,10 @@ import PerformancePage from "@/pages/performance";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/v/:vorgangsId" component={Dashboard} />
+      <Route path="/" component={PerformancePage} />
       <Route path="/performance" component={PerformancePage} />
+      <Route path="/process" component={Dashboard} />
+      <Route path="/v/:vorgangsId" component={Dashboard} />
       <Route path="/help" component={HelpPage} />
       <Route path="/updates" component={UpdatesPage} />
       <Route path="/admin" component={AdminPage} />

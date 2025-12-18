@@ -53,21 +53,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <nav className="flex-1 p-4 flex flex-col">
             <div className="space-y-1 flex-1">
               <NavItem 
+                icon={<TrendingUp className="w-5 h-5" />} 
+                label={t('layout.navPerformance')} 
+                active={location === '/' || location === '/performance'} 
+                onClick={() => setLocation('/')}
+                testId="nav-performance"
+              />
+              <NavItem 
                 icon={<ClipboardCheck className="w-5 h-5" />} 
                 label={t('layout.navProcess')} 
-                active={location === '/'} 
-                onClick={() => setLocation('/')}
+                active={location === '/process' || location.startsWith('/v/')} 
+                onClick={() => setLocation('/process')}
                 testId="nav-pruefvorgang"
               />
-              {hasSessionData && (
-                <NavItem 
-                  icon={<TrendingUp className="w-5 h-5" />} 
-                  label={t('layout.navPerformance')} 
-                  active={location === '/performance'} 
-                  onClick={() => setLocation('/performance')}
-                  testId="nav-performance"
-                />
-              )}
               <NavItem 
                 icon={<HelpCircle className="w-5 h-5" />} 
                 label={t('layout.navHelp')} 

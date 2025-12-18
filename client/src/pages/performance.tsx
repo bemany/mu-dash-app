@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   format, 
   subDays, 
@@ -25,6 +26,14 @@ import { de, enUS, tr, ar, type Locale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/context";
 import {
+  mockPerformanceKpis,
+  mockPerformanceDrivers,
+  mockPerformanceVehicles,
+  mockPerformanceShifts,
+  mockBonusPayouts,
+  mockBonusSummary,
+} from "@/lib/mock-data";
+import {
   CalendarIcon,
   Clock,
   Car,
@@ -35,6 +44,8 @@ import {
   TrendingUp,
   Route,
   Calendar as CalendarIconSolid,
+  AlertCircle,
+  Gift,
 } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
@@ -265,6 +276,13 @@ const dateLocaleMap: Record<string, Locale> = {
   ar: ar,
 };
 
+interface SessionData {
+  sessionId: string;
+  vorgangsId: string | null;
+  currentStep: number;
+  tripCount: number;
+}
+
 export default function PerformancePage() {
   const { t, language } = useTranslation();
   const dateLocale = dateLocaleMap[language] || de;
@@ -276,6 +294,17 @@ export default function PerformancePage() {
   
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
+  const { data: sessionData } = useQuery<SessionData>({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const res = await fetch("/api/session");
+      if (!res.ok) throw new Error("Failed to fetch session");
+      return res.json();
+    },
+  });
+
+  const isDemo = !sessionData?.vorgangsId || sessionData?.tripCount === 0;
+
   useEffect(() => {
     document.title = `${t('performance.title')} - U-Retter`;
   }, [t]);
@@ -283,47 +312,52 @@ export default function PerformancePage() {
   const startDate = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : "";
   const endDate = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : "";
 
-  const { data: kpisData, isLoading: kpisLoading } = useQuery<KpisResponse>({
+  const { data: apiKpisData, isLoading: kpisLoading } = useQuery<KpisResponse>({
     queryKey: ["performance-kpis", startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/performance/kpis?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) throw new Error("Failed to fetch KPIs");
       return res.json();
     },
-    enabled: !!startDate && !!endDate,
+    enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const { data: driversData, isLoading: driversLoading } = useQuery<DriversResponse>({
+  const { data: apiDriversData, isLoading: driversLoading } = useQuery<DriversResponse>({
     queryKey: ["performance-drivers", startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/performance/drivers?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) throw new Error("Failed to fetch drivers");
       return res.json();
     },
-    enabled: !!startDate && !!endDate,
+    enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery<VehiclesResponse>({
+  const { data: apiVehiclesData, isLoading: vehiclesLoading } = useQuery<VehiclesResponse>({
     queryKey: ["performance-vehicles", startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/performance/vehicles?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) throw new Error("Failed to fetch vehicles");
       return res.json();
     },
-    enabled: !!startDate && !!endDate,
+    enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const { data: shiftsData, isLoading: shiftsLoading } = useQuery<ShiftsResponse>({
+  const { data: apiShiftsData, isLoading: shiftsLoading } = useQuery<ShiftsResponse>({
     queryKey: ["performance-shifts", startDate, endDate],
     queryFn: async () => {
       const res = await fetch(`/api/performance/shifts?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) throw new Error("Failed to fetch shifts");
       return res.json();
     },
-    enabled: !!startDate && !!endDate,
+    enabled: !!startDate && !!endDate && !isDemo,
   });
 
-  const isLoading = kpisLoading || driversLoading || vehiclesLoading || shiftsLoading;
+  const kpisData = isDemo ? mockPerformanceKpis : apiKpisData;
+  const driversData = isDemo ? mockPerformanceDrivers : apiDriversData;
+  const vehiclesData = isDemo ? mockPerformanceVehicles : apiVehiclesData;
+  const shiftsData = isDemo ? mockPerformanceShifts : apiShiftsData;
+
+  const isLoading = !isDemo && (kpisLoading || driversLoading || vehiclesLoading || shiftsLoading);
 
   const kpis = useMemo(() => {
     if (!kpisData?.totals) return null;
@@ -386,6 +420,15 @@ export default function PerformancePage() {
           />
         </div>
 
+        {isDemo && (
+          <Alert className="bg-amber-50 border-amber-200" data-testid="banner-demo-mode">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              {t('performance.demoMode')}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20" data-testid="loading-spinner">
             <Spinner className="w-8 h-8 text-emerald-500" />
@@ -447,6 +490,76 @@ export default function PerformancePage() {
               onClick={() => setActiveModal("shifts")}
             />
           </div>
+        )}
+
+        {(isDemo || kpis) && (
+          <Card className="mt-6" data-testid="bonus-payouts-section">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gift className="w-5 h-5 text-emerald-600" />
+                {t('performance.bonusTitle')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <p className="text-sm text-slate-500">{t('performance.bonusTheoretical')}</p>
+                  <p className="text-2xl font-bold text-slate-900" data-testid="bonus-theoretical">
+                    {formatCurrency(mockBonusSummary.totalTheoretical)}
+                  </p>
+                </div>
+                <div className="bg-emerald-50 p-4 rounded-lg">
+                  <p className="text-sm text-slate-500">{t('performance.bonusActual')}</p>
+                  <p className="text-2xl font-bold text-emerald-600" data-testid="bonus-actual">
+                    {formatCurrency(mockBonusSummary.totalActual)}
+                  </p>
+                </div>
+                <div className={cn(
+                  "p-4 rounded-lg",
+                  mockBonusSummary.totalDifference < 0 ? "bg-red-50" : "bg-green-50"
+                )}>
+                  <p className="text-sm text-slate-500">{t('performance.bonusDifference')}</p>
+                  <p className={cn(
+                    "text-2xl font-bold",
+                    mockBonusSummary.totalDifference < 0 ? "text-red-600" : "text-green-600"
+                  )} data-testid="bonus-difference">
+                    {formatCurrency(mockBonusSummary.totalDifference)}
+                  </p>
+                </div>
+              </div>
+              <div className="overflow-auto max-h-80">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('performance.tableLicensePlate')}</TableHead>
+                      <TableHead>{t('performance.tableMonth')}</TableHead>
+                      <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                      <TableHead className="text-right">{t('performance.bonusTheoretical')}</TableHead>
+                      <TableHead className="text-right">{t('performance.bonusActual')}</TableHead>
+                      <TableHead className="text-right">{t('performance.bonusDifference')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockBonusPayouts.map((payout, idx) => (
+                      <TableRow key={`${payout.licensePlate}-${payout.month}-${idx}`}>
+                        <TableCell className="font-mono">{payout.licensePlate}</TableCell>
+                        <TableCell>{payout.month}</TableCell>
+                        <TableCell className="text-right">{payout.tripCount}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(payout.theoreticalBonus)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(payout.actualPayment)}</TableCell>
+                        <TableCell className={cn(
+                          "text-right font-medium",
+                          payout.difference < 0 ? "text-red-600" : payout.difference > 0 ? "text-green-600" : "text-slate-500"
+                        )}>
+                          {formatCurrency(payout.difference)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <Dialog open={activeModal === "hourly"} onOpenChange={() => closeModal()}>
