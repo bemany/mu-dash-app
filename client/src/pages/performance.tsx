@@ -367,6 +367,7 @@ export default function PerformancePage() {
   const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
   
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -922,7 +923,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "shifts"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "shifts"} onOpenChange={() => { closeModal(); setShiftFilter("all"); }}>
           <DialogContent className="max-w-4xl" data-testid="modal-shifts">
             <DialogHeader>
               <DialogTitle>{t('performance.modalShiftsTitle')}</DialogTitle>
@@ -930,19 +931,45 @@ export default function PerformancePage() {
                 {t('performance.modalShiftsDescription')} ({shiftsData?.summary?.totalShifts || 0} {t('performance.total')})
               </DialogDescription>
             </DialogHeader>
-            <div className="mb-4 flex gap-4">
-              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg">
-                <Sun className="w-4 h-4 text-amber-600" />
-                <span className="text-sm font-medium text-amber-700">
-                  {shiftsData?.summary?.dayShifts || 0} {t('performance.dayShifts')}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-lg">
-                <Moon className="w-4 h-4 text-indigo-600" />
-                <span className="text-sm font-medium text-indigo-700">
-                  {shiftsData?.summary?.nightShifts || 0} {t('performance.nightShifts')}
-                </span>
-              </div>
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => setShiftFilter("all")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  shiftFilter === "all"
+                    ? "bg-slate-200 text-slate-800 ring-2 ring-slate-400"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                )}
+                data-testid="filter-all-shifts"
+              >
+                {t('performance.allShifts')}
+              </button>
+              <button
+                onClick={() => setShiftFilter("day")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  shiftFilter === "day"
+                    ? "bg-amber-200 text-amber-800 ring-2 ring-amber-400"
+                    : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+                )}
+                data-testid="filter-day-shifts"
+              >
+                <Sun className="w-4 h-4" />
+                {shiftsData?.summary?.dayShifts || 0} {t('performance.dayShifts')}
+              </button>
+              <button
+                onClick={() => setShiftFilter("night")}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  shiftFilter === "night"
+                    ? "bg-indigo-200 text-indigo-800 ring-2 ring-indigo-400"
+                    : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                )}
+                data-testid="filter-night-shifts"
+              >
+                <Moon className="w-4 h-4" />
+                {shiftsData?.summary?.nightShifts || 0} {t('performance.nightShifts')}
+              </button>
             </div>
             <div className="max-h-96 overflow-auto">
               <Table>
@@ -957,7 +984,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {shiftsData?.shifts?.map((shift, index) => (
+                  {shiftsData?.shifts?.filter(shift => shiftFilter === "all" || shift.shiftType === shiftFilter).map((shift, index) => (
                     <TableRow key={`${shift.driverName}-${shift.shiftStart}-${index}`}>
                       <TableCell className="font-medium">{shift.driverName}</TableCell>
                       <TableCell className="font-mono">{shift.licensePlate}</TableCell>
