@@ -1108,7 +1108,7 @@ export class DatabaseStorage implements IStorage {
       avgRevenuePerHour: totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0,
       avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
       avgRevenuePerMonth: totalActiveMonths > 0 ? totalRevenue / totalActiveMonths : 0,
-      avgRevenuePerKm: totalDistance > 0 ? (totalRevenue * 1000) / totalDistance : 0,
+      avgRevenuePerKm: totalDistance > 0 ? totalRevenue / totalDistance : 0,
       avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
       avgRevenuePerDriver: uniqueDrivers > 0 ? totalRevenue / uniqueDrivers : 0,
     };
@@ -1274,7 +1274,7 @@ export class DatabaseStorage implements IStorage {
       avgRevenuePerHour: totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0,
       avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
       avgRevenuePerMonth: totalActiveMonths > 0 ? totalRevenue / totalActiveMonths : 0,
-      avgRevenuePerKm: totalDistance > 0 ? (totalRevenue * 1000) / totalDistance : 0,
+      avgRevenuePerKm: totalDistance > 0 ? totalRevenue / totalDistance : 0,
       avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
       avgRevenuePerVehicle: uniqueVehicles > 0 ? totalRevenue / uniqueVehicles : 0,
     };
