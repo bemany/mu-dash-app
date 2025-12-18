@@ -133,39 +133,6 @@ function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCa
   );
 }
 
-function VorgangsIdDisplay({ vorgangsId }: { vorgangsId: string }) {
-  const { t } = useTranslation();
-  const [copied, setCopied] = React.useState(false);
-
-  const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(vorgangsId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Alert className="bg-emerald-50 border-emerald-200" data-testid="banner-vorgangs-id">
-      <Check className="h-4 w-4 text-emerald-600" />
-      <AlertDescription className="text-emerald-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <span>
-          {t('performance.yourVorgangsId')}:{" "}
-          <span className="font-mono font-bold text-lg">{vorgangsId}</span>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={copyToClipboard}
-          className="gap-2 border-emerald-300 hover:bg-emerald-100"
-          data-testid="button-copy-vorgangs-id"
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {copied ? t('performance.copied') : t('performance.copyId')}
-        </Button>
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 interface MultiSelectProps {
   items: { value: string; label: string }[];
   selectedValues: string[];
@@ -619,7 +586,8 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   }, [reportData?.drivers, selectedDrivers]);
   
   const filteredSummary = useMemo(() => {
-    if (selectedDrivers.length === allDrivers.length && reportData?.summary) {
+    // If no drivers selected (meaning ALL are shown) or all explicitly selected, use original summary
+    if ((selectedDrivers.length === 0 || selectedDrivers.length === allDrivers.length) && reportData?.summary) {
       return reportData.summary;
     }
     return recalculateDriverSummary(filteredDrivers);
@@ -935,7 +903,8 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   }, [reportData?.vehicles, selectedVehicles]);
   
   const filteredSummary = useMemo(() => {
-    if (selectedVehicles.length === allVehicles.length && reportData?.summary) {
+    // If no vehicles selected (meaning ALL are shown) or all explicitly selected, use original summary
+    if ((selectedVehicles.length === 0 || selectedVehicles.length === allVehicles.length) && reportData?.summary) {
       return reportData.summary;
     }
     return recalculateVehicleSummary(filteredVehicles);
@@ -1443,7 +1412,7 @@ export default function PerformancePage() {
           </div>
         </div>
 
-        {isDemo ? (
+        {isDemo && (
           <Alert className="bg-amber-50 border-amber-200" data-testid="banner-demo-mode">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1459,8 +1428,6 @@ export default function PerformancePage() {
               </Link>
             </AlertDescription>
           </Alert>
-        ) : sessionData?.vorgangsId && (
-          <VorgangsIdDisplay vorgangsId={sessionData.vorgangsId} />
         )}
 
         <TabsContent value="drivers" className="mt-0">
