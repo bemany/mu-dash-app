@@ -468,7 +468,7 @@ export default function PerformancePage() {
                 <TableBody>
                   {kpisData?.byDay?.map((day) => (
                     <TableRow key={day.day}>
-                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
+                      <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                       <TableCell className="text-right">{formatNumber(day.hoursWorked, 1)}</TableCell>
                       <TableCell className="text-right">
@@ -509,7 +509,7 @@ export default function PerformancePage() {
                     const km = cmToKm(day.distance);
                     return (
                       <TableRow key={day.day}>
-                        <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
+                        <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                         <TableCell className="text-right">{formatNumber(km, 1)} km</TableCell>
                         <TableCell className="text-right">
@@ -548,7 +548,7 @@ export default function PerformancePage() {
                 <TableBody>
                   {kpisData?.byDay?.map((day) => (
                     <TableRow key={day.day}>
-                      <TableCell>{format(new Date(day.day), "dd.MM.yyyy", { locale: dateLocale })}</TableCell>
+                      <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                       <TableCell className="text-right">{day.tripCount}</TableCell>
                     </TableRow>
