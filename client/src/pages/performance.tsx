@@ -368,6 +368,45 @@ export default function PerformancePage() {
   
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
+  
+  type SortDirection = "asc" | "desc";
+  type SortConfig = { key: string; direction: SortDirection };
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "", direction: "desc" });
+  
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
+    }));
+  };
+  
+  const sortData = <T extends Record<string, any>>(data: T[] | undefined, key: string): T[] => {
+    if (!data || !key) return data || [];
+    return [...data].sort((a, b) => {
+      const aVal = a[key] ?? 0;
+      const bVal = b[key] ?? 0;
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortConfig.direction === "asc" 
+          ? aVal.localeCompare(bVal) 
+          : bVal.localeCompare(aVal);
+      }
+      return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  };
+  
+  const SortHeader = ({ label, sortKey, className }: { label: string; sortKey: string; className?: string }) => (
+    <TableHead 
+      className={cn("cursor-pointer hover:bg-slate-100 select-none", className)}
+      onClick={() => handleSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortConfig.key === sortKey && (
+          <span className="text-xs">{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+        )}
+      </div>
+    </TableHead>
+  );
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -722,7 +761,7 @@ export default function PerformancePage() {
           </Card>
         )}
 
-        <Dialog open={activeModal === "hourly"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "hourly"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-2xl" data-testid="modal-hourly">
             <DialogHeader>
               <DialogTitle>{t('performance.modalHourlyTitle')}</DialogTitle>
@@ -732,14 +771,14 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableDay')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableHours')}</TableHead>
+                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
+                    <SortHeader label={t('performance.tableHours')} sortKey="hoursWorked" className="text-right" />
                     <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpisData?.byDay?.map((day) => (
+                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => (
                     <TableRow key={day.day}>
                       <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
@@ -748,7 +787,8 @@ export default function PerformancePage() {
                         {day.hoursWorked > 0 ? formatCurrency(day.revenue / day.hoursWorked) : "-"}
                       </TableCell>
                     </TableRow>
-                  )) || (
+                  ))}
+                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-slate-500">
                         {t('performance.noData')}
@@ -761,7 +801,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "km"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "km"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-2xl" data-testid="modal-km">
             <DialogHeader>
               <DialogTitle>{t('performance.modalKmTitle')}</DialogTitle>
@@ -771,14 +811,14 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableDay')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableKilometers')}</TableHead>
+                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
+                    <SortHeader label={t('performance.tableKilometers')} sortKey="distance" className="text-right" />
                     <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpisData?.byDay?.map((day) => {
+                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => {
                     const km = cmToKm(day.distance);
                     return (
                       <TableRow key={day.day}>
@@ -790,7 +830,8 @@ export default function PerformancePage() {
                         </TableCell>
                       </TableRow>
                     );
-                  }) || (
+                  })}
+                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-slate-500">
                         {t('performance.noData')}
@@ -803,7 +844,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "daily"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "daily"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-2xl" data-testid="modal-daily">
             <DialogHeader>
               <DialogTitle>{t('performance.modalDailyTitle')}</DialogTitle>
@@ -813,19 +854,20 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableDay')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
+                    <SortHeader label={t('performance.tableDay')} sortKey="day" />
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
+                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {kpisData?.byDay?.map((day) => (
+                  {sortData(kpisData?.byDay, sortConfig.key).map((day) => (
                     <TableRow key={day.day}>
                       <TableCell>{safeFormatDate(day.day, "dd.MM.yyyy", dateLocale)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(day.revenue)}</TableCell>
                       <TableCell className="text-right">{day.tripCount}</TableCell>
                     </TableRow>
-                  )) || (
+                  ))}
+                  {(!kpisData?.byDay || kpisData.byDay.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={3} className="text-center text-slate-500">
                         {t('performance.noData')}
@@ -838,7 +880,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "drivers"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "drivers"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-3xl" data-testid="modal-drivers">
             <DialogHeader>
               <DialogTitle>{t('performance.modalDriversTitle')}</DialogTitle>
@@ -848,15 +890,15 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableDriver')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableHours')}</TableHead>
+                    <SortHeader label={t('performance.tableDriver')} sortKey="driverName" />
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
+                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
+                    <SortHeader label={t('performance.tableHours')} sortKey="hoursWorked" className="text-right" />
                     <TableHead className="text-right">{t('performance.kpiRevenuePerHour')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {driversData?.drivers?.map((driver) => (
+                  {sortData(driversData?.drivers, sortConfig.key).map((driver) => (
                     <TableRow key={driver.driverName}>
                       <TableCell className="font-medium">{driver.driverName}</TableCell>
                       <TableCell className="text-right">{formatCurrency(driver.revenue)}</TableCell>
@@ -866,7 +908,8 @@ export default function PerformancePage() {
                         {driver.hoursWorked > 0 ? formatCurrency(driver.revenue / driver.hoursWorked) : "-"}
                       </TableCell>
                     </TableRow>
-                  )) || (
+                  ))}
+                  {(!driversData?.drivers || driversData.drivers.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-slate-500">
                         {t('performance.noData')}
@@ -879,7 +922,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "vehicles"} onOpenChange={() => closeModal()}>
+        <Dialog open={activeModal === "vehicles"} onOpenChange={() => { closeModal(); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-3xl" data-testid="modal-vehicles">
             <DialogHeader>
               <DialogTitle>{t('performance.modalVehiclesTitle')}</DialogTitle>
@@ -889,15 +932,15 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableLicensePlate')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableTrips')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableKilometers')}</TableHead>
+                    <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" />
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
+                    <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" className="text-right" />
+                    <SortHeader label={t('performance.tableKilometers')} sortKey="distance" className="text-right" />
                     <TableHead className="text-right">{t('performance.kpiRevenuePerKm')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vehiclesData?.vehicles?.map((vehicle) => {
+                  {sortData(vehiclesData?.vehicles, sortConfig.key).map((vehicle) => {
                     const km = cmToKm(vehicle.distance);
                     return (
                       <TableRow key={vehicle.licensePlate}>
@@ -910,7 +953,8 @@ export default function PerformancePage() {
                         </TableCell>
                       </TableRow>
                     );
-                  }) || (
+                  })}
+                  {(!vehiclesData?.vehicles || vehiclesData.vehicles.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-slate-500">
                         {t('performance.noData')}
@@ -923,7 +967,7 @@ export default function PerformancePage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={activeModal === "shifts"} onOpenChange={() => { closeModal(); setShiftFilter("all"); }}>
+        <Dialog open={activeModal === "shifts"} onOpenChange={() => { closeModal(); setShiftFilter("all"); setSortConfig({ key: "", direction: "desc" }); }}>
           <DialogContent className="max-w-4xl" data-testid="modal-shifts">
             <DialogHeader>
               <DialogTitle>{t('performance.modalShiftsTitle')}</DialogTitle>
@@ -975,16 +1019,16 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('performance.tableDriver')}</TableHead>
-                    <TableHead>{t('performance.tableVehicle')}</TableHead>
-                    <TableHead>{t('performance.tableStart')}</TableHead>
-                    <TableHead>{t('performance.tableEnd')}</TableHead>
+                    <SortHeader label={t('performance.tableDriver')} sortKey="driverName" />
+                    <SortHeader label={t('performance.tableVehicle')} sortKey="licensePlate" />
+                    <SortHeader label={t('performance.tableStart')} sortKey="shiftStart" />
+                    <SortHeader label={t('performance.tableEnd')} sortKey="shiftEnd" />
                     <TableHead>{t('performance.tableType')}</TableHead>
-                    <TableHead className="text-right">{t('performance.tableRevenue')}</TableHead>
+                    <SortHeader label={t('performance.tableRevenue')} sortKey="revenue" className="text-right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {shiftsData?.shifts?.filter(shift => shiftFilter === "all" || shift.shiftType === shiftFilter).map((shift, index) => (
+                  {sortData(shiftsData?.shifts?.filter(shift => shiftFilter === "all" || shift.shiftType === shiftFilter), sortConfig.key).map((shift, index) => (
                     <TableRow key={`${shift.driverName}-${shift.shiftStart}-${index}`}>
                       <TableCell className="font-medium">{shift.driverName}</TableCell>
                       <TableCell className="font-mono">{shift.licensePlate}</TableCell>
