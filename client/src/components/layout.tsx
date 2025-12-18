@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useTranslation } from '@/i18n';
@@ -20,6 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [location, setLocation] = useLocation();
   const { t, language, setLanguage, languages } = useTranslation();
+  const [copied, setCopied] = useState(false);
 
   const { data: sessionData } = useQuery({
     queryKey: ["session"],
@@ -33,6 +34,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const hasSessionData = sessionData?.tripCount > 0;
   const currentLanguage = languages.find(l => l.code === language);
+  
+  const copyVorgangsId = () => {
+    if (sessionData?.vorgangsId) {
+      navigator.clipboard.writeText(sessionData.vorgangsId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
@@ -49,6 +58,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {t('layout.appName')}
             </h1>
           </div>
+          
+          {sessionData?.vorgangsId && (
+            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400">{t('layout.processId')}</span>
+                  <span className="font-mono font-bold text-emerald-400">{sessionData.vorgangsId}</span>
+                </div>
+                <button
+                  onClick={copyVorgangsId}
+                  className="p-1.5 rounded hover:bg-slate-700 transition-colors"
+                  data-testid="sidebar-copy-vorgangs-id"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                </button>
+              </div>
+              {sessionData.companyName && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-xs text-slate-400 truncate">{sessionData.companyName}</span>
+                </div>
+              )}
+            </div>
+          )}
           
           <nav className="flex-1 p-4 flex flex-col">
             <div className="space-y-1 flex-1">

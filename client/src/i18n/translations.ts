@@ -17,6 +17,7 @@ export const translations = {
       navUpdates: 'Updates',
       navAdmin: 'Admin',
       language: 'Sprache',
+      processId: 'Vorgang:',
     },
     dashboard: {
       title: 'U-Retter Dashboard',
@@ -306,6 +307,7 @@ export const translations = {
       navUpdates: 'Updates',
       navAdmin: 'Admin',
       language: 'Language',
+      processId: 'Process:',
     },
     dashboard: {
       title: 'U-Retter Dashboard',
@@ -595,6 +597,7 @@ export const translations = {
       navUpdates: 'Güncellemeler',
       navAdmin: 'Yönetici',
       language: 'Dil',
+      processId: 'İşlem:',
     },
     dashboard: {
       title: 'U-Retter Kontrol Paneli',
@@ -884,6 +887,7 @@ export const translations = {
       navUpdates: 'التحديثات',
       navAdmin: 'المسؤول',
       language: 'اللغة',
+      processId: 'العملية:',
     },
     dashboard: {
       title: 'لوحة تحكم U-Retter',

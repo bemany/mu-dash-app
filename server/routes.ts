@@ -99,6 +99,7 @@ export async function registerRoutes(
       res.json({
         sessionId,
         vorgangsId,
+        companyName: session.companyName,
         currentStep: session.currentStep,
         tripCount,
         aggregatedTrips,
