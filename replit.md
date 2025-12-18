@@ -65,8 +65,23 @@ Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after up
 - **Login**: POST /api/admin/login with { password: string }
 - **Check**: GET /api/admin/check returns { isAdmin: boolean }
 
+### Routing
+- **/** - Performance Dashboard (home page with demo data if no session loaded)
+- **/performance** - Same as above
+- **/process** - Check Process workflow (data upload and bonus calculation)
+- **/v/:vorgangsId** - Load process by Vorgangs-ID
+- **/help** - Help page
+- **/updates** - Updates page
+- **/admin** - Admin panel
+
+### Demo Mode
+- Performance Dashboard shows demo data automatically when no Vorgangs-ID is loaded
+- Demo mode displays a yellow banner informing users
+- Mock data includes realistic German driver data with KPIs, shifts, and bonus payouts
+- Mock data file: `client/src/lib/mock-data.ts`
+
 ### Workflow Steps
-The application follows a 3-step workflow:
+The application follows a 3-step workflow (accessible via /process):
 1. **Daten Import** - Upload both trip and payment CSV files (multiple files supported for each)
 2. **Kalkulation** - View calculated bonuses based on trip counts per month
 3. **Abgleich** - Compare expected bonuses against actual payments received
