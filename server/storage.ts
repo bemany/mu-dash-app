@@ -367,8 +367,8 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           COALESCE(SUM(
             CASE 
-              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
               ELSE 0
             END
           ), 0)::bigint as revenue,
@@ -413,8 +413,8 @@ export class DatabaseStorage implements IStorage {
           )) as driver_name,
           COALESCE(SUM(
             CASE 
-              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
               ELSE 0
             END
           ), 0)::bigint as revenue,
@@ -462,8 +462,8 @@ export class DatabaseStorage implements IStorage {
           license_plate,
           COALESCE(SUM(
             CASE 
-              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
               ELSE 0
             END
           ), 0)::bigint as revenue,
@@ -506,8 +506,8 @@ export class DatabaseStorage implements IStorage {
           TO_CHAR(order_time, 'YYYY-MM-DD') as date,
           COALESCE(SUM(
             CASE 
-              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
               ELSE 0
             END
           ), 0)::bigint as revenue,
@@ -550,8 +550,8 @@ export class DatabaseStorage implements IStorage {
           TO_CHAR(order_time, 'YYYY-MM') as month,
           COALESCE(SUM(
             CASE 
-              WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-              THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+              WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+              THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
               ELSE 0
             END
           ), 0)::bigint as revenue,
@@ -671,8 +671,8 @@ export class DatabaseStorage implements IStorage {
         license_plate,
         order_time,
         CASE 
-          WHEN raw_data->>'Fahrpreis' ~ '^[0-9]+([,.][0-9]+)?$'
-          THEN REPLACE(raw_data->>'Fahrpreis', ',', '.')::numeric * 100
+          WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+          THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric * 100
           ELSE 0
         END as revenue,
         raw_data->>'Vorname des Fahrers' as first_name,
