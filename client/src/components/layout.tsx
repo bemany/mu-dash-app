@@ -220,10 +220,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between">
-           <h1 className="text-lg font-bold text-slate-900">{t('layout.appName')}</h1>
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
              <Menu className="w-6 h-6" />
            </Button>
+           <h1 className="text-lg font-bold text-slate-900">{t('layout.appName')}</h1>
+           <div className="w-10" />
         </header>
 
         <main className="flex-1 overflow-auto p-2 md:p-4 lg:p-6">
