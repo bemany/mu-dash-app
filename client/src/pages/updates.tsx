@@ -16,6 +16,18 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "18.12.2024",
+    version: "1.6.0",
+    items: [
+      { type: 'feature', text: "Vorgangs-ID und Firmenname werden in der Sidebar angezeigt" },
+      { type: 'feature', text: "Multi-Select Filter für Fahrer und Fahrzeuge im Performance Dashboard" },
+      { type: 'feature', text: "'Leere Sessions auswählen' Button im Admin-Panel" },
+      { type: 'improvement', text: "Filter zwischen Tabs und Datumsauswahl verschoben für bessere Bedienung" },
+      { type: 'improvement', text: "Tabellenzeilen bleiben einzeilig für bessere Lesbarkeit" },
+      { type: 'fix', text: "KPI-Berechnungen korrigiert (€/km, €/Stunde)" },
+    ]
+  },
+  {
     date: "17.12.2024",
     version: "1.5.0",
     items: [
