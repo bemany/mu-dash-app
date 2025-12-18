@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Calendar } from "@/components/ui/calendar";
@@ -50,6 +51,7 @@ import {
   Sun,
   Moon,
   X,
+  Search,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -184,9 +186,16 @@ function MultiSelect({
   testId 
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const allSelected = selectedValues.length === items.length;
   const noneSelected = selectedValues.length === 0;
+  
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const query = searchQuery.toLowerCase();
+    return items.filter(item => item.label.toLowerCase().includes(query));
+  }, [items, searchQuery]);
   
   const toggleItem = (value: string) => {
     if (selectedValues.includes(value)) {
@@ -211,7 +220,10 @@ function MultiSelect({
       : selectedCountLabel(selectedValues.length);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) setSearchQuery("");
+    }}>
       <PopoverTrigger asChild>
         <Button
           data-testid={testId}
@@ -228,8 +240,20 @@ function MultiSelect({
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0" align="start">
-        <div className="p-3 border-b border-slate-200">
+      <PopoverContent className="w-[280px] p-0" align="start">
+        <div className="p-2 border-b border-slate-200">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              data-testid={`${testId}-search`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Suchen..."
+              className="pl-8 h-9"
+            />
+          </div>
+        </div>
+        <div className="p-2 border-b border-slate-200">
           <button
             data-testid={`${testId}-select-all`}
             onClick={toggleAll}
@@ -245,20 +269,24 @@ function MultiSelect({
           </button>
         </div>
         <div className="max-h-[300px] overflow-y-auto p-2">
-          {items.map((item) => (
-            <button
-              key={item.value}
-              data-testid={`${testId}-item-${item.value}`}
-              onClick={() => toggleItem(item.value)}
-              className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-slate-100 transition-colors"
-            >
-              <Checkbox 
-                checked={selectedValues.includes(item.value)}
-                className="border-emerald-500 data-[state=checked]:bg-emerald-500"
-              />
-              <span className="text-sm">{item.label}</span>
-            </button>
-          ))}
+          {filteredItems.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">Keine Ergebnisse</p>
+          ) : (
+            filteredItems.map((item) => (
+              <button
+                key={item.value}
+                data-testid={`${testId}-item-${item.value}`}
+                onClick={() => toggleItem(item.value)}
+                className="flex items-center gap-3 w-full px-2 py-2.5 rounded-md hover:bg-slate-100 transition-colors"
+              >
+                <Checkbox 
+                  checked={selectedValues.includes(item.value)}
+                  className="border-emerald-500 data-[state=checked]:bg-emerald-500"
+                />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ))
+          )}
         </div>
       </PopoverContent>
     </Popover>
