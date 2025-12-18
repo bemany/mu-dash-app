@@ -702,6 +702,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
               <TableRow>
                 <SortHeader label="Vorname" sortKey="firstName" sortConfig={sortConfig} onSort={handleSort} />
                 <SortHeader label="Nachname" sortKey="lastName" sortConfig={sortConfig} onSort={handleSort} />
+                <TableHead className="text-center whitespace-nowrap">Schichttyp</TableHead>
                 <SortHeader label="Abgeschl. Fahrten" sortKey="completedTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
                 <SortHeader label="Storniert" sortKey="cancelledTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
                 <SortHeader label="Gesamt" sortKey="totalTrips" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
@@ -716,10 +717,31 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortData(filteredDrivers, sortConfig).map((driver, idx) => (
+              {sortData(filteredDrivers, sortConfig).map((driver, idx) => {
+                const isNightDriver = (driver.nightShiftCount || 0) > (driver.dayShiftCount || 0);
+                const isMixed = (driver.nightShiftCount || 0) === (driver.dayShiftCount || 0) && (driver.shiftCount || 0) > 0;
+                return (
                 <TableRow key={`${driver.firstName}-${driver.lastName}-${idx}`}>
                   <TableCell className="font-medium whitespace-nowrap">{driver.firstName}</TableCell>
                   <TableCell className="whitespace-nowrap">{driver.lastName}</TableCell>
+                  <TableCell className="text-center whitespace-nowrap">
+                    {isMixed ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+                        <Sun className="w-3 h-3" />/<Moon className="w-3 h-3" />
+                        Gemischt
+                      </span>
+                    ) : isNightDriver ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium">
+                        <Moon className="w-3 h-3" />
+                        Nacht
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                        <Sun className="w-3 h-3" />
+                        Tag
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right whitespace-nowrap">{driver.completedTrips}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{driver.cancelledTrips}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{driver.totalTrips}</TableCell>
@@ -732,7 +754,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.acceptanceRate, 1)}%</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.timeInTrip, 0)} h</TableCell>
                 </TableRow>
-              ))}
+              );})}
             </TableBody>
           </Table>
         </div>
