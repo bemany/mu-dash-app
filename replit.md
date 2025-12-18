@@ -89,6 +89,28 @@ The application follows a 3-step workflow:
 - Displayed in admin panel next to the Vorgangs-ID for each session
 - Helps identify which company a session belongs to
 
+### Performance Dashboard
+- Available at `/performance` when a session has trip data loaded
+- **KPI Tiles** with clickable drill-down modals:
+  - €/Stunde (revenue per hour worked)
+  - €/km (revenue per kilometer driven)
+  - €/Tag (average revenue per day)
+  - €/Fahrer (revenue per driver - from rawData "Vorname/Nachname des Fahrers")
+  - €/Fahrzeug (revenue per vehicle - license plate)
+  - Schichten (shift analysis with day/night breakdown)
+- **Date Range Picker**: Filter data by custom date range
+- **Shift Detection Logic**:
+  - 5-hour gap between trips = new shift
+  - Shift classification: Day (6-18h) vs Night (18-6h) based on weighted trip duration
+  - Groups trips by driver+vehicle combination
+- **API Endpoints**:
+  - GET `/api/performance/kpis` - Totals with byDay/byMonth breakdowns
+  - GET `/api/performance/drivers` - Per-driver breakdown
+  - GET `/api/performance/vehicles` - Per-vehicle breakdown
+  - GET `/api/performance/shifts` - Shift analysis with summary
+- **Data from rawData**: Fahrtdistanz (km), Fahrpreis (€), Startzeit/Ankunftszeit, Vorname/Nachname des Fahrers
+- **Multi-language**: Translations for DE, EN, TR, AR
+
 ### Excel Export
 - Two export buttons available:
   - **Summary Export**: "Als Excel exportieren" button exports the evaluation table with all license plates, trip counts, bonuses, payments, and differences per month

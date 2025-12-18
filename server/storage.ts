@@ -776,12 +776,16 @@ export class DatabaseStorage implements IStorage {
     let nightMinutes = 0;
     
     for (const trip of trips) {
+      let tripDurationMinutes = 15;
+      if (trip.startTime && trip.endTime) {
+        tripDurationMinutes = Math.max(1, (trip.endTime.getTime() - trip.startTime.getTime()) / (1000 * 60));
+      }
+      
       const tripHour = trip.time.getHours();
-      const tripMinutes = 1;
       if (tripHour >= 6 && tripHour < 18) {
-        dayMinutes += tripMinutes;
+        dayMinutes += tripDurationMinutes;
       } else {
-        nightMinutes += tripMinutes;
+        nightMinutes += tripDurationMinutes;
       }
     }
 
