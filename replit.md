@@ -113,7 +113,13 @@ The application follows a 3-step workflow (accessible via /process):
   - €/Fahrer (revenue per driver - from rawData "Vorname/Nachname des Fahrers")
   - €/Fahrzeug (revenue per vehicle - license plate)
   - Schichten (shift analysis with day/night breakdown)
-- **Date Range Picker**: Filter data by custom date range
+- **Smart Date Range Picker**:
+  - Queries available data range from backend via GET `/api/performance/daterange`
+  - Auto-selects the last complete month with data (not current month)
+  - Dynamically generates month presets based on available data
+  - Month names are localized across all 4 languages (Januar, Ocak, يناير, January)
+  - "All Data" preset added when multiple months are available
+  - In demo mode, shows basic presets (Last Month, This Year)
 - **Shift Detection Logic**:
   - 5-hour gap between trips = new shift
   - Shift classification: Day (6-18h) vs Night (18-6h) based on weighted trip duration

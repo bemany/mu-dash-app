@@ -283,14 +283,51 @@ interface SessionData {
   tripCount: number;
 }
 
+interface DateRangeData {
+  minDate: string | null;
+  maxDate: string | null;
+  availableMonths: string[];
+}
+
+function getLastFullMonth(availableMonths: string[]): { from: Date; to: Date } | null {
+  if (!availableMonths || availableMonths.length === 0) return null;
+  
+  const today = new Date();
+  const currentMonth = format(today, "yyyy-MM");
+  
+  const fullMonths = availableMonths.filter(m => m < currentMonth);
+  
+  if (fullMonths.length > 0) {
+    const lastMonth = fullMonths[fullMonths.length - 1];
+    const [year, month] = lastMonth.split("-").map(Number);
+    const monthDate = new Date(year, month - 1, 1);
+    return {
+      from: startOfMonth(monthDate),
+      to: endOfMonth(monthDate),
+    };
+  }
+  
+  const lastMonth = availableMonths[availableMonths.length - 1];
+  const [year, month] = lastMonth.split("-").map(Number);
+  const monthDate = new Date(year, month - 1, 1);
+  if (lastMonth === currentMonth) {
+    return {
+      from: startOfMonth(monthDate),
+      to: today,
+    };
+  }
+  return {
+    from: startOfMonth(monthDate),
+    to: endOfMonth(monthDate),
+  };
+}
+
 export default function PerformancePage() {
   const { t, language } = useTranslation();
   const dateLocale = dateLocaleMap[language] || de;
   
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
   
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
@@ -304,6 +341,41 @@ export default function PerformancePage() {
   });
 
   const isDemo = !sessionData?.vorgangsId || sessionData?.tripCount === 0;
+
+  const { data: dateRangeData } = useQuery<DateRangeData>({
+    queryKey: ["performance-daterange"],
+    queryFn: async () => {
+      const res = await fetch("/api/performance/daterange");
+      if (!res.ok) throw new Error("Failed to fetch date range");
+      return res.json();
+    },
+    enabled: !isDemo,
+  });
+
+  useEffect(() => {
+    if (!hasInitializedDateRange) {
+      if (isDemo) {
+        setDateRange({
+          from: startOfMonth(subMonths(new Date(), 1)),
+          to: endOfMonth(subMonths(new Date(), 1)),
+        });
+        setHasInitializedDateRange(true);
+      } else if (dateRangeData) {
+        if (dateRangeData.availableMonths?.length) {
+          const lastMonth = getLastFullMonth(dateRangeData.availableMonths);
+          if (lastMonth) {
+            setDateRange(lastMonth);
+          }
+        } else {
+          setDateRange({
+            from: startOfMonth(subMonths(new Date(), 1)),
+            to: endOfMonth(subMonths(new Date(), 1)),
+          });
+        }
+        setHasInitializedDateRange(true);
+      }
+    }
+  }, [isDemo, dateRangeData, hasInitializedDateRange]);
 
   useEffect(() => {
     document.title = `${t('performance.title')} - U-Retter`;
@@ -386,18 +458,57 @@ export default function PerformancePage() {
 
   const closeModal = () => setActiveModal(null);
 
-  const today = new Date();
-  const presets = [
-    { label: t('performance.presetToday'), from: today, to: today },
-    { label: t('performance.presetYesterday'), from: subDays(today, 1), to: subDays(today, 1) },
-    { label: t('performance.presetThisWeek'), from: startOfWeek(today, { weekStartsOn: 1 }), to: endOfWeek(today, { weekStartsOn: 1 }) },
-    { label: t('performance.presetLastWeek'), from: startOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }), to: endOfWeek(subWeeks(today, 1), { weekStartsOn: 1 }) },
-    { label: t('performance.presetPastTwoWeeks'), from: subWeeks(today, 2), to: today },
-    { label: t('performance.presetThisMonth'), from: startOfMonth(today), to: endOfMonth(today) },
-    { label: t('performance.presetLastMonth'), from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) },
-    { label: t('performance.presetThisYear'), from: startOfYear(today), to: endOfYear(today) },
-    { label: t('performance.presetLastYear'), from: startOfYear(subYears(today, 1)), to: endOfYear(subYears(today, 1)) },
-  ];
+  const presets = useMemo(() => {
+    const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
+    
+    if (isDemo || availableMonths.length === 0) {
+      const today = new Date();
+      return [
+        { label: t('performance.presetLastMonth'), from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1)) },
+        { label: t('performance.presetThisYear'), from: startOfYear(today), to: endOfYear(today) },
+      ];
+    }
+
+    const monthNames: Record<string, string> = {
+      '01': language === 'de' ? 'Januar' : language === 'tr' ? 'Ocak' : language === 'ar' ? 'يناير' : 'January',
+      '02': language === 'de' ? 'Februar' : language === 'tr' ? 'Şubat' : language === 'ar' ? 'فبراير' : 'February',
+      '03': language === 'de' ? 'März' : language === 'tr' ? 'Mart' : language === 'ar' ? 'مارس' : 'March',
+      '04': language === 'de' ? 'April' : language === 'tr' ? 'Nisan' : language === 'ar' ? 'أبريل' : 'April',
+      '05': language === 'de' ? 'Mai' : language === 'tr' ? 'Mayıs' : language === 'ar' ? 'مايو' : 'May',
+      '06': language === 'de' ? 'Juni' : language === 'tr' ? 'Haziran' : language === 'ar' ? 'يونيو' : 'June',
+      '07': language === 'de' ? 'Juli' : language === 'tr' ? 'Temmuz' : language === 'ar' ? 'يوليو' : 'July',
+      '08': language === 'de' ? 'August' : language === 'tr' ? 'Ağustos' : language === 'ar' ? 'أغسطس' : 'August',
+      '09': language === 'de' ? 'September' : language === 'tr' ? 'Eylül' : language === 'ar' ? 'سبتمبر' : 'September',
+      '10': language === 'de' ? 'Oktober' : language === 'tr' ? 'Ekim' : language === 'ar' ? 'أكتوبر' : 'October',
+      '11': language === 'de' ? 'November' : language === 'tr' ? 'Kasım' : language === 'ar' ? 'نوفمبر' : 'November',
+      '12': language === 'de' ? 'Dezember' : language === 'tr' ? 'Aralık' : language === 'ar' ? 'ديسمبر' : 'December',
+    };
+
+    const monthPresets = availableMonths.map(monthStr => {
+      const [year, month] = monthStr.split("-");
+      const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      return {
+        label: `${monthNames[month]} ${year}`,
+        from: startOfMonth(monthDate),
+        to: endOfMonth(monthDate),
+      };
+    }).reverse();
+
+    if (availableMonths.length > 1) {
+      const firstMonth = availableMonths[0];
+      const lastMonth = availableMonths[availableMonths.length - 1];
+      const [firstYear, firstMonthNum] = firstMonth.split("-").map(Number);
+      const [lastYear, lastMonthNum] = lastMonth.split("-").map(Number);
+      
+      monthPresets.unshift({
+        label: t('performance.presetAllData'),
+        from: new Date(firstYear, firstMonthNum - 1, 1),
+        to: endOfMonth(new Date(lastYear, lastMonthNum - 1, 1)),
+      });
+    }
+
+    return monthPresets;
+  }, [isDemo, dateRangeData, t, language]);
 
   return (
     <DashboardLayout>

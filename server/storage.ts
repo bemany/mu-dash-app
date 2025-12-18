@@ -122,6 +122,7 @@ export interface IStorage {
   // Performance metrics
   getPerformanceMetrics(sessionId: string, startDate?: Date, endDate?: Date): Promise<PerformanceMetrics>;
   getShiftAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<ShiftAnalysis>;
+  getDataDateRange(sessionId: string): Promise<{ minDate: Date | null; maxDate: Date | null; availableMonths: string[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -801,6 +802,30 @@ export class DatabaseStorage implements IStorage {
       distance,
       hoursWorked,
       tripCount: trips.length,
+    };
+  }
+
+  async getDataDateRange(sessionId: string): Promise<{ minDate: Date | null; maxDate: Date | null; availableMonths: string[] }> {
+    const result = await db.execute(sql`
+      SELECT 
+        MIN(transaction_time) as min_date,
+        MAX(transaction_time) as max_date
+      FROM transactions
+      WHERE session_id = ${sessionId}
+    `);
+
+    const monthsResult = await db.execute(sql`
+      SELECT DISTINCT TO_CHAR(transaction_time, 'YYYY-MM') as month
+      FROM transactions
+      WHERE session_id = ${sessionId}
+      ORDER BY month
+    `);
+
+    const row = (result.rows as any[])[0];
+    return {
+      minDate: row?.min_date ? new Date(row.min_date) : null,
+      maxDate: row?.max_date ? new Date(row.max_date) : null,
+      availableMonths: (monthsResult.rows as any[]).map(r => r.month).filter(Boolean),
     };
   }
 }

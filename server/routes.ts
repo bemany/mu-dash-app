@@ -663,6 +663,20 @@ export async function registerRoutes(
     return sessionId;
   };
 
+  app.get("/api/performance/daterange", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const dateRange = await storage.getDataDateRange(sessionId);
+      
+      res.json(dateRange);
+    } catch (error) {
+      console.error("Error fetching date range:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen des Datumsbereichs" });
+    }
+  });
+
   app.get("/api/performance/kpis", async (req, res) => {
     try {
       const sessionId = await validateSession(req, res);
