@@ -844,7 +844,7 @@ export default function PerformancePage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1920px] mx-auto space-y-4 pb-20">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-[1920px] mx-auto space-y-4 pb-20">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="performance-title">
@@ -855,13 +855,11 @@ export default function PerformancePage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="drivers" data-testid="tab-drivers">Fahrer</TabsTrigger>
-                <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fahrzeug</TabsTrigger>
-                <TabsTrigger value="promo" data-testid="tab-promo">Werbegelder</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <TabsList>
+              <TabsTrigger value="drivers" data-testid="tab-drivers">Fahrer</TabsTrigger>
+              <TabsTrigger value="vehicles" data-testid="tab-vehicles">Fahrzeug</TabsTrigger>
+              <TabsTrigger value="promo" data-testid="tab-promo">Werbegelder</TabsTrigger>
+            </TabsList>
             <DatePickerWithRange 
               date={dateRange} 
               onDateChange={setDateRange} 
@@ -892,38 +890,36 @@ export default function PerformancePage() {
           <VorgangsIdDisplay vorgangsId={sessionData.vorgangsId} />
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsContent value="drivers" className="mt-0">
-            <DriversTab 
-              data={driversData} 
-              isLoading={driversLoading} 
-              isDemo={isDemo}
-              timeMetric={timeMetric}
-              setTimeMetric={setTimeMetric}
-              distanceMetric={distanceMetric}
-              setDistanceMetric={setDistanceMetric}
-            />
-          </TabsContent>
-          <TabsContent value="vehicles" className="mt-0">
-            <VehiclesTab 
-              data={vehiclesData} 
-              isLoading={vehiclesLoading} 
-              isDemo={isDemo}
-              timeMetric={timeMetric}
-              setTimeMetric={setTimeMetric}
-              distanceMetric={distanceMetric}
-              setDistanceMetric={setDistanceMetric}
-            />
-          </TabsContent>
-          <TabsContent value="promo" className="mt-0">
-            <PromoTab 
-              data={promoData} 
-              isLoading={promoLoading} 
-              isDemo={isDemo} 
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="drivers" className="mt-0">
+          <DriversTab 
+            data={driversData} 
+            isLoading={driversLoading} 
+            isDemo={isDemo}
+            timeMetric={timeMetric}
+            setTimeMetric={setTimeMetric}
+            distanceMetric={distanceMetric}
+            setDistanceMetric={setDistanceMetric}
+          />
+        </TabsContent>
+        <TabsContent value="vehicles" className="mt-0">
+          <VehiclesTab 
+            data={vehiclesData} 
+            isLoading={vehiclesLoading} 
+            isDemo={isDemo}
+            timeMetric={timeMetric}
+            setTimeMetric={setTimeMetric}
+            distanceMetric={distanceMetric}
+            setDistanceMetric={setDistanceMetric}
+          />
+        </TabsContent>
+        <TabsContent value="promo" className="mt-0">
+          <PromoTab 
+            data={promoData} 
+            isLoading={promoLoading} 
+            isDemo={isDemo} 
+          />
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
