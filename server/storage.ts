@@ -1056,7 +1056,7 @@ export class DatabaseStorage implements IStorage {
             ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
         FROM trips t
-        LEFT JOIN transactions tx ON t.trip_id = tx.trip_uuid AND tx.session_id = ${sessionId}
+        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid AND tx.session_id = ${sessionId}
         WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
@@ -1232,7 +1232,7 @@ export class DatabaseStorage implements IStorage {
             ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
         FROM trips t
-        LEFT JOIN transactions tx ON t.trip_id = tx.trip_uuid AND tx.session_id = ${sessionId}
+        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid AND tx.session_id = ${sessionId}
         WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
