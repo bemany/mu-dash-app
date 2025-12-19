@@ -60,14 +60,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Nicht gefunden');
+        setError(data.error || t('layout.notFound'));
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ['session'] });
       setInputVorgangsId('');
       setLocation('/');
     } catch (err) {
-      setError('Fehler beim Laden');
+      setError(t('layout.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +121,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     setError('');
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && loadVorgangsId()}
-                  placeholder="Vorgangs-ID"
+                  placeholder={t('layout.vorgangsIdPlaceholder')}
                   className="h-8 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 font-mono text-sm"
                   maxLength={6}
                   data-testid="sidebar-vorgangs-id-input"

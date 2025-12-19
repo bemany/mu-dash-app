@@ -482,12 +482,12 @@ export class DatabaseStorage implements IStorage {
                 AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
               THEN EXTRACT(EPOCH FROM (
                 CASE 
-                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
                   ELSE NULL
                 END - 
                 CASE 
-                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Startzeit der Fahrt')::timestamp
                   ELSE NULL
                 END
@@ -528,12 +528,12 @@ export class DatabaseStorage implements IStorage {
                 AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
               THEN EXTRACT(EPOCH FROM (
                 CASE 
-                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
                   ELSE NULL
                 END - 
                 CASE 
-                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Startzeit der Fahrt')::timestamp
                   ELSE NULL
                 END
@@ -577,12 +577,12 @@ export class DatabaseStorage implements IStorage {
                 AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
               THEN EXTRACT(EPOCH FROM (
                 CASE 
-                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
                   ELSE NULL
                 END - 
                 CASE 
-                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Startzeit der Fahrt')::timestamp
                   ELSE NULL
                 END
@@ -621,12 +621,12 @@ export class DatabaseStorage implements IStorage {
                 AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
               THEN EXTRACT(EPOCH FROM (
                 CASE 
-                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
                   ELSE NULL
                 END - 
                 CASE 
-                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Startzeit der Fahrt')::timestamp
                   ELSE NULL
                 END
@@ -665,12 +665,12 @@ export class DatabaseStorage implements IStorage {
                 AND raw_data->>'Ankunftszeit der Fahrt' IS NOT NULL
               THEN EXTRACT(EPOCH FROM (
                 CASE 
-                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Ankunftszeit der Fahrt')::timestamp
                   ELSE NULL
                 END - 
                 CASE 
-                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+                  WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
                   THEN (raw_data->>'Startzeit der Fahrt')::timestamp
                   ELSE NULL
                 END
@@ -992,8 +992,8 @@ export class DatabaseStorage implements IStorage {
             ELSE 0
           END as distance_m,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
-              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN GREATEST(0, EXTRACT(EPOCH FROM (
               (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
               (raw_data->>'Startzeit der Fahrt')::timestamp
@@ -1001,7 +1001,7 @@ export class DatabaseStorage implements IStorage {
             ELSE 0
           END as trip_hours,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
             ELSE EXTRACT(HOUR FROM order_time)
           END as start_hour
@@ -1159,8 +1159,8 @@ export class DatabaseStorage implements IStorage {
             ELSE 0
           END as distance_m,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
-              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN GREATEST(0, EXTRACT(EPOCH FROM (
               (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
               (raw_data->>'Startzeit der Fahrt')::timestamp
@@ -1168,7 +1168,7 @@ export class DatabaseStorage implements IStorage {
             ELSE 0
           END as trip_hours,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
             ELSE EXTRACT(HOUR FROM order_time)
           END as start_hour

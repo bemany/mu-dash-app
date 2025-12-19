@@ -154,14 +154,20 @@ function MultiSelect({
   placeholder, 
   allSelectedLabel,
   selectedCountLabel,
-  searchPlaceholder = "Suchen...",
-  selectAllLabel = "Alle auswählen",
-  deselectAllLabel = "Alle abwählen",
-  noResultsLabel = "Keine Ergebnisse",
+  searchPlaceholder,
+  selectAllLabel,
+  deselectAllLabel,
+  noResultsLabel,
   testId 
 }: MultiSelectProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('performance.searchPlaceholder');
+  const resolvedSelectAllLabel = selectAllLabel ?? t('performance.selectAll');
+  const resolvedDeselectAllLabel = deselectAllLabel ?? t('performance.deselectAll');
+  const resolvedNoResultsLabel = noResultsLabel ?? t('performance.noResults');
   
   const allSelected = selectedValues.length === items.length;
   const noneSelected = selectedValues.length === 0;
@@ -223,7 +229,7 @@ function MultiSelect({
               data-testid={`${testId}-search`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               className="pl-8 h-9"
             />
           </div>
@@ -239,13 +245,13 @@ function MultiSelect({
               className="border-emerald-500 data-[state=checked]:bg-emerald-500"
             />
             <span className="text-sm font-medium">
-              {allSelected ? deselectAllLabel : selectAllLabel}
+              {allSelected ? resolvedDeselectAllLabel : resolvedSelectAllLabel}
             </span>
           </button>
         </div>
         <div className="max-h-[300px] overflow-y-auto p-2">
           {filteredItems.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4">{noResultsLabel}</p>
+            <p className="text-sm text-slate-500 text-center py-4">{resolvedNoResultsLabel}</p>
           ) : (
             filteredItems.map((item) => (
               <button
@@ -1293,19 +1299,19 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
   const exportToExcel = () => {
     if (!filteredRows.length) return;
     const dataToExport = sortData(filteredRows, sortConfig).map(row => ({
-      'Kennzeichen': row.licensePlate,
-      'Monat': row.month,
-      'Fahrten': row.tripCount,
-      'Theor. Prämie': row.theoreticalBonus,
-      'Ausgezahlt': row.actualPaid,
-      'Differenz': row.difference,
+      [t('performance.tableLicensePlate')]: row.licensePlate,
+      [t('performance.tableMonth')]: row.month,
+      [t('performance.tableTrips')]: row.tripCount,
+      [t('performance.tableTheoBonus')]: row.theoreticalBonus,
+      [t('performance.tablePaid')]: row.actualPaid,
+      [t('performance.tableDifference')]: row.difference,
     }));
     dataToExport.push({} as any);
-    dataToExport.push({ 'Kennzeichen': 'Er lässt Grüßen' } as any);
+    dataToExport.push({ [t('performance.tableLicensePlate')]: t('performance.excelFooter') } as any);
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Werbegelder");
-    XLSX.writeFile(wb, `Werbegelder_Report.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetPromo'));
+    XLSX.writeFile(wb, `${t('performance.excelSheetPromo')}_Report.xlsx`);
   };
 
   if (isLoading) {
@@ -1319,7 +1325,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
   if (!reportData) {
     return (
       <Card className="p-12 text-center">
-        <p className="text-slate-500">Keine Daten vorhanden</p>
+        <p className="text-slate-500">{t('performance.noDataAvailable')}</p>
       </Card>
     );
   }
@@ -1329,19 +1335,19 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KpiCard
           testId="kpi-promo-theoretical"
-          title="Theoretische Prämien"
+          title={t('performance.promoTheoreticalTitle')}
           value={formatCurrency(filteredSummary.totalTheoreticalBonus)}
           icon={<Gift className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-promo-paid"
-          title="Ausgezahlte Prämien"
+          title={t('performance.promoPaidTitle')}
           value={formatCurrency(filteredSummary.totalActualPaid)}
           icon={<Gift className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-promo-difference"
-          title="Differenz"
+          title={t('performance.promoDifferenceTitle')}
           value={formatCurrency(filteredSummary.totalDifference)}
           icon={<Gift className="w-5 h-5" />}
           className={filteredSummary.totalDifference < 0 ? "border-red-200 bg-red-50" : ""}
@@ -1353,12 +1359,12 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
           <Table>
             <TableHeader>
               <TableRow>
-                <SortHeader label="Kennzeichen" sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label="Monat" sortKey="month" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label="Fahrten" sortKey="tripCount" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Theor. Prämie" sortKey="theoreticalBonus" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Ausgezahlt" sortKey="actualPaid" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label="Differenz" sortKey="difference" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label={t('performance.tableMonth')} sortKey="month" sortConfig={sortConfig} onSort={handleSort} />
+                <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTheoBonus')} sortKey="theoreticalBonus" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tablePaid')} sortKey="actualPaid" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableDifference')} sortKey="difference" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1380,7 +1386,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
         <div className="p-3 border-t flex justify-end">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-promo">
             <Download className="w-4 h-4 mr-2" />
-            Als Excel exportieren
+            {t('performance.exportExcel')}
           </Button>
         </div>
       </Card>

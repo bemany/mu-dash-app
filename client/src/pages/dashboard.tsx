@@ -283,10 +283,10 @@ export default function Dashboard() {
       setIsTransitioning(true);
     } catch (error: any) {
       console.error("Upload error:", error);
-      const errorMessage = error?.message || "Ein unbekannter Fehler ist aufgetreten";
+      const errorMessage = error?.message || t('dashboard.unknownError');
       toast({
         variant: "destructive",
-        title: "Fehler beim Upload",
+        title: t('dashboard.errorUpload'),
         description: errorMessage,
       });
     } finally {
@@ -393,10 +393,10 @@ export default function Dashboard() {
       setAddMoreDataDialogOpen(false);
     } catch (error: any) {
       console.error("Upload error:", error);
-      const errorMessage = error?.message || "Ein unbekannter Fehler ist aufgetreten";
+      const errorMessage = error?.message || t('dashboard.unknownError');
       toast({
         variant: "destructive",
-        title: "Fehler beim Upload",
+        title: t('dashboard.errorUpload'),
         description: errorMessage,
       });
     } finally {
@@ -409,43 +409,43 @@ export default function Dashboard() {
 
   const exportTransactionsToExcel = () => {
     const matchedData = transactionAnalysis.matched.map(item => ({
-      'Kennzeichen': item.licensePlate,
-      'Datum': item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
-      'Betrag': typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
-      'Status': 'Zugeordnet'
+      [t('dashboard.excelLicensePlate')]: item.licensePlate,
+      [t('dashboard.transactionsDialog.date')]: item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
+      [t('dashboard.transactionsDialog.amount')]: typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
+      [t('dashboard.excelStatus')]: t('dashboard.excelAssigned')
     }));
     
     const unmatchedData = transactionAnalysis.unmatched.map(item => ({
-      'Kennzeichen': item.licensePlate || '(unbekannt)',
-      'Datum': item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
-      'Betrag': typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
-      'Status': 'Nicht zugeordnet'
+      [t('dashboard.excelLicensePlate')]: item.licensePlate || t('dashboard.excelUnknown'),
+      [t('dashboard.transactionsDialog.date')]: item.transaction["Zeitpunkt"]?.split(' ')[0] || '-',
+      [t('dashboard.transactionsDialog.amount')]: typeof item.transaction["Betrag"] === 'number' ? item.transaction["Betrag"] : 0,
+      [t('dashboard.excelStatus')]: t('dashboard.excelNotAssigned')
     }));
     
     const allData = [...matchedData, ...unmatchedData];
     const ws = XLSX.utils.json_to_sheet(allData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Zahlungen");
-    XLSX.writeFile(wb, `Zahlungen_${vorgangsId || 'export'}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, t('dashboard.excelSheetPayments'));
+    XLSX.writeFile(wb, `${t('dashboard.excelSheetPayments')}_${vorgangsId || 'export'}.xlsx`);
   };
 
   const exportSummaryToExcel = () => {
     const data = summaries.map(s => {
       const row: Record<string, any> = {
-        'Kennzeichen': s.licensePlate,
-        'Gesamt Fahrten': s.totalCount,
-        'Bonus': s.totalBonus,
+        [t('dashboard.excelLicensePlate')]: s.licensePlate,
+        [t('dashboard.excelTotalTrips')]: s.totalCount,
+        [t('dashboard.excelBonus')]: s.totalBonus,
       };
       if (currentStep === 3) {
-        row['Gezahlt'] = s.totalPaid;
-        row['Differenz'] = s.totalDifference;
+        row[t('dashboard.excelPaid')] = s.totalPaid;
+        row[t('dashboard.excelDifference')] = s.totalDifference;
       }
       monthHeaders.forEach(month => {
         const monthData = s.stats[month];
         if (monthData) {
-          row[`${month} Fahrten`] = monthData.count;
+          row[`${month} ${t('upload.trips')}`] = monthData.count;
           if (currentStep === 3) {
-            row[`${month} Differenz`] = monthData.difference;
+            row[`${month} ${t('dashboard.excelDifference')}`] = monthData.difference;
           }
         }
       });
@@ -453,16 +453,16 @@ export default function Dashboard() {
     });
     
     data.push({
-      'Kennzeichen': 'GESAMT',
-      'Gesamt Fahrten': totals.trips,
-      'Bonus': totals.bonus,
-      ...(currentStep === 3 ? { 'Gezahlt': totals.paid, 'Differenz': totals.diff } : {})
+      [t('dashboard.excelLicensePlate')]: t('dashboard.excelTotal'),
+      [t('dashboard.excelTotalTrips')]: totals.trips,
+      [t('dashboard.excelBonus')]: totals.bonus,
+      ...(currentStep === 3 ? { [t('dashboard.excelPaid')]: totals.paid, [t('dashboard.excelDifference')]: totals.diff } : {})
     });
     
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Auswertung");
-    XLSX.writeFile(wb, `Auswertung_${vorgangsId || 'export'}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, t('dashboard.excelSheetSummary'));
+    XLSX.writeFile(wb, `${t('dashboard.excelSheetSummary')}_${vorgangsId || 'export'}.xlsx`);
   };
 
   if (isLoading) {

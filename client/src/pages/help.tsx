@@ -25,8 +25,8 @@ export default function HelpPage() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = "Hilfe - MU-Dash";
-  }, []);
+    document.title = t('help.pageTitle');
+  }, [t]);
   
   return (
     <DashboardLayout>
