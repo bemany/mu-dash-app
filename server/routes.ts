@@ -192,16 +192,16 @@ export async function registerRoutes(
         )
       );
 
-      // Filter out invalid trips, non-completed trips, and duplicates (including same-batch duplicates)
+      // Filter out invalid trips and duplicates (including same-batch duplicates)
+      // NOTE: We import ALL trips (including cancelled) for acceptance rate analysis
       const validTrips = trips.filter((trip: any) => {
         // Must have required fields
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
           return false;
         }
         
-        // Only import completed trips
-        const status = (trip["Fahrtstatus"] || "").toString().toLowerCase();
-        if (status !== "completed") {
+        // Must have a trip status
+        if (!trip["Fahrtstatus"]) {
           return false;
         }
         
@@ -515,10 +515,10 @@ export async function registerRoutes(
         message: "Daten werden verarbeitet...",
       });
 
+      // Import ALL trips (including cancelled) for acceptance rate analysis
       const validTrips = allTripData.filter((trip: any) => {
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) return false;
-        const status = (trip["Fahrtstatus"] || "").toString().toLowerCase();
-        if (status !== "completed") return false;
+        if (!trip["Fahrtstatus"]) return false; // Must have status
         const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
         if (!orderTime || isNaN(orderTime.getTime())) return false;
         const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${orderTime.getTime()}`;

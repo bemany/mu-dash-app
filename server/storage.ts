@@ -537,6 +537,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as trip_count
         FROM trips
         WHERE session_id = ${sessionId}
+        AND LOWER(trip_status) = 'completed'
         ${dateFilter}
       `),
       
@@ -583,6 +584,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as trip_count
         FROM trips
         WHERE session_id = ${sessionId}
+        AND LOWER(trip_status) = 'completed'
         ${dateFilter}
         GROUP BY driver_name
         HAVING TRIM(CONCAT(
@@ -632,6 +634,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as trip_count
         FROM trips
         WHERE session_id = ${sessionId}
+        AND LOWER(trip_status) = 'completed'
         ${dateFilter}
         GROUP BY license_plate
         ORDER BY revenue DESC
@@ -676,6 +679,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as trip_count
         FROM trips
         WHERE session_id = ${sessionId}
+        AND LOWER(trip_status) = 'completed'
         ${dateFilter}
         GROUP BY date
         ORDER BY date
@@ -720,6 +724,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as trip_count
         FROM trips
         WHERE session_id = ${sessionId}
+        AND LOWER(trip_status) = 'completed'
         ${dateFilter}
         GROUP BY month
         ORDER BY month
@@ -822,6 +827,7 @@ export class DatabaseStorage implements IStorage {
         raw_data->>'Ankunftszeit der Fahrt' as end_time
       FROM trips
       WHERE session_id = $1
+        AND LOWER(trip_status) = 'completed'
       ${dateCondition}
       ORDER BY 
         CONCAT(raw_data->>'Vorname des Fahrers', ' ', raw_data->>'Nachname des Fahrers'),
