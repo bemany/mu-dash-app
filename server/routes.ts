@@ -533,6 +533,14 @@ export async function registerRoutes(
         rawData: trip,
       }));
 
+      // Debug: Count total payments before filtering
+      console.log("[DEBUG] Total payment rows parsed:", allPaymentData.length);
+      if (allPaymentData.length > 0) {
+        console.log("[DEBUG] First payment row keys:", Object.keys(allPaymentData[0]));
+        console.log("[DEBUG] First payment Fahrt-UUID:", allPaymentData[0]["Fahrt-UUID"]);
+        console.log("[DEBUG] First payment vs-Berichterstattung:", allPaymentData[0]["vs-Berichterstattung"]);
+      }
+
       const validTransactions = allPaymentData.filter((tx: any) => {
         let amount: number;
         if (tx["An dein Unternehmen gezahlt"] !== undefined) {
@@ -573,6 +581,8 @@ export async function registerRoutes(
         existingTxKeys.add(key);
         return true;
       });
+
+      console.log("[DEBUG] Valid transactions after filter:", validTransactions.length);
 
       const parseEuroAmount = (value: any): number | null => {
         if (value === undefined || value === null || value === '') return null;
