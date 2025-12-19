@@ -16,6 +16,16 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "19.12.2024",
+    version: "1.8.0",
+    items: [
+      { type: 'feature', text: "Neuer 'Provision' Tab im Performance Dashboard zur Analyse der Uber-Provision" },
+      { type: 'feature', text: "Anzeige von Fahrpreis, Umsatz, Provisionsbeträge und Provisionsprozent" },
+      { type: 'feature', text: "Aufschlüsselung nach Monat, Fahrzeug und Fahrer" },
+      { type: 'feature', text: "Excel-Export für Provisionsdaten" },
+    ]
+  },
+  {
     date: "18.12.2024",
     version: "1.7.0",
     items: [
