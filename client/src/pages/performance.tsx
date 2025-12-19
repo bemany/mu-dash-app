@@ -1469,6 +1469,264 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
   );
 }
 
+interface CommissionAnalysis {
+  summary: {
+    totalFarePrice: number;
+    totalRevenue: number;
+    totalCommission: number;
+    commissionPercent: number;
+    tripCount: number;
+  };
+  byDriver: Array<{
+    driverName: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byVehicle: Array<{
+    licensePlate: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byMonth: Array<{
+    month: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+}
+
+interface CommissionsTabProps {
+  data: CommissionAnalysis | undefined;
+  isLoading: boolean;
+  isDemo: boolean;
+  selectedVehicles: string[];
+}
+
+function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: CommissionsTabProps) {
+  const { t } = useTranslation();
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "month", direction: "desc" });
+  const [viewMode, setViewMode] = useState<"byMonth" | "byVehicle" | "byDriver">("byMonth");
+  
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
+    }));
+  };
+  
+  const commissionData = data;
+  
+  const filteredByVehicle = useMemo(() => {
+    if (!commissionData?.byVehicle) return [];
+    if (selectedVehicles.length === 0) return commissionData.byVehicle;
+    return commissionData.byVehicle.filter(row => selectedVehicles.includes(row.licensePlate));
+  }, [commissionData?.byVehicle, selectedVehicles]);
+  
+  const filteredSummary = useMemo(() => {
+    if (!commissionData?.summary) return { totalFarePrice: 0, totalRevenue: 0, totalCommission: 0, commissionPercent: 0, tripCount: 0 };
+    
+    if (viewMode === "byVehicle" && selectedVehicles.length > 0) {
+      const totalFarePrice = filteredByVehicle.reduce((sum, r) => sum + r.farePrice, 0);
+      const totalRevenue = filteredByVehicle.reduce((sum, r) => sum + r.revenue, 0);
+      const totalCommission = filteredByVehicle.reduce((sum, r) => sum + r.commission, 0);
+      const tripCount = filteredByVehicle.reduce((sum, r) => sum + r.tripCount, 0);
+      return {
+        totalFarePrice,
+        totalRevenue,
+        totalCommission,
+        commissionPercent: totalFarePrice > 0 ? (totalCommission / totalFarePrice) * 100 : 0,
+        tripCount,
+      };
+    }
+    
+    return commissionData.summary;
+  }, [commissionData, filteredByVehicle, selectedVehicles, viewMode]);
+  
+  const exportToExcel = () => {
+    let dataToExport: any[] = [];
+    if (viewMode === "byMonth" && commissionData?.byMonth) {
+      dataToExport = sortData(commissionData.byMonth, sortConfig).map(row => ({
+        [t('performance.tableMonth')]: row.month,
+        [t('performance.tableTrips')]: row.tripCount,
+        [t('performance.commissionFarePrice')]: row.farePrice / 100,
+        [t('performance.commissionRevenue')]: row.revenue / 100,
+        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
+      }));
+    } else if (viewMode === "byVehicle") {
+      dataToExport = sortData(filteredByVehicle, sortConfig).map(row => ({
+        [t('performance.tableLicensePlate')]: row.licensePlate,
+        [t('performance.tableTrips')]: row.tripCount,
+        [t('performance.commissionFarePrice')]: row.farePrice / 100,
+        [t('performance.commissionRevenue')]: row.revenue / 100,
+        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
+      }));
+    } else if (viewMode === "byDriver" && commissionData?.byDriver) {
+      dataToExport = sortData(commissionData.byDriver, sortConfig).map(row => ({
+        [t('performance.tableDriver')]: row.driverName,
+        [t('performance.tableTrips')]: row.tripCount,
+        [t('performance.commissionFarePrice')]: row.farePrice / 100,
+        [t('performance.commissionRevenue')]: row.revenue / 100,
+        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
+      }));
+    }
+    if (!dataToExport.length) return;
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, t('performance.tabCommissions'));
+    XLSX.writeFile(wb, `${t('performance.tabCommissions')}_Report.xlsx`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner className="w-8 h-8 text-emerald-500" />
+      </div>
+    );
+  }
+  
+  if (isDemo || !commissionData || commissionData.summary.tripCount === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-slate-500">{t('performance.commissionNoData')}</p>
+      </Card>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <KpiCard
+          testId="kpi-commission-fareprice"
+          title={t('performance.commissionFarePrice')}
+          value={formatCurrency(filteredSummary.totalFarePrice / 100)}
+          icon={<Car className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-commission-revenue"
+          title={t('performance.commissionRevenue')}
+          value={formatCurrency(filteredSummary.totalRevenue / 100)}
+          icon={<Car className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-commission-amount"
+          title={t('performance.commissionAmount')}
+          value={formatCurrency(filteredSummary.totalCommission / 100)}
+          icon={<Car className="w-5 h-5" />}
+          className="border-amber-200 bg-amber-50"
+        />
+        <KpiCard
+          testId="kpi-commission-percent"
+          title={t('performance.commissionPercent')}
+          value={`${filteredSummary.commissionPercent.toFixed(1)}%`}
+          icon={<Car className="w-5 h-5" />}
+        />
+      </div>
+      
+      <Card>
+        <div className="p-3 border-b flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button 
+              variant={viewMode === "byMonth" ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setViewMode("byMonth")}
+              data-testid="commission-view-month"
+            >
+              {t('performance.tableMonth')}
+            </Button>
+            <Button 
+              variant={viewMode === "byVehicle" ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setViewMode("byVehicle")}
+              data-testid="commission-view-vehicle"
+            >
+              {t('performance.tabVehicles')}
+            </Button>
+            <Button 
+              variant={viewMode === "byDriver" ? "default" : "outline"} 
+              size="sm" 
+              onClick={() => setViewMode("byDriver")}
+              data-testid="commission-view-driver"
+            >
+              {t('performance.tabDrivers')}
+            </Button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {viewMode === "byMonth" && (
+                  <SortHeader label={t('performance.tableMonth')} sortKey="month" sortConfig={sortConfig} onSort={handleSort} />
+                )}
+                {viewMode === "byVehicle" && (
+                  <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
+                )}
+                {viewMode === "byDriver" && (
+                  <SortHeader label={t('performance.tableDriver')} sortKey="driverName" sortConfig={sortConfig} onSort={handleSort} />
+                )}
+                <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.commissionFarePrice')} sortKey="farePrice" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.commissionRevenue')} sortKey="revenue" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.commissionAmount')} sortKey="commission" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.commissionPercent')} sortKey="commissionPercent" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {viewMode === "byMonth" && commissionData?.byMonth && sortData(commissionData.byMonth, sortConfig).map((row, idx) => (
+                <TableRow key={`${row.month}-${idx}`}>
+                  <TableCell className="whitespace-nowrap">{row.month}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+              {viewMode === "byVehicle" && sortData(filteredByVehicle, sortConfig).map((row, idx) => (
+                <TableRow key={`${row.licensePlate}-${idx}`}>
+                  <TableCell className="font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+              {viewMode === "byDriver" && commissionData?.byDriver && sortData(commissionData.byDriver, sortConfig).map((row, idx) => (
+                <TableRow key={`${row.driverName}-${idx}`}>
+                  <TableCell className="font-medium whitespace-nowrap">{row.driverName}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="p-3 border-t flex justify-end">
+          <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-commissions">
+            <Download className="w-4 h-4 mr-2" />
+            {t('performance.exportExcel')}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function PerformancePage() {
   const { t, language } = useTranslation();
   const dateLocale = dateLocaleMap[language] || de;
@@ -1581,6 +1839,16 @@ export default function PerformancePage() {
     enabled: !isDemo,
   });
 
+  const { data: commissionsData, isLoading: commissionsLoading } = useQuery<CommissionAnalysis>({
+    queryKey: ["performance-commissions", startDate, endDate],
+    queryFn: async () => {
+      const res = await fetch(`/api/performance/commissions?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error("Failed to fetch commissions");
+      return res.json();
+    },
+    enabled: !!startDate && !!endDate && !isDemo,
+  });
+
   const allDrivers = useMemo(() => {
     const reportData = isDemo ? mockDriverReport : driversData;
     if (!reportData?.drivers) return [];
@@ -1675,6 +1943,7 @@ export default function PerformancePage() {
               <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
               <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
               <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
+              <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
             </TabsList>
             {activeTab === "drivers" && (
               <>
@@ -1704,7 +1973,7 @@ export default function PerformancePage() {
                 </Select>
               </>
             )}
-            {(activeTab === "vehicles" || activeTab === "promo") && (
+            {(activeTab === "vehicles" || activeTab === "promo" || activeTab === "commissions") && (
               <MultiSelect
                 items={allVehicles}
                 selectedValues={selectedVehicles}
@@ -1782,6 +2051,14 @@ export default function PerformancePage() {
           <PromoTab 
             data={promoData} 
             isLoading={promoLoading} 
+            isDemo={isDemo}
+            selectedVehicles={selectedVehicles}
+          />
+        </TabsContent>
+        <TabsContent value="commissions" className="mt-0">
+          <CommissionsTab 
+            data={commissionsData} 
+            isLoading={commissionsLoading} 
             isDemo={isDemo}
             selectedVehicles={selectedVehicles}
           />

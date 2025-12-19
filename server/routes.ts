@@ -284,6 +284,14 @@ export async function registerRoutes(
         )
       );
 
+      const parseEuroAmountLocal = (value: any): number | null => {
+        if (value === undefined || value === null || value === '') return null;
+        const numVal = typeof value === 'string' 
+          ? parseFloat(value.replace(',', '.')) 
+          : value;
+        return isNaN(numVal) ? null : Math.round(numVal * 100);
+      };
+
       const newTransactions = transactions.filter((tx: any) => {
         let amount: number;
         if (tx["An dein Unternehmen gezahlt"] !== undefined) {
@@ -314,10 +322,14 @@ export async function registerRoutes(
         if (!licensePlate && tx["Beschreibung"]) {
           licensePlate = extractLicensePlate(tx["Beschreibung"]);
         }
+        const tripUuid = tx["Fahrt-UUID"] || null;
         
-        if (!licensePlate) return false;
+        // Accept if we have either a license plate OR a trip UUID
+        if (!licensePlate && !tripUuid) return false;
         
-        const key = `${licensePlate}-${timestamp.getTime()}-${Math.round(amount * 100)}`;
+        const amountCents = Math.round(amount * 100);
+        const keyIdentifier = tripUuid || licensePlate;
+        const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
         if (existingKeys.has(key)) {
           return false;
         }
@@ -352,15 +364,22 @@ export async function registerRoutes(
           licensePlate = extractLicensePlate(tx["Beschreibung"]);
         }
         
+        const tripUuid = tx["Fahrt-UUID"] || null;
+        const revenue = parseEuroAmountLocal(tx["An dein Unternehmen gezahlt : Deine Umsätze"]);
+        const farePrice = parseEuroAmountLocal(tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
+        
         return {
           sessionId,
           licensePlate: licensePlate || "",
           transactionTime: timestamp,
           amount: Math.round(amount * 100),
           description: tx["Beschreibung"] || null,
+          tripUuid,
+          revenue,
+          farePrice,
           rawData: tx,
         };
-      }).filter((tx: any) => tx.licensePlate);
+      }).filter((tx: any) => tx.licensePlate || tx.tripUuid);
 
       const total = dbTransactions.length;
       const expressSessionId = req.sessionID!;
@@ -529,15 +548,30 @@ export async function registerRoutes(
           return false;
         }
 
+        if (isNaN(timestamp.getTime())) return false;
+
         const licensePlate = extractLicensePlate(tx["Beschreibung"] || "");
-        if (!licensePlate || isNaN(timestamp.getTime())) return false;
+        const tripUuid = tx["Fahrt-UUID"] || null;
+        
+        // Accept if we have either a license plate OR a trip UUID
+        if (!licensePlate && !tripUuid) return false;
 
         const amountCents = Math.round(amount * 100);
-        const key = `${licensePlate}-${timestamp.getTime()}-${amountCents}`;
+        // For trip-based transactions, use tripUuid as part of the key
+        const keyIdentifier = tripUuid || licensePlate;
+        const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
         if (existingTxKeys.has(key)) return false;
         existingTxKeys.add(key);
         return true;
       });
+
+      const parseEuroAmount = (value: any): number | null => {
+        if (value === undefined || value === null || value === '') return null;
+        const numVal = typeof value === 'string' 
+          ? parseFloat(value.replace(',', '.')) 
+          : value;
+        return isNaN(numVal) ? null : Math.round(numVal * 100);
+      };
 
       const dbTransactions = validTransactions.map((tx: any) => {
         let amount: number;
@@ -558,12 +592,22 @@ export async function registerRoutes(
           timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
         }
 
+        const licensePlate = extractLicensePlate(tx["Beschreibung"] || "") || "";
+        const tripUuid = tx["Fahrt-UUID"] || null;
+        
+        // Extract revenue and farePrice for trip-based transactions
+        const revenue = parseEuroAmount(tx["An dein Unternehmen gezahlt : Deine Umsätze"]);
+        const farePrice = parseEuroAmount(tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
+
         return {
           sessionId,
-          licensePlate: extractLicensePlate(tx["Beschreibung"] || "")!,
+          licensePlate,
           transactionTime: timestamp,
           amount: Math.round(amount * 100),
           description: tx["Beschreibung"] || null,
+          tripUuid,
+          revenue,
+          farePrice,
           rawData: tx,
         };
       });
@@ -1009,6 +1053,23 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching shift analysis:", error);
       res.status(500).json({ error: "Fehler beim Abrufen der Schicht-Analyse" });
+    }
+  });
+
+  app.get("/api/performance/commissions", async (req, res) => {
+    try {
+      const sessionId = await validateSession(req, res);
+      if (!sessionId) return;
+
+      const startDate = parseDateParam(req.query.startDate as string);
+      const endDate = parseDateParam(req.query.endDate as string);
+
+      const analysis = await storage.getCommissionAnalysis(sessionId, startDate, endDate);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error fetching commission analysis:", error);
+      res.status(500).json({ error: "Fehler beim Abrufen der Commission-Analyse" });
     }
   });
 

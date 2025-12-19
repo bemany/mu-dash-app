@@ -176,6 +176,40 @@ export interface PromoReportSummary {
   monthCount: number;
 }
 
+export interface CommissionAnalysis {
+  summary: {
+    totalFarePrice: number; // Total fare price in cents
+    totalRevenue: number; // Your revenue in cents  
+    totalCommission: number; // Commission taken (farePrice - revenue) in cents
+    commissionPercent: number; // Average commission percentage
+    tripCount: number; // Number of trips with commission data
+  };
+  byDriver: Array<{
+    driverName: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byVehicle: Array<{
+    licensePlate: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byMonth: Array<{
+    month: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+}
+
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
@@ -222,6 +256,9 @@ export interface IStorage {
   
   // Promo/Bonus report
   getPromoReport(sessionId: string): Promise<{summary: PromoReportSummary, rows: PromoReportRow[]}>;
+  
+  // Commission analysis
+  getCommissionAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<CommissionAnalysis>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1277,6 +1314,7 @@ export class DatabaseStorage implements IStorage {
       shiftCount: Number(row.shift_count) || 0,
       dayShiftCount: Number(row.day_shift_count) || 0,
       nightShiftCount: Number(row.night_shift_count) || 0,
+      occupancyRate: 0,
     }));
 
     const totalRevenue = vehicles.reduce((sum, v) => sum + v.totalRevenue, 0);
@@ -1420,6 +1458,164 @@ export class DatabaseStorage implements IStorage {
     };
 
     return { summary, rows };
+  }
+
+  async getCommissionAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<CommissionAnalysis> {
+    // Get all transactions with trip data (where tripUuid is set)
+    let query = sql`
+      SELECT 
+        t.trip_uuid,
+        t.revenue,
+        t.fare_price,
+        t.transaction_time,
+        t.license_plate,
+        t.raw_data
+      FROM transactions t
+      WHERE t.session_id = ${sessionId}
+        AND t.trip_uuid IS NOT NULL
+        AND t.fare_price IS NOT NULL
+    `;
+    
+    if (startDate) {
+      query = sql`${query} AND t.transaction_time >= ${startDate}`;
+    }
+    if (endDate) {
+      query = sql`${query} AND t.transaction_time <= ${endDate}`;
+    }
+    
+    const result = await db.execute(query);
+    const txRows = result.rows as Array<{
+      trip_uuid: string;
+      revenue: number | null;
+      fare_price: number | null;
+      transaction_time: Date;
+      license_plate: string;
+      raw_data: any;
+    }>;
+
+    // Group by tripUuid to aggregate multiple payments per trip
+    const tripMap = new Map<string, {
+      farePrice: number;
+      revenue: number;
+      licensePlate: string;
+      driverName: string;
+      month: string;
+    }>();
+
+    for (const tx of txRows) {
+      const tripUuid = tx.trip_uuid;
+      const existing = tripMap.get(tripUuid);
+      const farePrice = tx.fare_price || 0;
+      const revenue = tx.revenue || 0;
+      
+      // Extract driver name from rawData
+      let driverName = 'Unbekannt';
+      if (tx.raw_data) {
+        const rawData = typeof tx.raw_data === 'string' ? JSON.parse(tx.raw_data) : tx.raw_data;
+        const firstName = rawData['Vorname des Fahrers'] || '';
+        const lastName = rawData['Nachname des Fahrers'] || '';
+        if (firstName || lastName) {
+          driverName = `${firstName} ${lastName}`.trim();
+        }
+      }
+      
+      const month = tx.transaction_time.toISOString().slice(0, 7); // YYYY-MM
+      
+      if (existing) {
+        // Sum up values for the same trip
+        existing.farePrice += farePrice;
+        existing.revenue += revenue;
+      } else {
+        tripMap.set(tripUuid, {
+          farePrice,
+          revenue,
+          licensePlate: tx.license_plate,
+          driverName,
+          month,
+        });
+      }
+    }
+
+    // Calculate totals
+    let totalFarePrice = 0;
+    let totalRevenue = 0;
+    const tripCount = tripMap.size;
+    
+    // Aggregate by driver
+    const driverMap = new Map<string, { farePrice: number; revenue: number; tripCount: number }>();
+    // Aggregate by vehicle
+    const vehicleMap = new Map<string, { farePrice: number; revenue: number; tripCount: number }>();
+    // Aggregate by month
+    const monthMap = new Map<string, { farePrice: number; revenue: number; tripCount: number }>();
+
+    for (const trip of Array.from(tripMap.values())) {
+      totalFarePrice += trip.farePrice;
+      totalRevenue += trip.revenue;
+      
+      // By driver
+      const driverStats = driverMap.get(trip.driverName) || { farePrice: 0, revenue: 0, tripCount: 0 };
+      driverStats.farePrice += trip.farePrice;
+      driverStats.revenue += trip.revenue;
+      driverStats.tripCount += 1;
+      driverMap.set(trip.driverName, driverStats);
+      
+      // By vehicle
+      const vehicleStats = vehicleMap.get(trip.licensePlate) || { farePrice: 0, revenue: 0, tripCount: 0 };
+      vehicleStats.farePrice += trip.farePrice;
+      vehicleStats.revenue += trip.revenue;
+      vehicleStats.tripCount += 1;
+      vehicleMap.set(trip.licensePlate, vehicleStats);
+      
+      // By month
+      const monthStats = monthMap.get(trip.month) || { farePrice: 0, revenue: 0, tripCount: 0 };
+      monthStats.farePrice += trip.farePrice;
+      monthStats.revenue += trip.revenue;
+      monthStats.tripCount += 1;
+      monthMap.set(trip.month, monthStats);
+    }
+
+    const totalCommission = totalFarePrice - totalRevenue;
+    const commissionPercent = totalFarePrice > 0 ? (totalCommission / totalFarePrice) * 100 : 0;
+
+    const byDriver = Array.from(driverMap.entries()).map(([driverName, stats]) => ({
+      driverName,
+      farePrice: stats.farePrice,
+      revenue: stats.revenue,
+      commission: stats.farePrice - stats.revenue,
+      commissionPercent: stats.farePrice > 0 ? ((stats.farePrice - stats.revenue) / stats.farePrice) * 100 : 0,
+      tripCount: stats.tripCount,
+    })).sort((a, b) => b.tripCount - a.tripCount);
+
+    const byVehicle = Array.from(vehicleMap.entries()).map(([licensePlate, stats]) => ({
+      licensePlate,
+      farePrice: stats.farePrice,
+      revenue: stats.revenue,
+      commission: stats.farePrice - stats.revenue,
+      commissionPercent: stats.farePrice > 0 ? ((stats.farePrice - stats.revenue) / stats.farePrice) * 100 : 0,
+      tripCount: stats.tripCount,
+    })).sort((a, b) => b.tripCount - a.tripCount);
+
+    const byMonth = Array.from(monthMap.entries()).map(([month, stats]) => ({
+      month,
+      farePrice: stats.farePrice,
+      revenue: stats.revenue,
+      commission: stats.farePrice - stats.revenue,
+      commissionPercent: stats.farePrice > 0 ? ((stats.farePrice - stats.revenue) / stats.farePrice) * 100 : 0,
+      tripCount: stats.tripCount,
+    })).sort((a, b) => a.month.localeCompare(b.month));
+
+    return {
+      summary: {
+        totalFarePrice,
+        totalRevenue,
+        totalCommission,
+        commissionPercent,
+        tripCount,
+      },
+      byDriver,
+      byVehicle,
+      byMonth,
+    };
   }
 }
 
