@@ -2225,6 +2225,13 @@ export default function PerformancePage() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap min-h-[40px]">
+            <DatePickerWithRange 
+              date={dateRange} 
+              onDateChange={setDateRange} 
+              placeholder={t('performance.datePickerPlaceholder')}
+              dateLocale={dateLocale}
+              presets={presets}
+            />
             {activeTab === "drivers" && (
               <>
                 <MultiSelect
@@ -2298,13 +2305,6 @@ export default function PerformancePage() {
                 />
               </>
             )}
-            <DatePickerWithRange 
-              date={dateRange} 
-              onDateChange={setDateRange} 
-              placeholder={t('performance.datePickerPlaceholder')}
-              dateLocale={dateLocale}
-              presets={presets}
-            />
           </div>
         </div>
 
