@@ -398,6 +398,9 @@ export const translations = {
       companyPerMonth: '/Monat',
       companyNoData: 'Keine Daten vorhanden. Laden Sie Fahrten- und Zahlungsdaten hoch.',
       tableSummaryRow: 'Gesamt (alle)',
+      companyPromoEarned: 'Verdiente Werbegelder',
+      companyPromoPaid: 'Ausgezahlte Werbegelder',
+      companyPromoDiff: 'Differenz Werbegelder',
     },
   },
   en: {
@@ -790,6 +793,9 @@ export const translations = {
       companyPerMonth: '/Month',
       companyNoData: 'No data available. Upload trip and payment data.',
       tableSummaryRow: 'Total (all)',
+      companyPromoEarned: 'Earned Promo Money',
+      companyPromoPaid: 'Paid Promo Money',
+      companyPromoDiff: 'Promo Difference',
     },
   },
   tr: {
@@ -1182,6 +1188,9 @@ export const translations = {
       companyPerMonth: '/Ay',
       companyNoData: 'Veri bulunamadı. Yolculuk ve ödeme verilerini yükleyin.',
       tableSummaryRow: 'Toplam (tümü)',
+      companyPromoEarned: 'Kazanılan Reklam Parası',
+      companyPromoPaid: 'Ödenen Reklam Parası',
+      companyPromoDiff: 'Reklam Farkı',
     },
   },
   ar: {
@@ -1574,6 +1583,9 @@ export const translations = {
       companyPerMonth: '/شهر',
       companyNoData: 'لا توجد بيانات. قم بتحميل بيانات الرحلات والمدفوعات.',
       tableSummaryRow: 'المجموع (الكل)',
+      companyPromoEarned: 'أموال الترويج المكتسبة',
+      companyPromoPaid: 'أموال الترويج المدفوعة',
+      companyPromoDiff: 'فرق الترويج',
     },
   },
 } as const;

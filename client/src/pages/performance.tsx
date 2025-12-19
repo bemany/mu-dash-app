@@ -54,6 +54,8 @@ import {
   Moon,
   X,
   Search,
+  Banknote,
+  TrendingUp,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -1570,12 +1572,13 @@ interface CompanyTabProps {
   commissionsData: CommissionAnalysis | undefined;
   driversData: { summary: DriverReportSummary; drivers: DriverReportRow[] } | undefined;
   vehiclesData: { summary: VehicleReportSummary; vehicles: VehicleReportRow[] } | undefined;
+  promoData: { summary: PromoReportSummary; rows: PromoReportRow[] } | undefined;
   isLoading: boolean;
   isDemo: boolean;
   dateRange: DateRange | undefined;
 }
 
-function CompanyTab({ commissionsData, driversData, vehiclesData, isLoading, isDemo, dateRange }: CompanyTabProps) {
+function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isLoading, isDemo, dateRange }: CompanyTabProps) {
   const { t } = useTranslation();
   const [fareMetric, setFareMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [revenueMetric, setRevenueMetric] = useState<"total" | "day" | "week" | "month">("total");
@@ -1737,6 +1740,29 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, isLoading, isD
           title={t('performance.companyPerTrip')}
           value={formatCurrency(summary.revenuePerTrip)}
           icon={<Car className="w-5 h-5" />}
+        />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KpiCard
+          testId="kpi-company-promo-earned"
+          title={t('performance.companyPromoEarned')}
+          value={formatCurrency(promoData?.summary?.totalTheoreticalBonus || 0)}
+          icon={<Gift className="w-5 h-5" />}
+          className="border-emerald-200 bg-emerald-50"
+        />
+        <KpiCard
+          testId="kpi-company-promo-paid"
+          title={t('performance.companyPromoPaid')}
+          value={formatCurrency(promoData?.summary?.totalActualPaid || 0)}
+          icon={<Banknote className="w-5 h-5" />}
+          className="border-blue-200 bg-blue-50"
+        />
+        <KpiCard
+          testId="kpi-company-promo-diff"
+          title={t('performance.companyPromoDiff')}
+          value={formatCurrency(promoData?.summary?.totalDifference || 0)}
+          icon={<TrendingUp className="w-5 h-5" />}
+          className={(promoData?.summary?.totalDifference || 0) < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}
         />
       </div>
     </div>
@@ -2320,7 +2346,8 @@ export default function PerformancePage() {
             commissionsData={commissionsData}
             driversData={driversData}
             vehiclesData={vehiclesData}
-            isLoading={commissionsLoading || driversLoading || vehiclesLoading}
+            promoData={promoData}
+            isLoading={commissionsLoading || driversLoading || vehiclesLoading || promoLoading}
             isDemo={isDemo}
             dateRange={dateRange}
           />
