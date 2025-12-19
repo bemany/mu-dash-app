@@ -1603,9 +1603,13 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
     );
   }
   
+  const avgFeePerTrip = filteredSummary.tripCount > 0 
+    ? filteredSummary.totalCommission / filteredSummary.tripCount / 100 
+    : 0;
+  
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <KpiCard
           testId="kpi-commission-fareprice"
           title={t('performance.commissionFarePrice')}
@@ -1630,6 +1634,13 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
           title={t('performance.commissionPercent')}
           value={`${filteredSummary.commissionPercent.toFixed(1)}%`}
           icon={<Car className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-commission-avg-per-trip"
+          title={t('performance.commissionAvgPerTrip')}
+          value={formatCurrency(avgFeePerTrip)}
+          icon={<Car className="w-5 h-5" />}
+          className="border-amber-200 bg-amber-50"
         />
       </div>
       
