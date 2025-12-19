@@ -1519,7 +1519,9 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      const month = tx.transaction_time.toISOString().slice(0, 7); // YYYY-MM
+      // Ensure transaction_time is a Date object (might come as string from SQL)
+      const txTime = tx.transaction_time instanceof Date ? tx.transaction_time : new Date(tx.transaction_time);
+      const month = txTime.toISOString().slice(0, 7); // YYYY-MM
       
       if (existing) {
         // Sum up values for the same trip
