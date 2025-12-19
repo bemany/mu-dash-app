@@ -17,6 +17,16 @@ interface Update {
 const updates: Update[] = [
   {
     date: "19.12.2024",
+    version: "1.9.0",
+    items: [
+      { type: 'feature', text: "Neuer 'Unternehmen' Tab mit umfassender Unternehmensübersicht" },
+      { type: 'feature', text: "12 KPI-Kacheln: Umsatz, Provision, Fahrten, Fahrer, Fahrzeuge, Werbegelder und mehr" },
+      { type: 'feature', text: "Summenzeile 'Gesamt (alle)' in Fahrer- und Fahrzeuge-Tabellen" },
+      { type: 'improvement', text: "KPI-Kacheln größer und übersichtlicher (4 pro Zeile)" },
+    ]
+  },
+  {
+    date: "19.12.2024",
     version: "1.8.0",
     items: [
       { type: 'feature', text: "Neuer 'Provision' Tab im Performance Dashboard zur Analyse der Uber-Provision" },
