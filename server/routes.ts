@@ -365,13 +365,16 @@ export async function registerRoutes(
         
         const tripUuid = tx["Fahrt-UUID"] || null;
         // Support both column formats: with spaces around colons and without
+        // Also support the already-extracted fields from client-side processing
         const revenue = parseEuroAmountLocal(
           tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze"]
+          tx["An dein Unternehmen gezahlt:Deine Umsätze"] ||
+          tx["revenue"]
         );
         const farePrice = parseEuroAmountLocal(
           tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"]
+          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"] ||
+          tx["farePrice"]
         );
         
         return {
