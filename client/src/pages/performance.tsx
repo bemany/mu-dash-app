@@ -789,13 +789,6 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           icon={<User className="w-5 h-5" />}
         />
         <KpiCard
-          testId="kpi-driver-shifts"
-          title={t('performance.kpiShifts')}
-          value={filteredSummary.totalShifts.toString()}
-          icon={<Clock className="w-5 h-5" />}
-          onClick={() => setShowShiftsDialog(true)}
-        />
-        <KpiCard
           testId="kpi-driver-trips"
           title=""
           value={formatNumber(tripsValue, 1)}
@@ -810,6 +803,13 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             ],
             onChange: setTripsMetric,
           }}
+        />
+        <KpiCard
+          testId="kpi-driver-shifts"
+          title={t('performance.kpiShifts')}
+          value={filteredSummary.totalShifts.toString()}
+          icon={<Clock className="w-5 h-5" />}
+          onClick={() => setShowShiftsDialog(true)}
         />
       </div>
       
