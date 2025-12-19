@@ -630,13 +630,16 @@ export async function registerRoutes(
         
         // Extract revenue and farePrice for trip-based transactions
         // Support both column formats: with spaces around colons and without
+        // Also support the already-extracted fields from client-side processing
         const revenue = parseEuroAmount(
           tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze"]
+          tx["An dein Unternehmen gezahlt:Deine Umsätze"] ||
+          tx["revenue"]
         );
         const farePrice = parseEuroAmount(
           tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"]
+          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"] ||
+          tx["farePrice"]
         );
 
         return {

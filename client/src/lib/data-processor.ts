@@ -46,16 +46,24 @@ export function processPaymentCSV(rawData: any[]): UberTransaction[] {
       // Extract tripUuid for trip-based payments
       const tripUuid = row["Fahrt-UUID"] || null;
       
+      // Extract farePrice and revenue for commission calculation
+      // Support both column formats: with spaces around colons and without
+      const farePrice = row["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
+                        row["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"] || null;
+      const revenue = row["An dein Unternehmen gezahlt : Deine Umsätze"] || 
+                      row["An dein Unternehmen gezahlt:Deine Umsätze"] || null;
+      
       return {
         "Kennzeichen": licensePlate,
         "Zeitpunkt": timestamp,
         "Betrag": amount,
         "Beschreibung": description,
         "Firmenname": row["Name des Unternehmens"] || "",
-        "Fahrt-UUID": tripUuid
+        "Fahrt-UUID": tripUuid,
+        "farePrice": farePrice,
+        "revenue": revenue
       };
     });
-    // Remove the filter for Kennzeichen - trip payments may not have it
 }
 
 export interface AggregatedTrip {
