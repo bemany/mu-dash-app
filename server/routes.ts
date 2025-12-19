@@ -550,7 +550,11 @@ export async function registerRoutes(
 
         if (isNaN(timestamp.getTime())) return false;
 
-        const licensePlate = extractLicensePlate(tx["Beschreibung"] || "");
+        // Check for direct Kennzeichen column first, then extract from Beschreibung
+        let licensePlate = tx["Kennzeichen"];
+        if (!licensePlate && tx["Beschreibung"]) {
+          licensePlate = extractLicensePlate(tx["Beschreibung"]);
+        }
         const tripUuid = tx["Fahrt-UUID"] || null;
         
         // Accept if we have either a license plate OR a trip UUID
@@ -592,7 +596,11 @@ export async function registerRoutes(
           timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
         }
 
-        const licensePlate = extractLicensePlate(tx["Beschreibung"] || "") || "";
+        // Check for direct Kennzeichen column first, then extract from Beschreibung
+        let licensePlate = tx["Kennzeichen"] || "";
+        if (!licensePlate && tx["Beschreibung"]) {
+          licensePlate = extractLicensePlate(tx["Beschreibung"]) || "";
+        }
         const tripUuid = tx["Fahrt-UUID"] || null;
         
         // Extract revenue and farePrice for trip-based transactions
