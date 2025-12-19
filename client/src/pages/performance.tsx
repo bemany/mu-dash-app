@@ -1727,7 +1727,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
       totalShifts: driverSummary.totalShifts,
       totalTrips: commSummary.tripCount,
       cancellationRate,
-      occupancyRate: vehicleSummary.avgOccupancyRate || driverSummary.avgOccupancyRate || 0,
+      occupancyRate: vehicleSummary.avgOccupancyRate || 0,
       pricePerKm,
       revenuePerTrip,
     };
