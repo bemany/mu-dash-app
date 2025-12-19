@@ -324,11 +324,10 @@ export async function registerRoutes(
         }
         const tripUuid = tx["Fahrt-UUID"] || null;
         
-        // Accept if we have either a license plate OR a trip UUID
-        if (!licensePlate && !tripUuid) return false;
+        // Import ALL payments - no filter on license plate or tripUuid
         
         const amountCents = Math.round(amount * 100);
-        const keyIdentifier = tripUuid || licensePlate;
+        const keyIdentifier = tripUuid || licensePlate || (tx["Beschreibung"] || "unknown");
         const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
         if (existingKeys.has(key)) {
           return false;
@@ -557,12 +556,11 @@ export async function registerRoutes(
         }
         const tripUuid = tx["Fahrt-UUID"] || null;
         
-        // Accept if we have either a license plate OR a trip UUID
-        if (!licensePlate && !tripUuid) return false;
+        // Import ALL payments - no filter on license plate or tripUuid
 
         const amountCents = Math.round(amount * 100);
-        // For trip-based transactions, use tripUuid as part of the key
-        const keyIdentifier = tripUuid || licensePlate;
+        // For deduplication, use tripUuid, licensePlate, or description hash
+        const keyIdentifier = tripUuid || licensePlate || (tx["Beschreibung"] || "unknown");
         const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
         if (existingTxKeys.has(key)) return false;
         existingTxKeys.add(key);
