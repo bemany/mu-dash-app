@@ -347,6 +347,10 @@ export const translations = {
       tableTotalRevenue: 'Gesamtumsatz',
       kpiPerTrip: '€/Fahrt',
       kpiPerMonth: '€/Monat',
+      kpiTripsPerHour: 'Fahrten/h',
+      kpiTripsPerDay: 'Fahrten/Tag',
+      kpiTripsPerWeek: 'Fahrten/Woche',
+      kpiTripsPerMonth: 'Fahrten/Monat',
     },
   },
   en: {
@@ -688,6 +692,10 @@ export const translations = {
       tableTotalRevenue: 'Total Revenue',
       kpiPerTrip: '€/Trip',
       kpiPerMonth: '€/Month',
+      kpiTripsPerHour: 'Trips/h',
+      kpiTripsPerDay: 'Trips/Day',
+      kpiTripsPerWeek: 'Trips/Week',
+      kpiTripsPerMonth: 'Trips/Month',
     },
   },
   tr: {
@@ -1029,6 +1037,10 @@ export const translations = {
       tableTotalRevenue: 'Toplam Gelir',
       kpiPerTrip: '€/Yolculuk',
       kpiPerMonth: '€/Ay',
+      kpiTripsPerHour: 'Sefer/s',
+      kpiTripsPerDay: 'Sefer/Gün',
+      kpiTripsPerWeek: 'Sefer/Hafta',
+      kpiTripsPerMonth: 'Sefer/Ay',
     },
   },
   ar: {
@@ -1370,6 +1382,10 @@ export const translations = {
       tableTotalRevenue: 'إجمالي الإيرادات',
       kpiPerTrip: '€/رحلة',
       kpiPerMonth: '€/شهر',
+      kpiTripsPerHour: 'رحلات/س',
+      kpiTripsPerDay: 'رحلات/يوم',
+      kpiTripsPerWeek: 'رحلات/أسبوع',
+      kpiTripsPerMonth: 'رحلات/شهر',
     },
   },
 } as const;

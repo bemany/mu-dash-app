@@ -453,6 +453,8 @@ interface DriversTabProps {
   setTimeMetric: (value: string) => void;
   distanceMetric: string;
   setDistanceMetric: (value: string) => void;
+  tripsMetric: string;
+  setTripsMetric: (value: string) => void;
   selectedDrivers: string[];
   setSelectedDrivers: (drivers: string[]) => void;
 }
@@ -637,7 +639,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
   );
 }
 
-function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
+function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, tripsMetric, setTripsMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
@@ -725,9 +727,26 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     ? filteredSummary.avgRevenuePerKm 
     : filteredSummary.avgRevenuePerTrip;
   
+  const tripsPerHour = filteredSummary.totalHoursWorked > 0 
+    ? filteredSummary.totalTrips / filteredSummary.totalHoursWorked 
+    : 0;
+  const activeDays = Math.max(1, filteredSummary.totalShifts);
+  const tripsPerDay = filteredSummary.totalTrips / activeDays;
+  const tripsPerWeek = tripsPerDay * 7;
+  const activeMonths = Math.max(1, Math.ceil(activeDays / 22));
+  const tripsPerMonth = filteredSummary.totalTrips / activeMonths;
+  
+  const tripsValue = tripsMetric === "hour" 
+    ? tripsPerHour 
+    : tripsMetric === "day" 
+      ? tripsPerDay 
+      : tripsMetric === "week"
+        ? tripsPerWeek
+        : tripsPerMonth;
+  
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard
           testId="kpi-driver-time"
           title=""
@@ -769,6 +788,22 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
+        />
+        <KpiCard
+          testId="kpi-driver-trips"
+          title=""
+          value={formatNumber(tripsValue, 1)}
+          icon={<Car className="w-5 h-5" />}
+          tags={{
+            value: tripsMetric,
+            options: [
+              { value: "hour", label: t('performance.kpiTripsPerHour') },
+              { value: "day", label: t('performance.kpiTripsPerDay') },
+              { value: "week", label: t('performance.kpiTripsPerWeek') },
+              { value: "month", label: t('performance.kpiTripsPerMonth') },
+            ],
+            onChange: setTripsMetric,
+          }}
         />
       </div>
       
@@ -861,6 +896,8 @@ interface VehiclesTabProps {
   setTimeMetric: (value: string) => void;
   distanceMetric: string;
   setDistanceMetric: (value: string) => void;
+  tripsMetric: string;
+  setTripsMetric: (value: string) => void;
   selectedVehicles: string[];
   setSelectedVehicles: (vehicles: string[]) => void;
 }
@@ -982,7 +1019,7 @@ function VehicleShiftsDialog({ open, onOpenChange, vehicles, isDemo }: VehicleSh
   );
 }
 
-function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, selectedVehicles, setSelectedVehicles }: VehiclesTabProps) {
+function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, tripsMetric, setTripsMetric, selectedVehicles, setSelectedVehicles }: VehiclesTabProps) {
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
@@ -1070,9 +1107,26 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     ? filteredSummary.avgRevenuePerKm 
     : filteredSummary.avgRevenuePerTrip;
   
+  const tripsPerHour = filteredSummary.totalHoursWorked > 0 
+    ? filteredSummary.totalTrips / filteredSummary.totalHoursWorked 
+    : 0;
+  const activeDays = Math.max(1, filteredSummary.totalShifts);
+  const tripsPerDay = filteredSummary.totalTrips / activeDays;
+  const tripsPerWeek = tripsPerDay * 7;
+  const activeMonths = Math.max(1, Math.ceil(activeDays / 22));
+  const tripsPerMonth = filteredSummary.totalTrips / activeMonths;
+  
+  const tripsValue = tripsMetric === "hour" 
+    ? tripsPerHour 
+    : tripsMetric === "day" 
+      ? tripsPerDay 
+      : tripsMetric === "week"
+        ? tripsPerWeek
+        : tripsPerMonth;
+  
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard
           testId="kpi-vehicle-time"
           title=""
@@ -1114,6 +1168,22 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
+        />
+        <KpiCard
+          testId="kpi-vehicle-trips"
+          title=""
+          value={formatNumber(tripsValue, 1)}
+          icon={<Car className="w-5 h-5" />}
+          tags={{
+            value: tripsMetric,
+            options: [
+              { value: "hour", label: t('performance.kpiTripsPerHour') },
+              { value: "day", label: t('performance.kpiTripsPerDay') },
+              { value: "week", label: t('performance.kpiTripsPerWeek') },
+              { value: "month", label: t('performance.kpiTripsPerMonth') },
+            ],
+            onChange: setTripsMetric,
+          }}
         />
       </div>
       
@@ -1327,6 +1397,7 @@ export default function PerformancePage() {
   const [activeTab, setActiveTab] = useState("drivers");
   const [timeMetric, setTimeMetric] = useState<string>("hour");
   const [distanceMetric, setDistanceMetric] = useState<string>("km");
+  const [tripsMetric, setTripsMetric] = useState<string>("hour");
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
@@ -1592,6 +1663,8 @@ export default function PerformancePage() {
             setTimeMetric={setTimeMetric}
             distanceMetric={distanceMetric}
             setDistanceMetric={setDistanceMetric}
+            tripsMetric={tripsMetric}
+            setTripsMetric={setTripsMetric}
             selectedDrivers={selectedDrivers}
             setSelectedDrivers={setSelectedDrivers}
           />
@@ -1605,6 +1678,8 @@ export default function PerformancePage() {
             setTimeMetric={setTimeMetric}
             distanceMetric={distanceMetric}
             setDistanceMetric={setDistanceMetric}
+            tripsMetric={tripsMetric}
+            setTripsMetric={setTripsMetric}
             selectedVehicles={selectedVehicles}
             setSelectedVehicles={setSelectedVehicles}
           />
