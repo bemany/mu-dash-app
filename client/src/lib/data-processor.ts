@@ -25,27 +25,37 @@ export function parsePaymentTimestamp(timestamp: string): Date {
 export function processPaymentCSV(rawData: any[]): UberTransaction[] {
   return rawData
     .filter(row => {
-      const description = row["Beschreibung"] || "";
-      return description.startsWith("Fahrzeugbasierte Aktion für");
+      // Accept ALL payments that have either:
+      // - A timestamp (vs-Berichterstattung or Zeitpunkt)
+      // - An amount (An dein Unternehmen gezahlt or Betrag)
+      const hasTimestamp = row["vs-Berichterstattung"] || row["Zeitpunkt"];
+      const hasAmount = row["An dein Unternehmen gezahlt"] !== undefined || row["Betrag"] !== undefined;
+      return hasTimestamp && hasAmount;
     })
     .map(row => {
       const description = row["Beschreibung"] || "";
-      const licensePlate = extractLicensePlate(description);
-      const amountStr = row["An dein Unternehmen gezahlt"] || "0";
+      // Extract license plate from description if available
+      let licensePlate = row["Kennzeichen"] || extractLicensePlate(description) || "";
+      
+      const amountStr = row["An dein Unternehmen gezahlt"] ?? row["Betrag"] ?? "0";
       const amount = typeof amountStr === 'string' 
         ? parseFloat(amountStr.replace(',', '.')) 
         : amountStr;
-      const timestamp = row["vs-Berichterstattung"] || "";
+      const timestamp = row["vs-Berichterstattung"] || row["Zeitpunkt"] || "";
+      
+      // Extract tripUuid for trip-based payments
+      const tripUuid = row["Fahrt-UUID"] || null;
       
       return {
-        "Kennzeichen": licensePlate || "",
+        "Kennzeichen": licensePlate,
         "Zeitpunkt": timestamp,
         "Betrag": amount,
         "Beschreibung": description,
-        "Firmenname": row["Name des Unternehmens"] || ""
+        "Firmenname": row["Name des Unternehmens"] || "",
+        "Fahrt-UUID": tripUuid
       };
-    })
-    .filter(tx => tx["Kennzeichen"]);
+    });
+    // Remove the filter for Kennzeichen - trip payments may not have it
 }
 
 export interface AggregatedTrip {
