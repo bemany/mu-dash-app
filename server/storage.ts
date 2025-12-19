@@ -1461,39 +1461,66 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommissionAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<CommissionAnalysis> {
-    // Get all transactions with trip data (where tripUuid is set)
-    let query = sql`
+    // Step 1: Get fare prices from TRIPS (what customer pays)
+    let tripsQuery = sql`
       SELECT 
-        t.trip_uuid,
-        t.revenue,
-        t.fare_price,
-        t.transaction_time,
-        t.license_plate,
-        t.raw_data
-      FROM transactions t
-      WHERE t.session_id = ${sessionId}
-        AND t.trip_uuid IS NOT NULL
-        AND t.fare_price IS NOT NULL
+        raw_data->>'Fahrt-UUID' as trip_uuid,
+        raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' as fare_price,
+        license_plate,
+        order_time,
+        raw_data->>'Vorname des Fahrers' as first_name,
+        raw_data->>'Nachname des Fahrers' as last_name
+      FROM trips
+      WHERE session_id = ${sessionId}
+        AND raw_data->>'Fahrt-UUID' IS NOT NULL
+        AND raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' IS NOT NULL
     `;
     
     if (startDate) {
-      query = sql`${query} AND t.transaction_time >= ${startDate}`;
+      tripsQuery = sql`${tripsQuery} AND order_time >= ${startDate}`;
     }
     if (endDate) {
-      query = sql`${query} AND t.transaction_time <= ${endDate}`;
+      tripsQuery = sql`${tripsQuery} AND order_time <= ${endDate}`;
     }
     
-    const result = await db.execute(query);
-    const txRows = result.rows as Array<{
+    const tripsResult = await db.execute(tripsQuery);
+    const tripRows = tripsResult.rows as Array<{
       trip_uuid: string;
-      revenue: number | null;
-      fare_price: number | null;
-      transaction_time: Date;
+      fare_price: string;
       license_plate: string;
-      raw_data: any;
+      order_time: Date;
+      first_name: string | null;
+      last_name: string | null;
     }>;
 
-    // Group by tripUuid to aggregate multiple payments per trip
+    // Step 2: Get revenue from TRANSACTIONS (what you receive)
+    let txQuery = sql`
+      SELECT 
+        trip_uuid,
+        SUM(revenue) as total_revenue
+      FROM transactions
+      WHERE session_id = ${sessionId}
+        AND trip_uuid IS NOT NULL
+        AND revenue IS NOT NULL
+      GROUP BY trip_uuid
+    `;
+    
+    const txResult = await db.execute(txQuery);
+    const txRows = txResult.rows as Array<{
+      trip_uuid: string;
+      total_revenue: string | number;
+    }>;
+    
+    // Create a map of tripUuid -> revenue
+    const revenueMap = new Map<string, number>();
+    for (const tx of txRows) {
+      const revenue = typeof tx.total_revenue === 'string' 
+        ? parseFloat(tx.total_revenue) 
+        : tx.total_revenue;
+      revenueMap.set(tx.trip_uuid, revenue || 0);
+    }
+
+    // Step 3: Combine trips with their revenue
     const tripMap = new Map<string, {
       farePrice: number;
       revenue: number;
@@ -1502,36 +1529,22 @@ export class DatabaseStorage implements IStorage {
       month: string;
     }>();
 
-    for (const tx of txRows) {
-      const tripUuid = tx.trip_uuid;
-      const existing = tripMap.get(tripUuid);
-      const farePrice = tx.fare_price || 0;
-      const revenue = tx.revenue || 0;
+    for (const trip of tripRows) {
+      const tripUuid = trip.trip_uuid;
+      const farePrice = parseFloat(trip.fare_price.replace(',', '.')) || 0;
+      const revenue = revenueMap.get(tripUuid) || 0;
       
-      // Extract driver name from rawData
-      let driverName = 'Unbekannt';
-      if (tx.raw_data) {
-        const rawData = typeof tx.raw_data === 'string' ? JSON.parse(tx.raw_data) : tx.raw_data;
-        const firstName = rawData['Vorname des Fahrers'] || '';
-        const lastName = rawData['Nachname des Fahrers'] || '';
-        if (firstName || lastName) {
-          driverName = `${firstName} ${lastName}`.trim();
-        }
-      }
+      const driverName = [trip.first_name, trip.last_name].filter(Boolean).join(' ') || 'Unbekannt';
       
-      // Ensure transaction_time is a Date object (might come as string from SQL)
-      const txTime = tx.transaction_time instanceof Date ? tx.transaction_time : new Date(tx.transaction_time);
-      const month = txTime.toISOString().slice(0, 7); // YYYY-MM
+      const orderTime = trip.order_time instanceof Date ? trip.order_time : new Date(trip.order_time);
+      const month = orderTime.toISOString().slice(0, 7); // YYYY-MM
       
-      if (existing) {
-        // Sum up values for the same trip
-        existing.farePrice += farePrice;
-        existing.revenue += revenue;
-      } else {
+      // Only include if we have revenue data for this trip
+      if (revenueMap.has(tripUuid)) {
         tripMap.set(tripUuid, {
           farePrice,
           revenue,
-          licensePlate: tx.license_plate,
+          licensePlate: trip.license_plate,
           driverName,
           month,
         });
