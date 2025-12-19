@@ -350,7 +350,7 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, pres
               onSelect={onDateChange}
               numberOfMonths={2}
               locale={dateLocale}
-              captionLayout="dropdown-months"
+              captionLayout="dropdown"
               classNames={{
                 months: "flex flex-col sm:flex-row space-y-4 sm:space-x-6 sm:space-y-0",
                 month: "space-y-4",
