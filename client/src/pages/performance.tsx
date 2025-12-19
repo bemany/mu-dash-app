@@ -1401,6 +1401,7 @@ export default function PerformancePage() {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
+  const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -1420,6 +1421,7 @@ export default function PerformancePage() {
         setSelectedDrivers([]);
         setSelectedVehicles([]);
         setHasInitializedDateRange(false);
+        setHasInitializedFilters(false);
       }
       setLastVorgangsId(currentVorgangsId);
     }
@@ -1516,16 +1518,12 @@ export default function PerformancePage() {
   }, [isDemo, vehiclesData]);
 
   useEffect(() => {
-    if (allDrivers.length > 0 && selectedDrivers.length === 0) {
+    if (!hasInitializedFilters && allDrivers.length > 0 && allVehicles.length > 0) {
       setSelectedDrivers(allDrivers.map(d => d.value));
-    }
-  }, [allDrivers, selectedDrivers.length]);
-
-  useEffect(() => {
-    if (allVehicles.length > 0 && selectedVehicles.length === 0) {
       setSelectedVehicles(allVehicles.map(v => v.value));
+      setHasInitializedFilters(true);
     }
-  }, [allVehicles, selectedVehicles.length]);
+  }, [allDrivers, allVehicles, hasInitializedFilters]);
 
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
