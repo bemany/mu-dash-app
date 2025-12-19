@@ -2223,13 +2223,6 @@ export default function PerformancePage() {
                 <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
               </TabsList>
             </div>
-            <DatePickerWithRange 
-              date={dateRange} 
-              onDateChange={setDateRange} 
-              placeholder={t('performance.datePickerPlaceholder')}
-              dateLocale={dateLocale}
-              presets={presets}
-            />
           </div>
           <div className="flex items-center gap-3 flex-wrap min-h-[40px]">
             {activeTab === "drivers" && (
@@ -2305,6 +2298,13 @@ export default function PerformancePage() {
                 />
               </>
             )}
+            <DatePickerWithRange 
+              date={dateRange} 
+              onDateChange={setDateRange} 
+              placeholder={t('performance.datePickerPlaceholder')}
+              dateLocale={dateLocale}
+              presets={presets}
+            />
           </div>
         </div>
 
