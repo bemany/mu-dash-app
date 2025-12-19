@@ -93,6 +93,8 @@ export interface DriverReportRow {
   cancelledTrips: number;
   totalTrips: number;
   avgFarePerTrip: number;
+  avgRevenuePerTrip: number;
+  totalRevenue: number;
   distanceInTrip: number;
   pricePerKm: number;
   revenuePerDay: number;
@@ -126,6 +128,7 @@ export interface VehicleReportRow {
   cancelledTrips: number;
   totalTrips: number;
   avgFarePerTrip: number;
+  avgRevenuePerTrip: number;
   distanceInTrip: number;
   pricePerKm: number;
   revenuePerDay: number;
@@ -1022,36 +1025,39 @@ export class DatabaseStorage implements IStorage {
     const result = await db.execute(sql`
       WITH trip_data AS (
         SELECT 
-          COALESCE(raw_data->>'Vorname des Fahrers', '') as first_name,
-          COALESCE(raw_data->>'Nachname des Fahrers', '') as last_name,
-          order_time,
-          LOWER(COALESCE(trip_status, '')) as status,
+          t.trip_id,
+          COALESCE(t.raw_data->>'Vorname des Fahrers', '') as first_name,
+          COALESCE(t.raw_data->>'Nachname des Fahrers', '') as last_name,
+          t.order_time,
+          LOWER(COALESCE(t.trip_status, '')) as status,
           CASE 
-            WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
-            THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            WHEN t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
             ELSE 0
           END as fare,
+          COALESCE(tx.revenue, 0) / 100.0 as revenue,
           CASE 
-            WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
-            THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            WHEN t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrtdistanz', ',', '.')::numeric
             ELSE 0
           END as distance_m,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
-              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+            WHEN t.raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+              AND t.raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN GREATEST(0, EXTRACT(EPOCH FROM (
-              (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
-              (raw_data->>'Startzeit der Fahrt')::timestamp
+              (t.raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
+              (t.raw_data->>'Startzeit der Fahrt')::timestamp
             )) / 3600)
             ELSE 0
           END as trip_hours,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
-            THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
-            ELSE EXTRACT(HOUR FROM order_time)
+            WHEN t.raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+            THEN EXTRACT(HOUR FROM (t.raw_data->>'Startzeit der Fahrt')::timestamp)
+            ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
-        FROM trips
-        WHERE session_id = ${sessionId}
+        FROM trips t
+        LEFT JOIN transactions tx ON t.trip_id = tx.trip_uuid AND tx.session_id = ${sessionId}
+        WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
       trip_with_shift_type AS (
@@ -1071,6 +1077,7 @@ export class DatabaseStorage implements IStorage {
           order_time,
           status,
           fare,
+          revenue,
           distance_m,
           trip_hours,
           shift_type,
@@ -1096,6 +1103,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
           COUNT(*) as total_trips,
           SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
+          SUM(CASE WHEN status = 'completed' THEN revenue ELSE 0 END) as total_revenue,
           SUM(distance_m) as total_distance_m,
           SUM(trip_hours) as total_hours,
           SUM(is_new_shift) as shift_count,
@@ -1113,10 +1121,12 @@ export class DatabaseStorage implements IStorage {
         cancelled_trips,
         total_trips,
         CASE WHEN completed_trips > 0 THEN total_fare / completed_trips ELSE 0 END as avg_fare_per_trip,
+        CASE WHEN completed_trips > 0 THEN total_revenue / completed_trips ELSE 0 END as avg_revenue_per_trip,
+        total_revenue,
         total_distance_m as distance_in_trip,
-        CASE WHEN total_distance_m > 0 THEN total_fare / total_distance_m ELSE 0 END as price_per_km,
-        CASE WHEN active_days > 0 THEN total_fare / active_days ELSE 0 END as revenue_per_day,
-        CASE WHEN total_hours > 0 THEN total_fare / total_hours ELSE 0 END as revenue_per_hour,
+        CASE WHEN total_distance_m > 0 THEN total_revenue / total_distance_m ELSE 0 END as price_per_km,
+        CASE WHEN active_days > 0 THEN total_revenue / active_days ELSE 0 END as revenue_per_day,
+        CASE WHEN total_hours > 0 THEN total_revenue / total_hours ELSE 0 END as revenue_per_hour,
         CASE WHEN total_hours > 0 THEN completed_trips::numeric / total_hours ELSE 0 END as trips_per_hour,
         CASE WHEN total_trips > 0 
           THEN (completed_trips::numeric / total_trips) * 100 
@@ -1129,7 +1139,7 @@ export class DatabaseStorage implements IStorage {
         active_days,
         active_months
       FROM driver_metrics
-      ORDER BY total_fare DESC
+      ORDER BY total_revenue DESC
     `);
 
     if (result.rows.length > 0) {
@@ -1144,6 +1154,8 @@ export class DatabaseStorage implements IStorage {
       cancelledTrips: Number(row.cancelled_trips) || 0,
       totalTrips: Number(row.total_trips) || 0,
       avgFarePerTrip: Number(row.avg_fare_per_trip) || 0,
+      avgRevenuePerTrip: Number(row.avg_revenue_per_trip) || 0,
+      totalRevenue: Number(row.total_revenue) || 0,
       distanceInTrip: Number(row.distance_in_trip) || 0,
       pricePerKm: Number(row.price_per_km) || 0,
       revenuePerDay: Number(row.revenue_per_day) || 0,
@@ -1156,7 +1168,7 @@ export class DatabaseStorage implements IStorage {
       nightShiftCount: Number(row.night_shift_count) || 0,
     }));
 
-    const totalRevenue = drivers.reduce((sum, d) => sum + d.avgFarePerTrip * d.completedTrips, 0);
+    const totalRevenue = drivers.reduce((sum, d) => sum + d.totalRevenue, 0);
     const totalDistance = drivers.reduce((sum, d) => sum + d.distanceInTrip, 0);
     const totalHoursWorked = drivers.reduce((sum, d) => sum + d.timeInTrip, 0);
     const totalTrips = drivers.reduce((sum, d) => sum + d.completedTrips, 0);
@@ -1190,35 +1202,38 @@ export class DatabaseStorage implements IStorage {
     const result = await db.execute(sql`
       WITH trip_data AS (
         SELECT 
-          license_plate,
-          order_time,
-          LOWER(COALESCE(trip_status, '')) as status,
+          t.trip_id,
+          t.license_plate,
+          t.order_time,
+          LOWER(COALESCE(t.trip_status, '')) as status,
           CASE 
-            WHEN raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
-            THEN REPLACE(raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            WHEN t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
             ELSE 0
           END as fare,
+          COALESCE(tx.revenue, 0) / 100.0 as revenue,
           CASE 
-            WHEN raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
-            THEN REPLACE(raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            WHEN t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrtdistanz', ',', '.')::numeric
             ELSE 0
           END as distance_m,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
-              AND raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+            WHEN t.raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+              AND t.raw_data->>'Ankunftszeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
             THEN GREATEST(0, EXTRACT(EPOCH FROM (
-              (raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
-              (raw_data->>'Startzeit der Fahrt')::timestamp
+              (t.raw_data->>'Ankunftszeit der Fahrt')::timestamp - 
+              (t.raw_data->>'Startzeit der Fahrt')::timestamp
             )) / 3600)
             ELSE 0
           END as trip_hours,
           CASE 
-            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
-            THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
-            ELSE EXTRACT(HOUR FROM order_time)
+            WHEN t.raw_data->>'Startzeit der Fahrt' ~ '^\\d{4}-\\d{2}-\\d{2}'
+            THEN EXTRACT(HOUR FROM (t.raw_data->>'Startzeit der Fahrt')::timestamp)
+            ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
-        FROM trips
-        WHERE session_id = ${sessionId}
+        FROM trips t
+        LEFT JOIN transactions tx ON t.trip_id = tx.trip_uuid AND tx.session_id = ${sessionId}
+        WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
       trip_with_shift_type AS (
@@ -1237,6 +1252,7 @@ export class DatabaseStorage implements IStorage {
           order_time,
           status,
           fare,
+          revenue,
           distance_m,
           trip_hours,
           shift_type,
@@ -1261,8 +1277,9 @@ export class DatabaseStorage implements IStorage {
           COUNT(*) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
           COUNT(*) as total_trips,
           SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
-          SUM(CASE WHEN status = 'completed' AND shift_type = 'day' THEN fare ELSE 0 END) as day_fare,
-          SUM(CASE WHEN status = 'completed' AND shift_type = 'night' THEN fare ELSE 0 END) as night_fare,
+          SUM(CASE WHEN status = 'completed' THEN revenue ELSE 0 END) as total_revenue,
+          SUM(CASE WHEN status = 'completed' AND shift_type = 'day' THEN revenue ELSE 0 END) as day_revenue,
+          SUM(CASE WHEN status = 'completed' AND shift_type = 'night' THEN revenue ELSE 0 END) as night_revenue,
           SUM(distance_m) as total_distance_m,
           SUM(trip_hours) as total_hours,
           SUM(is_new_shift) as shift_count,
@@ -1279,13 +1296,14 @@ export class DatabaseStorage implements IStorage {
         cancelled_trips,
         total_trips,
         CASE WHEN completed_trips > 0 THEN total_fare / completed_trips ELSE 0 END as avg_fare_per_trip,
+        CASE WHEN completed_trips > 0 THEN total_revenue / completed_trips ELSE 0 END as avg_revenue_per_trip,
         total_distance_m as distance_in_trip,
-        CASE WHEN total_distance_m > 0 THEN total_fare / total_distance_m ELSE 0 END as price_per_km,
-        CASE WHEN active_days > 0 THEN total_fare / active_days ELSE 0 END as revenue_per_day,
-        night_fare as revenue_night_shift,
-        day_fare as revenue_day_shift,
-        total_fare as total_revenue,
-        CASE WHEN total_hours > 0 THEN total_fare / total_hours ELSE 0 END as revenue_per_hour,
+        CASE WHEN total_distance_m > 0 THEN total_revenue / total_distance_m ELSE 0 END as price_per_km,
+        CASE WHEN active_days > 0 THEN total_revenue / active_days ELSE 0 END as revenue_per_day,
+        night_revenue as revenue_night_shift,
+        day_revenue as revenue_day_shift,
+        total_revenue,
+        CASE WHEN total_hours > 0 THEN total_revenue / total_hours ELSE 0 END as revenue_per_hour,
         CASE WHEN total_hours > 0 THEN completed_trips::numeric / total_hours ELSE 0 END as trips_per_hour,
         CASE WHEN total_trips > 0 
           THEN (completed_trips::numeric / total_trips) * 100 
@@ -1298,7 +1316,7 @@ export class DatabaseStorage implements IStorage {
         active_days,
         active_months
       FROM vehicle_metrics
-      ORDER BY total_fare DESC
+      ORDER BY total_revenue DESC
     `);
 
     const vehicles: VehicleReportRow[] = (result.rows as any[]).map(row => ({
@@ -1307,6 +1325,7 @@ export class DatabaseStorage implements IStorage {
       cancelledTrips: Number(row.cancelled_trips) || 0,
       totalTrips: Number(row.total_trips) || 0,
       avgFarePerTrip: Number(row.avg_fare_per_trip) || 0,
+      avgRevenuePerTrip: Number(row.avg_revenue_per_trip) || 0,
       distanceInTrip: Number(row.distance_in_trip) || 0,
       pricePerKm: Number(row.price_per_km) || 0,
       revenuePerDay: Number(row.revenue_per_day) || 0,

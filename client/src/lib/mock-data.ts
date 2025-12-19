@@ -244,6 +244,8 @@ export interface DriverReportRow {
   cancelledTrips: number;
   totalTrips: number;
   avgFarePerTrip: number;
+  avgRevenuePerTrip: number;
+  totalRevenue: number;
   distanceInTrip: number;
   pricePerKm: number;
   revenuePerDay: number;
@@ -277,6 +279,7 @@ export interface VehicleReportRow {
   cancelledTrips: number;
   totalTrips: number;
   avgFarePerTrip: number;
+  avgRevenuePerTrip: number;
   distanceInTrip: number;
   pricePerKm: number;
   revenuePerDay: number;
@@ -343,11 +346,11 @@ export const mockDriverReport: { summary: DriverReportSummary; drivers: DriverRe
     avgRevenuePerDriver: 4900,
   },
   drivers: [
-    { firstName: "Max", lastName: "Mustermann", completedTrips: 198, cancelledTrips: 12, totalTrips: 210, avgFarePerTrip: 26.26, distanceInTrip: 1250, pricePerKm: 4.16, revenuePerDay: 173.33, revenuePerHour: 72.22, tripsPerHour: 2.75, acceptanceRate: 94.3, timeInTrip: 72, shiftCount: 9, dayShiftCount: 6, nightShiftCount: 3 },
-    { firstName: "Anna", lastName: "Schmidt", completedTrips: 185, cancelledTrips: 8, totalTrips: 193, avgFarePerTrip: 26.22, distanceInTrip: 1180, pricePerKm: 4.11, revenuePerDay: 161.67, revenuePerHour: 71.32, tripsPerHour: 2.72, acceptanceRate: 95.9, timeInTrip: 68, shiftCount: 8, dayShiftCount: 2, nightShiftCount: 6 },
-    { firstName: "Thomas", lastName: "Weber", completedTrips: 172, cancelledTrips: 15, totalTrips: 187, avgFarePerTrip: 27.03, distanceInTrip: 1120, pricePerKm: 4.15, revenuePerDay: 155.00, revenuePerHour: 71.54, tripsPerHour: 2.65, acceptanceRate: 92.0, timeInTrip: 65, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3 },
-    { firstName: "Lisa", lastName: "Müller", completedTrips: 168, cancelledTrips: 5, totalTrips: 173, avgFarePerTrip: 26.49, distanceInTrip: 1080, pricePerKm: 4.12, revenuePerDay: 148.33, revenuePerHour: 71.77, tripsPerHour: 2.71, acceptanceRate: 97.1, timeInTrip: 62, shiftCount: 8, dayShiftCount: 7, nightShiftCount: 1 },
-    { firstName: "Mehmet", lastName: "Yilmaz", completedTrips: 169, cancelledTrips: 10, totalTrips: 179, avgFarePerTrip: 31.66, distanceInTrip: 1170, pricePerKm: 4.57, revenuePerDay: 178.33, revenuePerHour: 100.94, tripsPerHour: 3.19, acceptanceRate: 94.4, timeInTrip: 53, shiftCount: 7, dayShiftCount: 1, nightShiftCount: 6 },
+    { firstName: "Max", lastName: "Mustermann", completedTrips: 198, cancelledTrips: 12, totalTrips: 210, avgFarePerTrip: 26.26, avgRevenuePerTrip: 17.94, totalRevenue: 3552.12, distanceInTrip: 1250, pricePerKm: 2.84, revenuePerDay: 118.40, revenuePerHour: 49.33, tripsPerHour: 2.75, acceptanceRate: 94.3, timeInTrip: 72, shiftCount: 9, dayShiftCount: 6, nightShiftCount: 3 },
+    { firstName: "Anna", lastName: "Schmidt", completedTrips: 185, cancelledTrips: 8, totalTrips: 193, avgFarePerTrip: 26.22, avgRevenuePerTrip: 17.91, totalRevenue: 3313.35, distanceInTrip: 1180, pricePerKm: 2.81, revenuePerDay: 110.45, revenuePerHour: 48.73, tripsPerHour: 2.72, acceptanceRate: 95.9, timeInTrip: 68, shiftCount: 8, dayShiftCount: 2, nightShiftCount: 6 },
+    { firstName: "Thomas", lastName: "Weber", completedTrips: 172, cancelledTrips: 15, totalTrips: 187, avgFarePerTrip: 27.03, avgRevenuePerTrip: 18.46, totalRevenue: 3175.12, distanceInTrip: 1120, pricePerKm: 2.83, revenuePerDay: 105.84, revenuePerHour: 48.85, tripsPerHour: 2.65, acceptanceRate: 92.0, timeInTrip: 65, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3 },
+    { firstName: "Lisa", lastName: "Müller", completedTrips: 168, cancelledTrips: 5, totalTrips: 173, avgFarePerTrip: 26.49, avgRevenuePerTrip: 18.09, totalRevenue: 3039.12, distanceInTrip: 1080, pricePerKm: 2.81, revenuePerDay: 101.30, revenuePerHour: 49.02, tripsPerHour: 2.71, acceptanceRate: 97.1, timeInTrip: 62, shiftCount: 8, dayShiftCount: 7, nightShiftCount: 1 },
+    { firstName: "Mehmet", lastName: "Yilmaz", completedTrips: 169, cancelledTrips: 10, totalTrips: 179, avgFarePerTrip: 31.66, avgRevenuePerTrip: 21.62, totalRevenue: 3653.78, distanceInTrip: 1170, pricePerKm: 3.12, revenuePerDay: 121.79, revenuePerHour: 68.94, tripsPerHour: 3.19, acceptanceRate: 94.4, timeInTrip: 53, shiftCount: 7, dayShiftCount: 1, nightShiftCount: 6 },
   ],
 };
 
@@ -368,11 +371,11 @@ export const mockVehicleReport: { summary: VehicleReportSummary; vehicles: Vehic
     avgOccupancyRate: 72.5,
   },
   vehicles: [
-    { licensePlate: "DEMO-001", completedTrips: 228, cancelledTrips: 14, totalTrips: 242, avgFarePerTrip: 27.19, distanceInTrip: 1450, pricePerKm: 4.28, revenuePerDay: 206.67, revenueNightShift: 2800, revenueDayShift: 3400, totalRevenue: 6200, revenuePerHour: 72.94, tripsPerHour: 2.68, acceptanceRate: 94.2, timeInTrip: 85, shiftCount: 10, dayShiftCount: 6, nightShiftCount: 4, occupancyRate: 85.5 },
-    { licensePlate: "DEMO-002", completedTrips: 215, cancelledTrips: 11, totalTrips: 226, avgFarePerTrip: 27.21, distanceInTrip: 1380, pricePerKm: 4.24, revenuePerDay: 195.00, revenueNightShift: 2600, revenueDayShift: 3250, totalRevenue: 5850, revenuePerHour: 75.00, tripsPerHour: 2.76, acceptanceRate: 95.1, timeInTrip: 78, shiftCount: 9, dayShiftCount: 5, nightShiftCount: 4, occupancyRate: 78.2 },
-    { licensePlate: "DEMO-003", completedTrips: 198, cancelledTrips: 9, totalTrips: 207, avgFarePerTrip: 27.68, distanceInTrip: 1300, pricePerKm: 4.22, revenuePerDay: 182.67, revenueNightShift: 2400, revenueDayShift: 3080, totalRevenue: 5480, revenuePerHour: 76.11, tripsPerHour: 2.75, acceptanceRate: 95.7, timeInTrip: 72, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3, occupancyRate: 72.0 },
-    { licensePlate: "DEMO-004", completedTrips: 168, cancelledTrips: 8, totalTrips: 176, avgFarePerTrip: 27.68, distanceInTrip: 1100, pricePerKm: 4.23, revenuePerDay: 155.00, revenueNightShift: 2050, revenueDayShift: 2600, totalRevenue: 4650, revenuePerHour: 75.00, tripsPerHour: 2.71, acceptanceRate: 95.5, timeInTrip: 62, shiftCount: 8, dayShiftCount: 4, nightShiftCount: 4, occupancyRate: 65.8 },
-    { licensePlate: "DEMO-005", completedTrips: 83, cancelledTrips: 3, totalTrips: 86, avgFarePerTrip: 27.95, distanceInTrip: 570, pricePerKm: 4.07, revenuePerDay: 77.33, revenueNightShift: 1000, revenueDayShift: 1320, totalRevenue: 2320, revenuePerHour: 100.87, tripsPerHour: 3.61, acceptanceRate: 96.5, timeInTrip: 23, shiftCount: 4, dayShiftCount: 3, nightShiftCount: 1, occupancyRate: 61.0 },
+    { licensePlate: "DEMO-001", completedTrips: 228, cancelledTrips: 14, totalTrips: 242, avgFarePerTrip: 27.19, avgRevenuePerTrip: 18.57, distanceInTrip: 1450, pricePerKm: 2.92, revenuePerDay: 141.23, revenueNightShift: 1912, revenueDayShift: 2322, totalRevenue: 4234, revenuePerHour: 49.81, tripsPerHour: 2.68, acceptanceRate: 94.2, timeInTrip: 85, shiftCount: 10, dayShiftCount: 6, nightShiftCount: 4, occupancyRate: 85.5 },
+    { licensePlate: "DEMO-002", completedTrips: 215, cancelledTrips: 11, totalTrips: 226, avgFarePerTrip: 27.21, avgRevenuePerTrip: 18.59, distanceInTrip: 1380, pricePerKm: 2.90, revenuePerDay: 133.23, revenueNightShift: 1776, revenueDayShift: 2220, totalRevenue: 3996, revenuePerHour: 51.23, tripsPerHour: 2.76, acceptanceRate: 95.1, timeInTrip: 78, shiftCount: 9, dayShiftCount: 5, nightShiftCount: 4, occupancyRate: 78.2 },
+    { licensePlate: "DEMO-003", completedTrips: 198, cancelledTrips: 9, totalTrips: 207, avgFarePerTrip: 27.68, avgRevenuePerTrip: 18.90, distanceInTrip: 1300, pricePerKm: 2.88, revenuePerDay: 124.78, revenueNightShift: 1639, revenueDayShift: 2103, totalRevenue: 3742, revenuePerHour: 51.97, tripsPerHour: 2.75, acceptanceRate: 95.7, timeInTrip: 72, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3, occupancyRate: 72.0 },
+    { licensePlate: "DEMO-004", completedTrips: 168, cancelledTrips: 8, totalTrips: 176, avgFarePerTrip: 27.68, avgRevenuePerTrip: 18.90, distanceInTrip: 1100, pricePerKm: 2.89, revenuePerDay: 105.90, revenueNightShift: 1400, revenueDayShift: 1776, totalRevenue: 3176, revenuePerHour: 51.23, tripsPerHour: 2.71, acceptanceRate: 95.5, timeInTrip: 62, shiftCount: 8, dayShiftCount: 4, nightShiftCount: 4, occupancyRate: 65.8 },
+    { licensePlate: "DEMO-005", completedTrips: 83, cancelledTrips: 3, totalTrips: 86, avgFarePerTrip: 27.95, avgRevenuePerTrip: 19.09, distanceInTrip: 570, pricePerKm: 2.78, revenuePerDay: 52.82, revenueNightShift: 683, revenueDayShift: 901, totalRevenue: 1584, revenuePerHour: 68.87, tripsPerHour: 3.61, acceptanceRate: 96.5, timeInTrip: 23, shiftCount: 4, dayShiftCount: 3, nightShiftCount: 1, occupancyRate: 61.0 },
   ],
 };
 

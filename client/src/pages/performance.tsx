@@ -497,7 +497,7 @@ function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSumma
   }
   
   const totalDrivers = drivers.length;
-  const totalRevenue = drivers.reduce((acc, d) => acc + (d.avgFarePerTrip * d.completedTrips), 0);
+  const totalRevenue = drivers.reduce((acc, d) => acc + (d.totalRevenue || (d.avgRevenuePerTrip || 0) * d.completedTrips), 0);
   const totalDistanceKm = drivers.reduce((acc, d) => acc + d.distanceInTrip, 0);
   const totalHours = drivers.reduce((acc, d) => acc + d.timeInTrip, 0);
   const totalTrips = drivers.reduce((acc, d) => acc + d.completedTrips, 0);
@@ -694,7 +694,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     
     return drivers.map(d => ({
       ...d,
-      totalRevenue: d.avgFarePerTrip * d.completedTrips,
+      totalRevenue: d.totalRevenue || (d.avgRevenuePerTrip || 0) * d.completedTrips,
     }));
   }, [reportData?.drivers, selectedDrivers, shiftFilter]);
   
