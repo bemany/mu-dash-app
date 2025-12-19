@@ -1405,14 +1405,6 @@ interface PromoTabProps {
 
 function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) {
   const { t } = useTranslation();
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "month", direction: "desc" });
-  
-  const handleSort = (key: string) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === "desc" ? "asc" : "desc"
-    }));
-  };
   
   const reportData = isDemo ? mockPromoReport : data;
   
@@ -1436,18 +1428,83 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
     };
   }, [reportData, filteredRows, selectedVehicles]);
   
+  const { pivotData, months, monthTotals } = useMemo(() => {
+    if (!filteredRows.length) return { pivotData: [], months: [], monthTotals: {} as Record<string, { theo: number; paid: number; diff: number }> };
+    
+    const monthSet = new Set<string>();
+    const vehicleMap = new Map<string, Record<string, { theo: number; paid: number; diff: number; trips: number }>>();
+    
+    filteredRows.forEach(row => {
+      monthSet.add(row.month);
+      if (!vehicleMap.has(row.licensePlate)) {
+        vehicleMap.set(row.licensePlate, {});
+      }
+      const vehicleData = vehicleMap.get(row.licensePlate)!;
+      if (!vehicleData[row.month]) {
+        vehicleData[row.month] = { theo: 0, paid: 0, diff: 0, trips: 0 };
+      }
+      vehicleData[row.month].theo += row.theoreticalBonus;
+      vehicleData[row.month].paid += row.actualPaid;
+      vehicleData[row.month].diff += row.difference;
+      vehicleData[row.month].trips += row.tripCount;
+    });
+    
+    const sortedMonths = Array.from(monthSet).sort((a, b) => {
+      const [monthA, yearA] = a.split('/').map(Number);
+      const [monthB, yearB] = b.split('/').map(Number);
+      if (yearA !== yearB) return yearA - yearB;
+      return monthA - monthB;
+    });
+    
+    const totals: Record<string, { theo: number; paid: number; diff: number }> = {};
+    sortedMonths.forEach(month => {
+      totals[month] = { theo: 0, paid: 0, diff: 0 };
+    });
+    
+    const pivotRows = Array.from(vehicleMap.entries()).map(([licensePlate, monthData]) => {
+      let vehicleTotal = { theo: 0, paid: 0, diff: 0 };
+      sortedMonths.forEach(month => {
+        if (monthData[month]) {
+          vehicleTotal.theo += monthData[month].theo;
+          vehicleTotal.paid += monthData[month].paid;
+          vehicleTotal.diff += monthData[month].diff;
+          totals[month].theo += monthData[month].theo;
+          totals[month].paid += monthData[month].paid;
+          totals[month].diff += monthData[month].diff;
+        }
+      });
+      return { licensePlate, monthData, total: vehicleTotal };
+    }).sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
+    
+    return { pivotData: pivotRows, months: sortedMonths, monthTotals: totals };
+  }, [filteredRows]);
+  
   const exportToExcel = () => {
-    if (!filteredRows.length) return;
-    const dataToExport = sortData(filteredRows, sortConfig).map(row => ({
-      [t('performance.tableLicensePlate')]: row.licensePlate,
-      [t('performance.tableMonth')]: row.month,
-      [t('performance.tableTrips')]: row.tripCount,
-      [t('performance.tableTheoBonus')]: row.theoreticalBonus,
-      [t('performance.tablePaid')]: row.actualPaid,
-      [t('performance.tableDifference')]: row.difference,
-    }));
-    dataToExport.push({} as any);
-    dataToExport.push({ [t('performance.tableLicensePlate')]: t('performance.excelFooter') } as any);
+    if (!pivotData.length) return;
+    const headers: Record<string, any> = { [t('performance.tableLicensePlate')]: '' };
+    months.forEach(month => {
+      headers[`${month} ${t('performance.tableTheoBonus')}`] = '';
+      headers[`${month} ${t('performance.tablePaid')}`] = '';
+      headers[`${month} ${t('performance.tableDifference')}`] = '';
+    });
+    headers[`${t('performance.total')} ${t('performance.tableTheoBonus')}`] = '';
+    headers[`${t('performance.total')} ${t('performance.tablePaid')}`] = '';
+    headers[`${t('performance.total')} ${t('performance.tableDifference')}`] = '';
+    
+    const dataToExport = pivotData.map(row => {
+      const rowData: Record<string, any> = { [t('performance.tableLicensePlate')]: row.licensePlate };
+      months.forEach(month => {
+        const data = row.monthData[month] || { theo: 0, paid: 0, diff: 0 };
+        rowData[`${month} ${t('performance.tableTheoBonus')}`] = data.theo;
+        rowData[`${month} ${t('performance.tablePaid')}`] = data.paid;
+        rowData[`${month} ${t('performance.tableDifference')}`] = data.diff;
+      });
+      rowData[`${t('performance.total')} ${t('performance.tableTheoBonus')}`] = row.total.theo;
+      rowData[`${t('performance.total')} ${t('performance.tablePaid')}`] = row.total.paid;
+      rowData[`${t('performance.total')} ${t('performance.tableDifference')}`] = row.total.diff;
+      return rowData;
+    });
+    
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetPromo'));
@@ -1469,6 +1526,12 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
       </Card>
     );
   }
+  
+  const grandTotal = {
+    theo: Object.values(monthTotals).reduce((sum, m) => sum + m.theo, 0),
+    paid: Object.values(monthTotals).reduce((sum, m) => sum + m.paid, 0),
+    diff: Object.values(monthTotals).reduce((sum, m) => sum + m.diff, 0),
+  };
   
   return (
     <div className="space-y-4">
@@ -1499,27 +1562,73 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
           <Table>
             <TableHeader>
               <TableRow>
-                <SortHeader label={t('performance.tableLicensePlate')} sortKey="licensePlate" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label={t('performance.tableMonth')} sortKey="month" sortConfig={sortConfig} onSort={handleSort} />
-                <SortHeader label={t('performance.tableTrips')} sortKey="tripCount" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label={t('performance.tableTheoBonus')} sortKey="theoreticalBonus" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label={t('performance.tablePaid')} sortKey="actualPaid" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
-                <SortHeader label={t('performance.tableDifference')} sortKey="difference" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <TableHead className="sticky left-0 bg-white z-10 min-w-[120px]">{t('performance.tableLicensePlate')}</TableHead>
+                {months.map(month => (
+                  <TableHead key={month} colSpan={3} className="text-center border-l whitespace-nowrap">
+                    {month}
+                  </TableHead>
+                ))}
+                <TableHead colSpan={3} className="text-center border-l bg-slate-50 font-bold whitespace-nowrap">
+                  {t('performance.total')}
+                </TableHead>
+              </TableRow>
+              <TableRow className="bg-slate-50/50">
+                <TableHead className="sticky left-0 bg-slate-50/50 z-10"></TableHead>
+                {months.map(month => (
+                  <React.Fragment key={`sub-${month}`}>
+                    <TableHead className="text-right text-xs border-l px-2 whitespace-nowrap">{t('performance.tableTheoShort')}</TableHead>
+                    <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
+                    <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
+                  </React.Fragment>
+                ))}
+                <TableHead className="text-right text-xs border-l bg-slate-100 px-2 whitespace-nowrap">{t('performance.tableTheoShort')}</TableHead>
+                <TableHead className="text-right text-xs bg-slate-100 px-2 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
+                <TableHead className="text-right text-xs bg-slate-100 px-2 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortData(filteredRows, sortConfig).map((row, idx) => (
-                <TableRow key={`${row.licensePlate}-${row.month}-${idx}`}>
-                  <TableCell className="font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
-                  <TableCell className="whitespace-nowrap">{row.month}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.theoreticalBonus)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.actualPaid)}</TableCell>
-                  <TableCell className={cn("text-right font-medium whitespace-nowrap", row.difference < 0 && "text-red-600")}>
-                    {formatCurrency(row.difference)}
+              {pivotData.map((row) => (
+                <TableRow key={row.licensePlate}>
+                  <TableCell className="sticky left-0 bg-white z-10 font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
+                  {months.map(month => {
+                    const data = row.monthData[month] || { theo: 0, paid: 0, diff: 0 };
+                    return (
+                      <React.Fragment key={`${row.licensePlate}-${month}`}>
+                        <TableCell className="text-right border-l px-2 whitespace-nowrap">{data.theo ? formatCurrency(data.theo) : '-'}</TableCell>
+                        <TableCell className="text-right px-2 whitespace-nowrap">{data.paid ? formatCurrency(data.paid) : '-'}</TableCell>
+                        <TableCell className={cn("text-right px-2 whitespace-nowrap", data.diff < 0 && "text-red-600")}>
+                          {data.diff !== 0 ? formatCurrency(data.diff) : '-'}
+                        </TableCell>
+                      </React.Fragment>
+                    );
+                  })}
+                  <TableCell className="text-right border-l bg-slate-50 font-medium px-2 whitespace-nowrap">{formatCurrency(row.total.theo)}</TableCell>
+                  <TableCell className="text-right bg-slate-50 font-medium px-2 whitespace-nowrap">{formatCurrency(row.total.paid)}</TableCell>
+                  <TableCell className={cn("text-right bg-slate-50 font-medium px-2 whitespace-nowrap", row.total.diff < 0 && "text-red-600")}>
+                    {formatCurrency(row.total.diff)}
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow className="bg-slate-100 font-bold border-t-2">
+                <TableCell className="sticky left-0 bg-slate-100 z-10">{t('performance.total')}</TableCell>
+                {months.map(month => {
+                  const data = monthTotals[month] || { theo: 0, paid: 0, diff: 0 };
+                  return (
+                    <React.Fragment key={`total-${month}`}>
+                      <TableCell className="text-right border-l px-2 whitespace-nowrap">{formatCurrency(data.theo)}</TableCell>
+                      <TableCell className="text-right px-2 whitespace-nowrap">{formatCurrency(data.paid)}</TableCell>
+                      <TableCell className={cn("text-right px-2 whitespace-nowrap", data.diff < 0 && "text-red-600")}>
+                        {formatCurrency(data.diff)}
+                      </TableCell>
+                    </React.Fragment>
+                  );
+                })}
+                <TableCell className="text-right border-l bg-slate-200 px-2 whitespace-nowrap">{formatCurrency(grandTotal.theo)}</TableCell>
+                <TableCell className="text-right bg-slate-200 px-2 whitespace-nowrap">{formatCurrency(grandTotal.paid)}</TableCell>
+                <TableCell className={cn("text-right bg-slate-200 px-2 whitespace-nowrap", grandTotal.diff < 0 && "text-red-600")}>
+                  {formatCurrency(grandTotal.diff)}
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </div>
