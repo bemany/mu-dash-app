@@ -364,8 +364,15 @@ export async function registerRoutes(
         }
         
         const tripUuid = tx["Fahrt-UUID"] || null;
-        const revenue = parseEuroAmountLocal(tx["An dein Unternehmen gezahlt : Deine Umsätze"]);
-        const farePrice = parseEuroAmountLocal(tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
+        // Support both column formats: with spaces around colons and without
+        const revenue = parseEuroAmountLocal(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze"]
+        );
+        const farePrice = parseEuroAmountLocal(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"]
+        );
         
         return {
           sessionId,
@@ -575,6 +582,16 @@ export async function registerRoutes(
         return isNaN(numVal) ? null : Math.round(numVal * 100);
       };
 
+      // Debug: Log first transaction's keys to see exact column names
+      if (validTransactions.length > 0) {
+        const firstTx = validTransactions[0];
+        const keys = Object.keys(firstTx);
+        console.log("[DEBUG] First transaction column names:", keys);
+        console.log("[DEBUG] Columns containing 'Fahrpreis':", keys.filter(k => k.includes('Fahrpreis')));
+        console.log("[DEBUG] Columns containing 'Umsätze':", keys.filter(k => k.includes('Umsätze')));
+        console.log("[DEBUG] Sample Fahrpreis value:", firstTx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
+      }
+
       const dbTransactions = validTransactions.map((tx: any) => {
         let amount: number;
         if (tx["An dein Unternehmen gezahlt"] !== undefined) {
@@ -602,8 +619,15 @@ export async function registerRoutes(
         const tripUuid = tx["Fahrt-UUID"] || null;
         
         // Extract revenue and farePrice for trip-based transactions
-        const revenue = parseEuroAmount(tx["An dein Unternehmen gezahlt : Deine Umsätze"]);
-        const farePrice = parseEuroAmount(tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
+        // Support both column formats: with spaces around colons and without
+        const revenue = parseEuroAmount(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze"]
+        );
+        const farePrice = parseEuroAmount(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"]
+        );
 
         return {
           sessionId,
