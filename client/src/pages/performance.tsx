@@ -1503,6 +1503,183 @@ interface CommissionAnalysis {
   }>;
 }
 
+interface CompanyTabProps {
+  commissionsData: CommissionAnalysis | undefined;
+  driversData: { summary: DriverReportSummary; drivers: DriverReportRow[] } | undefined;
+  vehiclesData: { summary: VehicleReportSummary; vehicles: VehicleReportRow[] } | undefined;
+  isLoading: boolean;
+  isDemo: boolean;
+  dateRange: DateRange | undefined;
+}
+
+function CompanyTab({ commissionsData, driversData, vehiclesData, isLoading, isDemo, dateRange }: CompanyTabProps) {
+  const { t } = useTranslation();
+  const [fareMetric, setFareMetric] = useState<"total" | "day" | "week" | "month">("total");
+  const [revenueMetric, setRevenueMetric] = useState<"total" | "day" | "week" | "month">("total");
+  const [shiftsMetric, setShiftsMetric] = useState<"total" | "day" | "week" | "month">("total");
+  const [tripsMetric, setTripsMetric] = useState<"total" | "day" | "week" | "month">("total");
+
+  const daysInRange = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) return 1;
+    const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+  }, [dateRange]);
+
+  const weeksInRange = Math.max(1, daysInRange / 7);
+  const monthsInRange = Math.max(1, daysInRange / 30);
+
+  const summary = useMemo(() => {
+    const commSummary = commissionsData?.summary || { totalFarePrice: 0, totalRevenue: 0, commissionPercent: 0, tripCount: 0 };
+    const driverSummary = driversData?.summary || { totalShifts: 0, totalCompletedTrips: 0, totalCancelledTrips: 0, avgPricePerKm: 0, avgOccupancyRate: 0 };
+    const vehicleSummary = vehiclesData?.summary || { avgOccupancyRate: 0 };
+    
+    const totalTrips = driverSummary.totalCompletedTrips + driverSummary.totalCancelledTrips;
+    const cancellationRate = totalTrips > 0 ? (driverSummary.totalCancelledTrips / totalTrips) * 100 : 0;
+    const revenuePerTrip = commSummary.tripCount > 0 ? commSummary.totalRevenue / commSummary.tripCount : 0;
+    const pricePerKm = driverSummary.avgPricePerKm || 0;
+    
+    return {
+      totalFare: commSummary.totalFarePrice,
+      totalRevenue: commSummary.totalRevenue,
+      feesPercent: commSummary.commissionPercent,
+      totalShifts: driverSummary.totalShifts,
+      totalTrips: commSummary.tripCount,
+      cancellationRate,
+      occupancyRate: vehicleSummary.avgOccupancyRate || driverSummary.avgOccupancyRate || 0,
+      pricePerKm,
+      revenuePerTrip,
+    };
+  }, [commissionsData, driversData, vehiclesData]);
+
+  const getValueByMetric = (total: number, metric: "total" | "day" | "week" | "month") => {
+    switch (metric) {
+      case "day": return total / daysInRange;
+      case "week": return total / weeksInRange;
+      case "month": return total / monthsInRange;
+      default: return total;
+    }
+  };
+
+  const getMetricLabel = (metric: "total" | "day" | "week" | "month", baseLabel: string) => {
+    switch (metric) {
+      case "day": return baseLabel + t('performance.companyPerDay');
+      case "week": return baseLabel + t('performance.companyPerWeek');
+      case "month": return baseLabel + t('performance.companyPerMonth');
+      default: return baseLabel;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Spinner className="w-8 h-8 text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (isDemo || (!commissionsData && !driversData && !vehiclesData)) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-slate-500">{t('performance.companyNoData')}</p>
+      </Card>
+    );
+  }
+
+  const metricOptions = [
+    { value: "total", label: t('performance.tableTotal') },
+    { value: "day", label: t('performance.companyPerDay').replace('/', '') },
+    { value: "week", label: t('performance.companyPerWeek').replace('/', '') },
+    { value: "month", label: t('performance.companyPerMonth').replace('/', '') },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KpiCard
+          testId="kpi-company-fare"
+          title=""
+          value={formatCurrency(getValueByMetric(summary.totalFare, fareMetric))}
+          icon={<Car className="w-5 h-5" />}
+          tags={{
+            value: fareMetric,
+            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTotalFare') : getMetricLabel(o.value as any, t('performance.companyTotalFare')) })),
+            onChange: (v) => setFareMetric(v as any),
+          }}
+        />
+        <KpiCard
+          testId="kpi-company-revenue"
+          title=""
+          value={formatCurrency(getValueByMetric(summary.totalRevenue, revenueMetric))}
+          icon={<Car className="w-5 h-5" />}
+          tags={{
+            value: revenueMetric,
+            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyYourRevenue') : getMetricLabel(o.value as any, t('performance.companyYourRevenue')) })),
+            onChange: (v) => setRevenueMetric(v as any),
+          }}
+        />
+        <KpiCard
+          testId="kpi-company-fees"
+          title={t('performance.companyFeesPercent')}
+          value={`${summary.feesPercent.toFixed(1)}%`}
+          icon={<Car className="w-5 h-5" />}
+          className="border-amber-200 bg-amber-50"
+        />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KpiCard
+          testId="kpi-company-shifts"
+          title=""
+          value={formatNumber(getValueByMetric(summary.totalShifts, shiftsMetric), 1)}
+          icon={<Clock className="w-5 h-5" />}
+          tags={{
+            value: shiftsMetric,
+            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyShifts') : getMetricLabel(o.value as any, t('performance.companyShifts')) })),
+            onChange: (v) => setShiftsMetric(v as any),
+          }}
+        />
+        <KpiCard
+          testId="kpi-company-trips"
+          title=""
+          value={formatNumber(getValueByMetric(summary.totalTrips, tripsMetric), 1)}
+          icon={<Route className="w-5 h-5" />}
+          tags={{
+            value: tripsMetric,
+            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTrips') : getMetricLabel(o.value as any, t('performance.companyTrips')) })),
+            onChange: (v) => setTripsMetric(v as any),
+          }}
+        />
+        <KpiCard
+          testId="kpi-company-cancellation"
+          title={t('performance.companyCancellationRate')}
+          value={`${summary.cancellationRate.toFixed(1)}%`}
+          icon={<X className="w-5 h-5" />}
+          className={summary.cancellationRate > 10 ? "border-red-200 bg-red-50" : ""}
+        />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KpiCard
+          testId="kpi-company-occupancy"
+          title={t('performance.companyOccupancyRate')}
+          value={`${summary.occupancyRate.toFixed(1)}%`}
+          icon={<Users className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-company-perkm"
+          title={t('performance.companyPerKm')}
+          value={`${formatNumber(summary.pricePerKm, 2)} €`}
+          icon={<Route className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-company-pertrip"
+          title={t('performance.companyPerTrip')}
+          value={formatCurrency(summary.revenuePerTrip)}
+          icon={<Car className="w-5 h-5" />}
+        />
+      </div>
+    </div>
+  );
+}
+
 interface CommissionsTabProps {
   data: CommissionAnalysis | undefined;
   isLoading: boolean;
@@ -1955,6 +2132,7 @@ export default function PerformancePage() {
               <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
               <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
               <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
+              <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
             </TabsList>
             {activeTab === "drivers" && (
               <>
@@ -2072,6 +2250,16 @@ export default function PerformancePage() {
             isLoading={commissionsLoading} 
             isDemo={isDemo}
             selectedVehicles={selectedVehicles}
+          />
+        </TabsContent>
+        <TabsContent value="company" className="mt-0">
+          <CompanyTab 
+            commissionsData={commissionsData}
+            driversData={driversData}
+            vehiclesData={vehiclesData}
+            isLoading={commissionsLoading || driversLoading || vehiclesLoading}
+            isDemo={isDemo}
+            dateRange={dateRange}
           />
         </TabsContent>
       </Tabs>
