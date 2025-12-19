@@ -1556,27 +1556,27 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
       dataToExport = sortData(commissionData.byMonth, sortConfig).map(row => ({
         [t('performance.tableMonth')]: row.month,
         [t('performance.tableTrips')]: row.tripCount,
-        [t('performance.commissionFarePrice')]: row.farePrice / 100,
-        [t('performance.commissionRevenue')]: row.revenue / 100,
-        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionFarePrice')]: row.farePrice,
+        [t('performance.commissionRevenue')]: row.revenue,
+        [t('performance.commissionAmount')]: row.commission,
         [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
       }));
     } else if (viewMode === "byVehicle") {
       dataToExport = sortData(filteredByVehicle, sortConfig).map(row => ({
         [t('performance.tableLicensePlate')]: row.licensePlate,
         [t('performance.tableTrips')]: row.tripCount,
-        [t('performance.commissionFarePrice')]: row.farePrice / 100,
-        [t('performance.commissionRevenue')]: row.revenue / 100,
-        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionFarePrice')]: row.farePrice,
+        [t('performance.commissionRevenue')]: row.revenue,
+        [t('performance.commissionAmount')]: row.commission,
         [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
       }));
     } else if (viewMode === "byDriver" && commissionData?.byDriver) {
       dataToExport = sortData(commissionData.byDriver, sortConfig).map(row => ({
         [t('performance.tableDriver')]: row.driverName,
         [t('performance.tableTrips')]: row.tripCount,
-        [t('performance.commissionFarePrice')]: row.farePrice / 100,
-        [t('performance.commissionRevenue')]: row.revenue / 100,
-        [t('performance.commissionAmount')]: row.commission / 100,
+        [t('performance.commissionFarePrice')]: row.farePrice,
+        [t('performance.commissionRevenue')]: row.revenue,
+        [t('performance.commissionAmount')]: row.commission,
         [t('performance.commissionPercent')]: `${row.commissionPercent.toFixed(1)}%`,
       }));
     }
@@ -1604,7 +1604,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
   }
   
   const avgFeePerTrip = filteredSummary.tripCount > 0 
-    ? filteredSummary.totalCommission / filteredSummary.tripCount / 100 
+    ? filteredSummary.totalCommission / filteredSummary.tripCount 
     : 0;
   
   return (
@@ -1613,19 +1613,19 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
         <KpiCard
           testId="kpi-commission-fareprice"
           title={t('performance.commissionFarePrice')}
-          value={formatCurrency(filteredSummary.totalFarePrice / 100)}
+          value={formatCurrency(filteredSummary.totalFarePrice)}
           icon={<Car className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-commission-revenue"
           title={t('performance.commissionRevenue')}
-          value={formatCurrency(filteredSummary.totalRevenue / 100)}
+          value={formatCurrency(filteredSummary.totalRevenue)}
           icon={<Car className="w-5 h-5" />}
         />
         <KpiCard
           testId="kpi-commission-amount"
           title={t('performance.commissionAmount')}
-          value={formatCurrency(filteredSummary.totalCommission / 100)}
+          value={formatCurrency(filteredSummary.totalCommission)}
           icon={<Car className="w-5 h-5" />}
           className="border-amber-200 bg-amber-50"
         />
@@ -1698,9 +1698,9 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
                 <TableRow key={`${row.month}-${idx}`}>
                   <TableCell className="whitespace-nowrap">{row.month}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
-                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
@@ -1708,9 +1708,9 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
                 <TableRow key={`${row.licensePlate}-${idx}`}>
                   <TableCell className="font-mono font-medium whitespace-nowrap">{row.licensePlate}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
-                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
@@ -1718,9 +1718,9 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
                 <TableRow key={`${row.driverName}-${idx}`}>
                   <TableCell className="font-medium whitespace-nowrap">{row.driverName}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.tripCount}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice / 100)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue / 100)}</TableCell>
-                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission / 100)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.farePrice)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell className="text-right font-medium whitespace-nowrap text-amber-600">{formatCurrency(row.commission)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{row.commissionPercent.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
