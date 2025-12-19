@@ -99,9 +99,9 @@ function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCa
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2 flex-1">
+      <CardContent className="p-5 min-h-[100px]">
+        <div className="flex items-start justify-between h-full">
+          <div className="space-y-3 flex-1">
             {tags ? (
               <div className="flex flex-wrap gap-1" data-testid={`${testId}-tags`}>
                 {tags.options.map((opt) => (
@@ -1660,7 +1660,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-company-fare"
           title=""
@@ -1690,8 +1690,6 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
           icon={<Car className="w-5 h-5" />}
           className="border-amber-200 bg-amber-50"
         />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard
           testId="kpi-company-shifts"
           title=""
@@ -1703,6 +1701,8 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
             onChange: (v) => setShiftsMetric(v as any),
           }}
         />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-company-trips"
           title=""
@@ -1721,8 +1721,6 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
           icon={<X className="w-5 h-5" />}
           className={summary.cancellationRate > 10 ? "border-red-200 bg-red-50" : ""}
         />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard
           testId="kpi-company-occupancy"
           title={t('performance.companyOccupancyRate')}
@@ -1735,14 +1733,14 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
           value={`${formatNumber(summary.pricePerKm, 2)} €`}
           icon={<Route className="w-5 h-5" />}
         />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-company-pertrip"
           title={t('performance.companyPerTrip')}
           value={formatCurrency(summary.revenuePerTrip)}
           icon={<Car className="w-5 h-5" />}
         />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <KpiCard
           testId="kpi-company-promo-earned"
           title={t('performance.companyPromoEarned')}
