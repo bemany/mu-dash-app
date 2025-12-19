@@ -1517,13 +1517,14 @@ export class DatabaseStorage implements IStorage {
       total_revenue: string | number;
     }>;
     
-    // Create a map of tripUuid -> revenue
+    // Create a map of tripUuid -> revenue (convert from cents to euros)
     const revenueMap = new Map<string, number>();
     for (const tx of txRows) {
-      const revenue = typeof tx.total_revenue === 'string' 
+      const revenueInCents = typeof tx.total_revenue === 'string' 
         ? parseFloat(tx.total_revenue) 
         : tx.total_revenue;
-      revenueMap.set(tx.trip_uuid, revenue || 0);
+      // Revenue is stored in cents, convert to euros
+      revenueMap.set(tx.trip_uuid, (revenueInCents || 0) / 100);
     }
 
     // Step 3: Combine trips with their revenue
