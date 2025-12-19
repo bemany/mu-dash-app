@@ -397,6 +397,7 @@ export const translations = {
       companyPerWeek: '/Woche',
       companyPerMonth: '/Monat',
       companyNoData: 'Keine Daten vorhanden. Laden Sie Fahrten- und Zahlungsdaten hoch.',
+      tableSummaryRow: 'Gesamt (alle)',
     },
   },
   en: {
@@ -788,6 +789,7 @@ export const translations = {
       companyPerWeek: '/Week',
       companyPerMonth: '/Month',
       companyNoData: 'No data available. Upload trip and payment data.',
+      tableSummaryRow: 'Total (all)',
     },
   },
   tr: {
@@ -1179,6 +1181,7 @@ export const translations = {
       companyPerWeek: '/Hafta',
       companyPerMonth: '/Ay',
       companyNoData: 'Veri bulunamadı. Yolculuk ve ödeme verilerini yükleyin.',
+      tableSummaryRow: 'Toplam (tümü)',
     },
   },
   ar: {
@@ -1570,6 +1573,7 @@ export const translations = {
       companyPerWeek: '/أسبوع',
       companyPerMonth: '/شهر',
       companyNoData: 'لا توجد بيانات. قم بتحميل بيانات الرحلات والمدفوعات.',
+      tableSummaryRow: 'المجموع (الكل)',
     },
   },
 } as const;

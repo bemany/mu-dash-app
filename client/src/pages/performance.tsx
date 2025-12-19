@@ -867,6 +867,36 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
               </TableRow>
             </TableHeader>
             <TableBody>
+              {(() => {
+                const totalCompletedTrips = filteredDrivers.reduce((acc, d) => acc + d.completedTrips, 0);
+                const totalCancelledTrips = filteredDrivers.reduce((acc, d) => acc + d.cancelledTrips, 0);
+                const totalAllTrips = filteredDrivers.reduce((acc, d) => acc + d.totalTrips, 0);
+                const totalDistance = filteredDrivers.reduce((acc, d) => acc + d.distanceInTrip, 0);
+                const totalTime = filteredDrivers.reduce((acc, d) => acc + d.timeInTrip, 0);
+                const totalRev = filteredDrivers.reduce((acc, d) => acc + (d.totalRevenue || 0), 0);
+                const avgFare = totalCompletedTrips > 0 ? totalRev / totalCompletedTrips : 0;
+                const avgPricePerKm = totalDistance > 0 ? totalRev / totalDistance : 0;
+                const avgTripsPerHour = totalTime > 0 ? totalCompletedTrips / totalTime : 0;
+                const avgAcceptance = totalAllTrips > 0 ? (totalCompletedTrips / totalAllTrips) * 100 : 0;
+                return (
+                  <TableRow className="bg-emerald-50 font-semibold border-b-2 border-emerald-200">
+                    <TableCell className="whitespace-nowrap" colSpan={2}>{t('performance.tableSummaryRow')}</TableCell>
+                    <TableCell className="text-center whitespace-nowrap">—</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalCompletedTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalCancelledTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalAllTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(avgFare)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(totalDistance, 0)} km</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgPricePerKm)} €</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(filteredSummary.avgRevenuePerDay)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(filteredSummary.avgRevenuePerHour)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgTripsPerHour)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgAcceptance, 1)}%</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(totalTime, 0)} h</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(totalRev)}</TableCell>
+                  </TableRow>
+                );
+              })()}
               {sortData(filteredDrivers, sortConfig).map((driver, idx) => {
                 const isNightDriver = (driver.nightShiftCount || 0) > (driver.dayShiftCount || 0);
                 const isMixed = (driver.nightShiftCount || 0) === (driver.dayShiftCount || 0) && (driver.shiftCount || 0) > 0;
@@ -1298,6 +1328,39 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
               </TableRow>
             </TableHeader>
             <TableBody>
+              {(() => {
+                const totalCompletedTrips = filteredVehicles.reduce((acc, v) => acc + v.completedTrips, 0);
+                const totalCancelledTrips = filteredVehicles.reduce((acc, v) => acc + v.cancelledTrips, 0);
+                const totalAllTrips = filteredVehicles.reduce((acc, v) => acc + v.totalTrips, 0);
+                const totalDistance = filteredVehicles.reduce((acc, v) => acc + v.distanceInTrip, 0);
+                const totalTime = filteredVehicles.reduce((acc, v) => acc + v.timeInTrip, 0);
+                const totalRev = filteredVehicles.reduce((acc, v) => acc + v.totalRevenue, 0);
+                const totalNightRev = filteredVehicles.reduce((acc, v) => acc + (v.revenueNightShift || 0), 0);
+                const totalDayRev = filteredVehicles.reduce((acc, v) => acc + (v.revenueDayShift || 0), 0);
+                const avgFare = totalCompletedTrips > 0 ? totalRev / totalCompletedTrips : 0;
+                const avgPricePerKm = totalDistance > 0 ? totalRev / totalDistance : 0;
+                const avgTripsPerHour = totalTime > 0 ? totalCompletedTrips / totalTime : 0;
+                const avgAcceptance = totalAllTrips > 0 ? (totalCompletedTrips / totalAllTrips) * 100 : 0;
+                return (
+                  <TableRow className="bg-emerald-50 font-semibold border-b-2 border-emerald-200">
+                    <TableCell className="whitespace-nowrap">{t('performance.tableSummaryRow')}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalCompletedTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalCancelledTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{totalAllTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(avgFare)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(totalDistance, 0)} km</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgPricePerKm)} €</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(filteredSummary.avgRevenuePerDay)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(totalNightRev)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(totalDayRev)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(totalRev)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(filteredSummary.avgRevenuePerHour)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgTripsPerHour)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(avgAcceptance, 1)}%</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatNumber(totalTime, 0)} h</TableCell>
+                  </TableRow>
+                );
+              })()}
               {sortData(filteredVehicles, sortConfig).map((vehicle) => (
                 <TableRow key={vehicle.licensePlate}>
                   <TableCell className="font-mono font-medium whitespace-nowrap">{vehicle.licensePlate}</TableCell>
