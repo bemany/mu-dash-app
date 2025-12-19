@@ -370,6 +370,8 @@ export const translations = {
       kpiTripsPerWeek: 'Fahrten/Woche',
       kpiTripsPerMonth: 'Fahrten/Monat',
       kpiOccupancyRate: 'Besetzungsquote',
+      occupancyDialogTitle: 'Besetzungsquote pro Fahrzeug',
+      tableOccupancyRate: 'Besetzungsquote',
     },
   },
   en: {
@@ -734,6 +736,8 @@ export const translations = {
       kpiTripsPerWeek: 'Trips/Week',
       kpiTripsPerMonth: 'Trips/Month',
       kpiOccupancyRate: 'Occupancy Rate',
+      occupancyDialogTitle: 'Occupancy Rate per Vehicle',
+      tableOccupancyRate: 'Occupancy Rate',
     },
   },
   tr: {
@@ -1098,6 +1102,8 @@ export const translations = {
       kpiTripsPerWeek: 'Sefer/Hafta',
       kpiTripsPerMonth: 'Sefer/Ay',
       kpiOccupancyRate: 'Doluluk Oranı',
+      occupancyDialogTitle: 'Araç Başına Doluluk Oranı',
+      tableOccupancyRate: 'Doluluk Oranı',
     },
   },
   ar: {
@@ -1462,6 +1468,8 @@ export const translations = {
       kpiTripsPerWeek: 'رحلات/أسبوع',
       kpiTripsPerMonth: 'رحلات/شهر',
       kpiOccupancyRate: 'معدل الإشغال',
+      occupancyDialogTitle: 'معدل الإشغال لكل مركبة',
+      tableOccupancyRate: 'معدل الإشغال',
     },
   },
 } as const;

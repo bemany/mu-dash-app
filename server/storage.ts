@@ -139,6 +139,7 @@ export interface VehicleReportRow {
   shiftCount: number;
   dayShiftCount: number;
   nightShiftCount: number;
+  occupancyRate: number;
 }
 
 export interface VehicleReportSummary {
@@ -1304,13 +1305,31 @@ export class DatabaseStorage implements IStorage {
           AND license_plate != ''
         ${dateFilter}
         GROUP BY license_plate, DATE(order_time)
+      ),
+      per_vehicle AS (
+        SELECT 
+          license_plate,
+          AVG(LEAST(driver_count, 2)::numeric / 2 * 100) as occupancy_rate
+        FROM daily_drivers
+        GROUP BY license_plate
       )
       SELECT 
-        AVG(LEAST(driver_count, 2)::numeric / 2 * 100) as avg_occupancy_rate
-      FROM daily_drivers
+        pv.license_plate,
+        pv.occupancy_rate,
+        (SELECT AVG(LEAST(driver_count, 2)::numeric / 2 * 100) FROM daily_drivers) as avg_occupancy_rate
+      FROM per_vehicle pv
     `);
     
-    const avgOccupancyRate = Number((occupancyResult.rows as any[])[0]?.avg_occupancy_rate) || 0;
+    const occupancyByPlate = new Map<string, number>();
+    let avgOccupancyRate = 0;
+    for (const row of occupancyResult.rows as any[]) {
+      occupancyByPlate.set(row.license_plate, Number(row.occupancy_rate) || 0);
+      avgOccupancyRate = Number(row.avg_occupancy_rate) || 0;
+    }
+    
+    for (const vehicle of vehicles) {
+      vehicle.occupancyRate = occupancyByPlate.get(vehicle.licensePlate) || 0;
+    }
 
     const summary: VehicleReportSummary = {
       totalRevenue,

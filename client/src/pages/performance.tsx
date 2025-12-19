@@ -1038,6 +1038,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
+  const [showOccupancyDialog, setShowOccupancyDialog] = useState(false);
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -1205,8 +1206,48 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           title={t('performance.kpiOccupancyRate')}
           value={`${formatNumber(filteredSummary.avgOccupancyRate, 1)}%`}
           icon={<Users className="w-5 h-5" />}
+          onClick={() => setShowOccupancyDialog(true)}
         />
       </div>
+      
+      <Dialog open={showOccupancyDialog} onOpenChange={setShowOccupancyDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('performance.occupancyDialogTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('performance.tableLicensePlate')}</TableHead>
+                  <TableHead className="text-right">{t('performance.tableOccupancyRate')}</TableHead>
+                  <TableHead className="text-right">{t('performance.tableCompletedTrips')}</TableHead>
+                  <TableHead className="text-right">{t('performance.tableTotalRevenue')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...filteredVehicles].sort((a, b) => b.occupancyRate - a.occupancyRate).map((vehicle) => (
+                  <TableRow key={vehicle.licensePlate}>
+                    <TableCell className="font-mono font-medium whitespace-nowrap">{vehicle.licensePlate}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs font-medium",
+                        vehicle.occupancyRate >= 75 ? "bg-emerald-100 text-emerald-700" :
+                        vehicle.occupancyRate >= 50 ? "bg-amber-100 text-amber-700" :
+                        "bg-red-100 text-red-700"
+                      )}>
+                        {formatNumber(vehicle.occupancyRate, 1)}%
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{vehicle.completedTrips}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(vehicle.totalRevenue)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <VehicleShiftsDialog
         open={showShiftsDialog}
