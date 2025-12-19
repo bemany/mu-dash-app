@@ -1596,13 +1596,20 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
 
   const summary = useMemo(() => {
     const commSummary = commissionsData?.summary || { totalFarePrice: 0, totalRevenue: 0, commissionPercent: 0, tripCount: 0 };
-    const driverSummary = driversData?.summary || { totalShifts: 0, totalCompletedTrips: 0, totalCancelledTrips: 0, avgPricePerKm: 0, avgOccupancyRate: 0 };
+    const driverSummary = driversData?.summary || { totalShifts: 0, avgRevenuePerKm: 0 };
     const vehicleSummary = vehiclesData?.summary || { avgOccupancyRate: 0 };
+    const drivers = driversData?.drivers || [];
     
-    const totalTrips = driverSummary.totalCompletedTrips + driverSummary.totalCancelledTrips;
-    const cancellationRate = totalTrips > 0 ? (driverSummary.totalCancelledTrips / totalTrips) * 100 : 0;
+    const totalCompletedTrips = drivers.length > 0 
+      ? drivers.reduce((sum, d) => sum + d.completedTrips, 0)
+      : 0;
+    const totalCancelledTrips = drivers.length > 0 
+      ? drivers.reduce((sum, d) => sum + d.cancelledTrips, 0)
+      : 0;
+    const totalTripsForRate = totalCompletedTrips + totalCancelledTrips;
+    const cancellationRate = totalTripsForRate > 0 ? (totalCancelledTrips / totalTripsForRate) * 100 : 0;
     const revenuePerTrip = commSummary.tripCount > 0 ? commSummary.totalRevenue / commSummary.tripCount : 0;
-    const pricePerKm = driverSummary.avgPricePerKm || 0;
+    const pricePerKm = (driverSummary as any).avgRevenuePerKm || 0;
     
     return {
       totalFare: commSummary.totalFarePrice,
@@ -1658,8 +1665,10 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     { value: "month", label: t('performance.companyPerMonth').replace('/', '') },
   ];
 
+  const promoDiff = promoData?.summary?.totalDifference || 0;
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-company-fare"
@@ -1676,7 +1685,8 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
           testId="kpi-company-revenue"
           title=""
           value={formatCurrency(getValueByMetric(summary.totalRevenue, revenueMetric))}
-          icon={<Car className="w-5 h-5" />}
+          icon={<Banknote className="w-5 h-5" />}
+          className="border-emerald-200 bg-emerald-50"
           tags={{
             value: revenueMetric,
             options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyYourRevenue') : getMetricLabel(o.value as any, t('performance.companyYourRevenue')) })),
@@ -1684,16 +1694,9 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
           }}
         />
         <KpiCard
-          testId="kpi-company-fees"
-          title={t('performance.companyFeesPercent')}
-          value={`${summary.feesPercent.toFixed(1)}%`}
-          icon={<Car className="w-5 h-5" />}
-          className="border-amber-200 bg-amber-50"
-        />
-        <KpiCard
           testId="kpi-company-shifts"
           title=""
-          value={formatNumber(getValueByMetric(summary.totalShifts, shiftsMetric), 1)}
+          value={formatNumber(getValueByMetric(summary.totalShifts, shiftsMetric), 0)}
           icon={<Clock className="w-5 h-5" />}
           tags={{
             value: shiftsMetric,
@@ -1701,18 +1704,25 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
             onChange: (v) => setShiftsMetric(v as any),
           }}
         />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-company-trips"
           title=""
-          value={formatNumber(getValueByMetric(summary.totalTrips, tripsMetric), 1)}
+          value={formatNumber(getValueByMetric(summary.totalTrips, tripsMetric), 0)}
           icon={<Route className="w-5 h-5" />}
           tags={{
             value: tripsMetric,
             options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTrips') : getMetricLabel(o.value as any, t('performance.companyTrips')) })),
             onChange: (v) => setTripsMetric(v as any),
           }}
+        />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          testId="kpi-company-fees"
+          title={t('performance.companyFeesPercent')}
+          value={`${summary.feesPercent.toFixed(1)}%`}
+          icon={<Car className="w-5 h-5" />}
+          className="border-amber-200 bg-amber-50"
         />
         <KpiCard
           testId="kpi-company-cancellation"
@@ -1758,9 +1768,9 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
         <KpiCard
           testId="kpi-company-promo-diff"
           title={t('performance.companyPromoDiff')}
-          value={formatCurrency(promoData?.summary?.totalDifference || 0)}
+          value={formatCurrency(promoDiff)}
           icon={<TrendingUp className="w-5 h-5" />}
-          className={(promoData?.summary?.totalDifference || 0) < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}
+          className={promoDiff < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}
         />
       </div>
     </div>
