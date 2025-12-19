@@ -670,10 +670,13 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   
   const filteredDrivers = useMemo(() => {
     if (!reportData?.drivers) return [];
-    if (selectedDrivers.length === 0) return reportData.drivers;
-    return reportData.drivers.filter(d => 
-      selectedDrivers.includes(`${d.firstName} ${d.lastName}`)
-    );
+    const drivers = selectedDrivers.length === 0 
+      ? reportData.drivers 
+      : reportData.drivers.filter(d => selectedDrivers.includes(`${d.firstName} ${d.lastName}`));
+    return drivers.map(d => ({
+      ...d,
+      totalRevenue: d.avgFarePerTrip * d.completedTrips,
+    }));
   }, [reportData?.drivers, selectedDrivers]);
   
   const filteredSummary = useMemo(() => {
@@ -699,6 +702,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
       [t('performance.tableTripsPerHour')]: driver.tripsPerHour,
       [t('performance.tableAcceptanceRate')]: driver.acceptanceRate,
       [t('performance.tableTimeInTrip')]: driver.timeInTrip,
+      [t('performance.tableTotalRevenue')]: driver.totalRevenue,
     }));
     dataToExport.push({} as any);
     dataToExport.push({ [t('performance.tableFirstName')]: t('performance.excelFooter') } as any);
@@ -840,6 +844,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
                 <SortHeader label={t('performance.tableTripsPerHour')} sortKey="tripsPerHour" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
                 <SortHeader label={t('performance.tableAcceptanceRate')} sortKey="acceptanceRate" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
                 <SortHeader label={t('performance.tableTimeInTrip')} sortKey="timeInTrip" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
+                <SortHeader label={t('performance.tableTotalRevenue')} sortKey="totalRevenue" sortConfig={sortConfig} onSort={handleSort} className="text-right" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -879,6 +884,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.tripsPerHour)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.acceptanceRate, 1)}%</TableCell>
                   <TableCell className="text-right whitespace-nowrap">{formatNumber(driver.timeInTrip, 0)} h</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatCurrency(driver.totalRevenue)}</TableCell>
                 </TableRow>
               );})}
             </TableBody>
