@@ -1344,13 +1344,15 @@ export default function PerformancePage() {
 
   useEffect(() => {
     const currentVorgangsId = sessionData?.vorgangsId || null;
-    if (lastVorgangsId !== null && currentVorgangsId !== lastVorgangsId) {
-      setSelectedDrivers([]);
-      setSelectedVehicles([]);
-      setHasInitializedDateRange(false);
+    if (currentVorgangsId !== lastVorgangsId) {
+      if (lastVorgangsId !== null || (selectedDrivers.length > 0 || selectedVehicles.length > 0)) {
+        setSelectedDrivers([]);
+        setSelectedVehicles([]);
+        setHasInitializedDateRange(false);
+      }
+      setLastVorgangsId(currentVorgangsId);
     }
-    setLastVorgangsId(currentVorgangsId);
-  }, [sessionData?.vorgangsId]);
+  }, [sessionData?.vorgangsId, lastVorgangsId]);
 
   const { data: dateRangeData } = useQuery<DateRangeData>({
     queryKey: ["performance-daterange"],
