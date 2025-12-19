@@ -1682,8 +1682,11 @@ export default function PerformancePage() {
                   testId="filter-drivers"
                 />
                 <Select value={shiftFilter} onValueChange={(value: "all" | "day" | "night") => setShiftFilter(value)}>
-                  <SelectTrigger className="w-[160px]" data-testid="filter-shift-type">
-                    <SelectValue placeholder={t('performance.filterShiftType')} />
+                  <SelectTrigger className="min-w-[180px] justify-between text-left font-normal h-10 px-4 border-input" data-testid="filter-shift-type">
+                    <div className="flex items-center gap-2">
+                      {shiftFilter === "day" ? <Sun className="h-4 w-4" /> : shiftFilter === "night" ? <Moon className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+                      <SelectValue placeholder={t('performance.filterShiftType')} />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all" data-testid="filter-shift-all">{t('performance.filterAllShifts')}</SelectItem>
