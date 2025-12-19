@@ -101,6 +101,8 @@ export interface DriverReportRow {
   acceptanceRate: number;
   timeInTrip: number;
   shiftCount: number;
+  dayShiftCount: number;
+  nightShiftCount: number;
 }
 
 export interface DriverReportSummary {
@@ -997,10 +999,25 @@ export class DatabaseStorage implements IStorage {
               (raw_data->>'Startzeit der Fahrt')::timestamp
             )) / 3600)
             ELSE 0
-          END as trip_hours
+          END as trip_hours,
+          CASE 
+            WHEN raw_data->>'Startzeit der Fahrt' ~ '^\d{4}-\d{2}-\d{2}'
+            THEN EXTRACT(HOUR FROM (raw_data->>'Startzeit der Fahrt')::timestamp)
+            ELSE EXTRACT(HOUR FROM order_time)
+          END as start_hour
         FROM trips
         WHERE session_id = ${sessionId}
         ${dateFilter}
+      ),
+      trip_with_shift_type AS (
+        SELECT 
+          *,
+          CASE 
+            WHEN start_hour >= 6 AND start_hour < 18 THEN 'day'
+            ELSE 'night'
+          END as shift_type
+        FROM trip_data
+        WHERE TRIM(first_name) != '' OR TRIM(last_name) != ''
       ),
       shift_detection AS (
         SELECT 
@@ -1011,6 +1028,7 @@ export class DatabaseStorage implements IStorage {
           fare,
           distance_m,
           trip_hours,
+          shift_type,
           CASE 
             WHEN LAG(order_time) OVER (
               PARTITION BY first_name, last_name 
@@ -1023,8 +1041,7 @@ export class DatabaseStorage implements IStorage {
             THEN 1
             ELSE 0
           END as is_new_shift
-        FROM trip_data
-        WHERE TRIM(first_name) != '' OR TRIM(last_name) != ''
+        FROM trip_with_shift_type
       ),
       driver_metrics AS (
         SELECT 
@@ -1037,6 +1054,8 @@ export class DatabaseStorage implements IStorage {
           SUM(distance_m) as total_distance_m,
           SUM(trip_hours) as total_hours,
           SUM(is_new_shift) as shift_count,
+          SUM(CASE WHEN is_new_shift = 1 AND shift_type = 'day' THEN 1 ELSE 0 END) as day_shift_count,
+          SUM(CASE WHEN is_new_shift = 1 AND shift_type = 'night' THEN 1 ELSE 0 END) as night_shift_count,
           COUNT(DISTINCT DATE(order_time)) as active_days,
           COUNT(DISTINCT TO_CHAR(order_time, 'YYYY-MM')) as active_months
         FROM shift_detection
@@ -1060,6 +1079,8 @@ export class DatabaseStorage implements IStorage {
         END as acceptance_rate,
         total_hours as time_in_trip,
         shift_count,
+        day_shift_count,
+        night_shift_count,
         active_days,
         active_months
       FROM driver_metrics
@@ -1086,6 +1107,8 @@ export class DatabaseStorage implements IStorage {
       acceptanceRate: Number(row.acceptance_rate) || 0,
       timeInTrip: Number(row.time_in_trip) || 0,
       shiftCount: Number(row.shift_count) || 0,
+      dayShiftCount: Number(row.day_shift_count) || 0,
+      nightShiftCount: Number(row.night_shift_count) || 0,
     }));
 
     const totalRevenue = drivers.reduce((sum, d) => sum + d.avgFarePerTrip * d.completedTrips, 0);
