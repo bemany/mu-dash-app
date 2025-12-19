@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   format, 
   startOfMonth, 
@@ -464,6 +465,7 @@ interface DriversTabProps {
   setTripsMetric: (value: string) => void;
   selectedDrivers: string[];
   setSelectedDrivers: (drivers: string[]) => void;
+  shiftFilter: "all" | "day" | "night";
 }
 
 function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSummary {
@@ -646,7 +648,7 @@ function ShiftsDialog({ open, onOpenChange, drivers, isDemo }: ShiftsDialogProps
   );
 }
 
-function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, tripsMetric, setTripsMetric, selectedDrivers, setSelectedDrivers }: DriversTabProps) {
+function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distanceMetric, setDistanceMetric, tripsMetric, setTripsMetric, selectedDrivers, setSelectedDrivers, shiftFilter }: DriversTabProps) {
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
@@ -670,22 +672,29 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   
   const filteredDrivers = useMemo(() => {
     if (!reportData?.drivers) return [];
-    const drivers = selectedDrivers.length === 0 
+    let drivers = selectedDrivers.length === 0 
       ? reportData.drivers 
       : reportData.drivers.filter(d => selectedDrivers.includes(`${d.firstName} ${d.lastName}`));
+    
+    if (shiftFilter === "day") {
+      drivers = drivers.filter(d => (d.dayShiftCount || 0) > (d.nightShiftCount || 0));
+    } else if (shiftFilter === "night") {
+      drivers = drivers.filter(d => (d.nightShiftCount || 0) > (d.dayShiftCount || 0));
+    }
+    
     return drivers.map(d => ({
       ...d,
       totalRevenue: d.avgFarePerTrip * d.completedTrips,
     }));
-  }, [reportData?.drivers, selectedDrivers]);
+  }, [reportData?.drivers, selectedDrivers, shiftFilter]);
   
   const filteredSummary = useMemo(() => {
-    // If no drivers selected (meaning ALL are shown) or all explicitly selected, use original summary
-    if ((selectedDrivers.length === 0 || selectedDrivers.length === allDrivers.length) && reportData?.summary) {
+    // If no drivers selected (meaning ALL are shown) or all explicitly selected, and no shift filter, use original summary
+    if ((selectedDrivers.length === 0 || selectedDrivers.length === allDrivers.length) && shiftFilter === "all" && reportData?.summary) {
       return reportData.summary;
     }
     return recalculateDriverSummary(filteredDrivers);
-  }, [filteredDrivers, selectedDrivers.length, allDrivers.length, reportData?.summary]);
+  }, [filteredDrivers, selectedDrivers.length, allDrivers.length, shiftFilter, reportData?.summary]);
   
   const exportToExcel = () => {
     const dataToExport = sortData(filteredDrivers, sortConfig).map(driver => ({
@@ -1462,6 +1471,7 @@ export default function PerformancePage() {
   const [tripsMetric, setTripsMetric] = useState<string>("hour");
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
+  const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
   const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
 
@@ -1657,19 +1667,31 @@ export default function PerformancePage() {
               <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
             </TabsList>
             {activeTab === "drivers" && (
-              <MultiSelect
-                items={allDrivers}
-                selectedValues={selectedDrivers}
-                onSelectionChange={setSelectedDrivers}
-                placeholder={t('performance.filterSelectDrivers')}
-                allSelectedLabel={t('performance.filterAllDrivers')}
-                selectedCountLabel={(count) => t('performance.filterDriversCount').replace('{count}', count.toString())}
-                searchPlaceholder={t('performance.searchPlaceholder')}
-                selectAllLabel={t('performance.selectAll')}
-                deselectAllLabel={t('performance.deselectAll')}
-                noResultsLabel={t('performance.noResults')}
-                testId="filter-drivers"
-              />
+              <>
+                <MultiSelect
+                  items={allDrivers}
+                  selectedValues={selectedDrivers}
+                  onSelectionChange={setSelectedDrivers}
+                  placeholder={t('performance.filterSelectDrivers')}
+                  allSelectedLabel={t('performance.filterAllDrivers')}
+                  selectedCountLabel={(count) => t('performance.filterDriversCount').replace('{count}', count.toString())}
+                  searchPlaceholder={t('performance.searchPlaceholder')}
+                  selectAllLabel={t('performance.selectAll')}
+                  deselectAllLabel={t('performance.deselectAll')}
+                  noResultsLabel={t('performance.noResults')}
+                  testId="filter-drivers"
+                />
+                <Select value={shiftFilter} onValueChange={(value: "all" | "day" | "night") => setShiftFilter(value)}>
+                  <SelectTrigger className="w-[160px]" data-testid="filter-shift-type">
+                    <SelectValue placeholder={t('performance.filterShiftType')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" data-testid="filter-shift-all">{t('performance.filterAllShifts')}</SelectItem>
+                    <SelectItem value="day" data-testid="filter-shift-day">{t('performance.filterDayShift')}</SelectItem>
+                    <SelectItem value="night" data-testid="filter-shift-night">{t('performance.filterNightShift')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
             )}
             {(activeTab === "vehicles" || activeTab === "promo") && (
               <MultiSelect
@@ -1727,6 +1749,7 @@ export default function PerformancePage() {
             setTripsMetric={setTripsMetric}
             selectedDrivers={selectedDrivers}
             setSelectedDrivers={setSelectedDrivers}
+            shiftFilter={shiftFilter}
           />
         </TabsContent>
         <TabsContent value="vehicles" className="mt-0">
