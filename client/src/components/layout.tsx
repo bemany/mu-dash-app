@@ -90,7 +90,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           
           {sessionData?.vorgangsId ? (
-            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+            <div className="mx-4 my-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-400">{t('layout.processId')}</span>
@@ -98,21 +98,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <button
                   onClick={copyVorgangsId}
-                  className="p-1.5 rounded hover:bg-slate-700 transition-colors"
+                  className="p-1.5 rounded hover:bg-emerald-500/20 transition-colors"
                   data-testid="sidebar-copy-vorgangs-id"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-emerald-400/70" />}
                 </button>
               </div>
               {sessionData.companyName && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-xs text-slate-400 truncate">{sessionData.companyName}</span>
+                <div className="flex items-center gap-2 mt-2">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-400/50" />
+                  <span className="text-xs text-slate-300 truncate">{sessionData.companyName}</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="px-4 py-3 border-b border-slate-800 bg-slate-800/50">
+            <div className="mx-4 my-3 p-3 rounded-lg border border-slate-700">
               <div className="flex items-center gap-2">
                 <Input
                   value={inputVorgangsId}
