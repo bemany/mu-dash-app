@@ -2204,23 +2204,34 @@ export default function PerformancePage() {
   return (
     <DashboardLayout>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-[1920px] mx-auto space-y-4 pb-20">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="performance-title">
-              {t('performance.title')}
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              {t('performance.subtitle')}
-            </p>
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-6 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900" data-testid="performance-title">
+                  {t('performance.title')}
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">
+                  {t('performance.subtitle')}
+                </p>
+              </div>
+              <TabsList>
+                <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
+                <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
+                <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
+                <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
+                <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
+              </TabsList>
+            </div>
+            <DatePickerWithRange 
+              date={dateRange} 
+              onDateChange={setDateRange} 
+              placeholder={t('performance.datePickerPlaceholder')}
+              dateLocale={dateLocale}
+              presets={presets}
+            />
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <TabsList>
-              <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
-              <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
-              <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
-              <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
-              <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-3 flex-wrap min-h-[40px]">
             {activeTab === "drivers" && (
               <>
                 <MultiSelect
@@ -2264,13 +2275,36 @@ export default function PerformancePage() {
                 testId="filter-vehicles"
               />
             )}
-            <DatePickerWithRange 
-              date={dateRange} 
-              onDateChange={setDateRange} 
-              placeholder={t('performance.datePickerPlaceholder')}
-              dateLocale={dateLocale}
-              presets={presets}
-            />
+            {activeTab === "company" && (
+              <>
+                <MultiSelect
+                  items={allDrivers}
+                  selectedValues={selectedDrivers}
+                  onSelectionChange={setSelectedDrivers}
+                  placeholder={t('performance.filterSelectDrivers')}
+                  allSelectedLabel={t('performance.filterAllDrivers')}
+                  selectedCountLabel={(count) => t('performance.filterDriversCount').replace('{count}', count.toString())}
+                  searchPlaceholder={t('performance.searchPlaceholder')}
+                  selectAllLabel={t('performance.selectAll')}
+                  deselectAllLabel={t('performance.deselectAll')}
+                  noResultsLabel={t('performance.noResults')}
+                  testId="filter-drivers-company"
+                />
+                <MultiSelect
+                  items={allVehicles}
+                  selectedValues={selectedVehicles}
+                  onSelectionChange={setSelectedVehicles}
+                  placeholder={t('performance.filterSelectVehicles')}
+                  allSelectedLabel={t('performance.filterAllVehicles')}
+                  selectedCountLabel={(count) => t('performance.filterVehiclesCount').replace('{count}', count.toString())}
+                  searchPlaceholder={t('performance.searchPlaceholder')}
+                  selectAllLabel={t('performance.selectAll')}
+                  deselectAllLabel={t('performance.deselectAll')}
+                  noResultsLabel={t('performance.noResults')}
+                  testId="filter-vehicles-company"
+                />
+              </>
+            )}
           </div>
         </div>
 
