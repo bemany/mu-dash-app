@@ -369,6 +369,7 @@ export const translations = {
       kpiTripsPerDay: 'Fahrten/Tag',
       kpiTripsPerWeek: 'Fahrten/Woche',
       kpiTripsPerMonth: 'Fahrten/Monat',
+      kpiOccupancyRate: 'Besetzungsquote',
     },
   },
   en: {
@@ -732,6 +733,7 @@ export const translations = {
       kpiTripsPerDay: 'Trips/Day',
       kpiTripsPerWeek: 'Trips/Week',
       kpiTripsPerMonth: 'Trips/Month',
+      kpiOccupancyRate: 'Occupancy Rate',
     },
   },
   tr: {
@@ -1095,6 +1097,7 @@ export const translations = {
       kpiTripsPerDay: 'Sefer/Gün',
       kpiTripsPerWeek: 'Sefer/Hafta',
       kpiTripsPerMonth: 'Sefer/Ay',
+      kpiOccupancyRate: 'Doluluk Oranı',
     },
   },
   ar: {
@@ -1458,6 +1461,7 @@ export const translations = {
       kpiTripsPerDay: 'رحلات/يوم',
       kpiTripsPerWeek: 'رحلات/أسبوع',
       kpiTripsPerMonth: 'رحلات/شهر',
+      kpiOccupancyRate: 'معدل الإشغال',
     },
   },
 } as const;
