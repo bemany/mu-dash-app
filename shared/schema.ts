@@ -34,6 +34,9 @@ export const transactions = pgTable("transactions", {
   transactionTime: timestamp("transaction_time").notNull(),
   amount: integer("amount").notNull(), // in cents to avoid floating point issues
   description: text("description"),
+  tripUuid: text("trip_uuid"), // UUID of the trip for matching with trips table
+  revenue: integer("revenue"), // "Deine Umsätze" in cents
+  farePrice: integer("fare_price"), // "Fahrpreis" in cents
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
