@@ -154,6 +154,7 @@ export interface VehicleReportSummary {
   avgRevenuePerKm: number;
   avgRevenuePerTrip: number;
   avgRevenuePerVehicle: number;
+  avgOccupancyRate: number;
 }
 
 export interface PromoReportRow {
@@ -1287,6 +1288,30 @@ export class DatabaseStorage implements IStorage {
     const totalActiveDays = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_days) || 0), 0);
     const totalActiveMonths = (result.rows as any[]).reduce((sum: number, row: any) => sum + (Number(row.active_months) || 0), 0);
 
+    const occupancyResult = await db.execute(sql`
+      WITH daily_drivers AS (
+        SELECT 
+          license_plate,
+          DATE(order_time) as trip_date,
+          COUNT(DISTINCT CONCAT(
+            COALESCE(raw_data->>'Vorname des Fahrers', ''),
+            ' ',
+            COALESCE(raw_data->>'Nachname des Fahrers', '')
+          )) as driver_count
+        FROM trips
+        WHERE session_id = ${sessionId}
+          AND license_plate IS NOT NULL 
+          AND license_plate != ''
+        ${dateFilter}
+        GROUP BY license_plate, DATE(order_time)
+      )
+      SELECT 
+        AVG(LEAST(driver_count, 2)::numeric / 2 * 100) as avg_occupancy_rate
+      FROM daily_drivers
+    `);
+    
+    const avgOccupancyRate = Number((occupancyResult.rows as any[])[0]?.avg_occupancy_rate) || 0;
+
     const summary: VehicleReportSummary = {
       totalRevenue,
       totalDistance,
@@ -1300,6 +1325,7 @@ export class DatabaseStorage implements IStorage {
       avgRevenuePerKm: totalDistance > 0 ? totalRevenue / totalDistance : 0,
       avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
       avgRevenuePerVehicle: uniqueVehicles > 0 ? totalRevenue / uniqueVehicles : 0,
+      avgOccupancyRate,
     };
 
     return { summary, vehicles };

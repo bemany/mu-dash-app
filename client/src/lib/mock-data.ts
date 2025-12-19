@@ -305,6 +305,7 @@ export interface VehicleReportSummary {
   avgRevenuePerKm: number;
   avgRevenuePerTrip: number;
   avgRevenuePerVehicle: number;
+  avgOccupancyRate: number;
 }
 
 export interface PromoReportRow {
@@ -363,6 +364,7 @@ export const mockVehicleReport: { summary: VehicleReportSummary; vehicles: Vehic
     avgRevenuePerKm: 4.22,
     avgRevenuePerTrip: 27.47,
     avgRevenuePerVehicle: 4900,
+    avgOccupancyRate: 72.5,
   },
   vehicles: [
     { licensePlate: "DEMO-001", completedTrips: 228, cancelledTrips: 14, totalTrips: 242, avgFarePerTrip: 27.19, distanceInTrip: 1450, pricePerKm: 4.28, revenuePerDay: 206.67, revenueNightShift: 2800, revenueDayShift: 3400, totalRevenue: 6200, revenuePerHour: 72.94, tripsPerHour: 2.68, acceptanceRate: 94.2, timeInTrip: 85, shiftCount: 10, dayShiftCount: 6, nightShiftCount: 4 },

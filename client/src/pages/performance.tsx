@@ -908,7 +908,7 @@ interface VehiclesTabProps {
   setSelectedVehicles: (vehicles: string[]) => void;
 }
 
-function recalculateVehicleSummary(vehicles: VehicleReportRow[]): VehicleReportSummary {
+function recalculateVehicleSummary(vehicles: VehicleReportRow[], originalSummary?: VehicleReportSummary): VehicleReportSummary {
   if (vehicles.length === 0) {
     return {
       avgRevenuePerHour: 0,
@@ -923,6 +923,7 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[]): VehicleReportS
       totalHoursWorked: 0,
       totalTrips: 0,
       uniqueVehicles: 0,
+      avgOccupancyRate: 0,
     };
   }
   
@@ -949,6 +950,7 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[]): VehicleReportS
     totalHoursWorked: totalHours,
     totalTrips,
     uniqueVehicles: totalVehicles,
+    avgOccupancyRate: originalSummary?.avgOccupancyRate || 0,
   };
 }
 
@@ -1058,7 +1060,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     if ((selectedVehicles.length === 0 || selectedVehicles.length === allVehicles.length) && reportData?.summary) {
       return reportData.summary;
     }
-    return recalculateVehicleSummary(filteredVehicles);
+    return recalculateVehicleSummary(filteredVehicles, reportData?.summary);
   }, [filteredVehicles, selectedVehicles.length, allVehicles.length, reportData?.summary]);
   
   const exportToExcel = () => {
@@ -1190,6 +1192,12 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
             ],
             onChange: setTripsMetric,
           }}
+        />
+        <KpiCard
+          testId="kpi-vehicle-occupancy"
+          title={t('performance.kpiOccupancyRate')}
+          value={`${formatNumber(filteredSummary.avgOccupancyRate, 1)}%`}
+          icon={<Users className="w-5 h-5" />}
         />
       </div>
       
