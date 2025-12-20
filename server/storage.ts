@@ -1517,6 +1517,8 @@ export class DatabaseStorage implements IStorage {
     }>;
 
     // Step 2: Get revenue from TRANSACTIONS (what you receive)
+    // Only include "trip completed order" - exclude "trip fare adjust order" (tips, adjustments)
+    // to get accurate commission calculation
     let txQuery = sql`
       SELECT 
         trip_uuid,
@@ -1524,7 +1526,9 @@ export class DatabaseStorage implements IStorage {
       FROM transactions
       WHERE session_id = ${sessionId}
         AND trip_uuid IS NOT NULL
+        AND trip_uuid != '00000000-0000-0000-0000-000000000000'
         AND revenue IS NOT NULL
+        AND raw_data->>'Beschreibung' = 'trip completed order'
       GROUP BY trip_uuid
     `;
     
