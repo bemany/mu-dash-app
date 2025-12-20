@@ -1721,9 +1721,12 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     const revenuePerTrip = commSummary.tripCount > 0 ? commSummary.totalRevenue / commSummary.tripCount : 0;
     const pricePerKm = (driverSummary as any).avgRevenuePerKm || 0;
     
+    const totalFees = commSummary.totalFarePrice - commSummary.totalRevenue;
+    
     return {
       totalFare: commSummary.totalFarePrice,
       totalRevenue: commSummary.totalRevenue,
+      totalFees,
       feesPercent: commSummary.commissionPercent,
       totalShifts: driverSummary.totalShifts,
       totalTrips: commSummary.tripCount,
@@ -1827,6 +1830,12 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
             title={t('performance.companyFeesPercent')}
             value={`${summary.feesPercent.toFixed(1)}%`}
             icon={<Car className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-total-fees"
+            title={t('performance.companyTotalFees')}
+            value={formatCurrency(summary.totalFees)}
+            icon={<Banknote className="w-5 h-5" />}
           />
           <Card data-testid="kpi-company-excess-fees">
             <CardContent className="p-5 min-h-[100px]">
