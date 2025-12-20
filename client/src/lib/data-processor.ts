@@ -109,6 +109,8 @@ export function processAggregatedTripsAndTransactions(
 
   transactions.forEach(tx => {
     const timestamp = tx["Zeitpunkt"];
+    if (!timestamp) return;
+    
     let date: Date;
     
     if (timestamp.includes('+')) {
@@ -116,6 +118,8 @@ export function processAggregatedTripsAndTransactions(
     } else {
       date = parseISO(timestamp);
     }
+    
+    if (!date || isNaN(date.getTime())) return;
     
     const monthKey = format(startOfMonth(date), "yyyy-MM");
     
@@ -185,7 +189,12 @@ export function processTripsAndTransactions(trips: UberTrip[], transactions: Ube
     // Nur completed Fahrten zählen
     if (trip["Fahrtstatus"] !== "completed") return;
 
-    const date = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
+    const tripTimestamp = trip["Zeitpunkt der Fahrtbestellung"];
+    if (!tripTimestamp) return;
+    
+    const date = parseISO(tripTimestamp);
+    if (!date || isNaN(date.getTime())) return;
+    
     const monthKey = format(startOfMonth(date), "yyyy-MM");
     
     const driver = getDriver(trip["Kennzeichen"]);
@@ -200,6 +209,8 @@ export function processTripsAndTransactions(trips: UberTrip[], transactions: Ube
 
   transactions.forEach(tx => {
     const timestamp = tx["Zeitpunkt"];
+    if (!timestamp) return;
+    
     let date: Date;
     
     if (timestamp.includes('+')) {
@@ -207,6 +218,8 @@ export function processTripsAndTransactions(trips: UberTrip[], transactions: Ube
     } else {
       date = parseISO(timestamp);
     }
+    
+    if (!date || isNaN(date.getTime())) return;
     
     const monthKey = format(startOfMonth(date), "yyyy-MM");
     
