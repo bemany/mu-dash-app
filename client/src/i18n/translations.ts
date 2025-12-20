@@ -408,6 +408,8 @@ export const translations = {
       categoryFees: 'Gebühren',
       categoryPromo: 'Werbegelder',
       categoryPerformance: 'Performance',
+      expectedFees: 'Erwartet',
+      excessFees: 'Zuviel berechnet',
     },
   },
   en: {
@@ -810,6 +812,8 @@ export const translations = {
       categoryFees: 'Fees',
       categoryPromo: 'Promo Money',
       categoryPerformance: 'Performance',
+      expectedFees: 'Expected',
+      excessFees: 'Overcharged',
     },
   },
   tr: {
@@ -1212,6 +1216,8 @@ export const translations = {
       categoryFees: 'Ücretler',
       categoryPromo: 'Reklam Parası',
       categoryPerformance: 'Performans',
+      expectedFees: 'Beklenen',
+      excessFees: 'Fazla Hesaplanan',
     },
   },
   ar: {
@@ -1614,6 +1620,8 @@ export const translations = {
       categoryFees: 'الرسوم',
       categoryPromo: 'أموال الترويج',
       categoryPerformance: 'الأداء',
+      expectedFees: 'المتوقع',
+      excessFees: 'المحسوب بالزيادة',
     },
   },
 } as const;

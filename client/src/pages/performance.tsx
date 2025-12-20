@@ -1693,6 +1693,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
   const [revenueMetric, setRevenueMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [shiftsMetric, setShiftsMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [tripsMetric, setTripsMetric] = useState<"total" | "day" | "week" | "month">("total");
+  const [expectedFeePercent, setExpectedFeePercent] = useState<number>(30);
 
   const daysInRange = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return 1;
@@ -1827,6 +1828,42 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
             value={`${summary.feesPercent.toFixed(1)}%`}
             icon={<Car className="w-5 h-5" />}
           />
+          <Card data-testid="kpi-company-excess-fees">
+            <CardContent className="p-5 min-h-[100px]">
+              <div className="flex items-start justify-between h-full">
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-500">{t('performance.expectedFees')}</span>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        value={expectedFeePercent}
+                        onChange={(e) => setExpectedFeePercent(Math.max(0, Math.min(100, Number(e.target.value))))}
+                        className="w-14 px-2 py-1 text-sm border rounded text-center"
+                        min="0"
+                        max="100"
+                        data-testid="input-expected-fee"
+                      />
+                      <span className="ml-1 text-sm text-slate-500">%</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-500">{t('performance.excessFees')}</p>
+                  <p 
+                    className={cn(
+                      "text-2xl font-bold",
+                      (summary.feesPercent - expectedFeePercent) > 0 ? "text-red-600" : "text-slate-900"
+                    )}
+                    data-testid="kpi-company-excess-fees-value"
+                  >
+                    {formatCurrency((summary.feesPercent - expectedFeePercent) / 100 * summary.totalFare)}
+                  </p>
+                </div>
+                <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
