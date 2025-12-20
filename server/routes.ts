@@ -14,9 +14,66 @@ const upload = multer({
 
 const LICENSE_PLATE_REGEX = /[A-Z]{1,3}-[A-Z]{1,3}\s?\d{1,4}[A-Z]?/i;
 
-function extractLicensePlate(description: string): string | null {
+function isPromoPayment(description: string): boolean {
+  if (!description) return false;
+  const lower = description.toLowerCase();
+  return lower.includes("fahrzeugbasierte aktion") && lower.includes("fahrten");
+}
+
+function extractPromoLicensePlate(description: string): string | null {
+  if (!isPromoPayment(description)) return null;
+  
   const match = description.match(LICENSE_PLATE_REGEX);
-  return match ? match[0].toUpperCase().replace(/\s/g, '') : null;
+  if (!match) return null;
+  
+  const plate = match[0].toUpperCase().replace(/\s/g, '');
+  
+  if (isLikelyUuidFragment(plate, description)) return null;
+  
+  return plate;
+}
+
+function isLikelyUuidFragment(plate: string, description: string): boolean {
+  const platePos = description.toUpperCase().indexOf(plate);
+  if (platePos === -1) return false;
+  
+  const before = description.substring(Math.max(0, platePos - 10), platePos);
+  const after = description.substring(platePos + plate.length, platePos + plate.length + 10);
+  
+  const uuidPattern = /[0-9a-f]{4,}-|[0-9a-f]{8,}/i;
+  if (uuidPattern.test(before) || uuidPattern.test(after)) {
+    return true;
+  }
+  
+  const surroundingText = description.substring(
+    Math.max(0, platePos - 20), 
+    Math.min(description.length, platePos + plate.length + 20)
+  );
+  const fullUuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  if (fullUuidPattern.test(surroundingText)) {
+    return true;
+  }
+  
+  return false;
+}
+
+function extractLicensePlate(description: string): string | null {
+  if (!description) return null;
+  
+  if (isPromoPayment(description)) {
+    return extractPromoLicensePlate(description);
+  }
+  
+  const match = description.match(LICENSE_PLATE_REGEX);
+  if (!match) return null;
+  
+  const plate = match[0].toUpperCase().replace(/\s/g, '');
+  
+  if (isLikelyUuidFragment(plate, description)) {
+    return null;
+  }
+  
+  return plate;
 }
 
 function parsePaymentTimestamp(timestamp: string): Date {
