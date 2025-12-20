@@ -404,6 +404,10 @@ export const translations = {
       companyPromoEarned: 'Verdiente Werbegelder',
       companyPromoPaid: 'Ausgezahlte Werbegelder',
       companyPromoDiff: 'Differenz Werbegelder',
+      categoryRevenue: 'Umsätze',
+      categoryFees: 'Gebühren',
+      categoryPromo: 'Werbegelder',
+      categoryPerformance: 'Performance',
     },
   },
   en: {
@@ -802,6 +806,10 @@ export const translations = {
       companyPromoEarned: 'Earned Promo Money',
       companyPromoPaid: 'Paid Promo Money',
       companyPromoDiff: 'Promo Difference',
+      categoryRevenue: 'Revenue',
+      categoryFees: 'Fees',
+      categoryPromo: 'Promo Money',
+      categoryPerformance: 'Performance',
     },
   },
   tr: {
@@ -1200,6 +1208,10 @@ export const translations = {
       companyPromoEarned: 'Kazanılan Reklam Parası',
       companyPromoPaid: 'Ödenen Reklam Parası',
       companyPromoDiff: 'Reklam Farkı',
+      categoryRevenue: 'Gelirler',
+      categoryFees: 'Ücretler',
+      categoryPromo: 'Reklam Parası',
+      categoryPerformance: 'Performans',
     },
   },
   ar: {
@@ -1598,6 +1610,10 @@ export const translations = {
       companyPromoEarned: 'أموال الترويج المكتسبة',
       companyPromoPaid: 'أموال الترويج المدفوعة',
       companyPromoDiff: 'فرق الترويج',
+      categoryRevenue: 'الإيرادات',
+      categoryFees: 'الرسوم',
+      categoryPromo: 'أموال الترويج',
+      categoryPerformance: 'الأداء',
     },
   },
 } as const;

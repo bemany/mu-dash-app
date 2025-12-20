@@ -130,7 +130,7 @@ function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCa
               {value}
             </p>
           </div>
-          <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">{icon}</div>
+          <div className="p-2 bg-slate-100 rounded-lg text-slate-600">{icon}</div>
         </div>
       </CardContent>
     </Card>
@@ -1777,110 +1777,121 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
   const promoDiff = promoData?.summary?.totalDifference || 0;
   
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          testId="kpi-company-fare"
-          title=""
-          value={formatCurrency(getValueByMetric(summary.totalFare, fareMetric))}
-          icon={<Car className="w-5 h-5" />}
-          tags={{
-            value: fareMetric,
-            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTotalFare') : getMetricLabel(o.value as any, t('performance.companyTotalFare')) })),
-            onChange: (v) => setFareMetric(v as any),
-          }}
-        />
-        <KpiCard
-          testId="kpi-company-revenue"
-          title=""
-          value={formatCurrency(getValueByMetric(summary.totalRevenue, revenueMetric))}
-          icon={<Banknote className="w-5 h-5" />}
-          className="border-emerald-200 bg-emerald-50"
-          tags={{
-            value: revenueMetric,
-            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyYourRevenue') : getMetricLabel(o.value as any, t('performance.companyYourRevenue')) })),
-            onChange: (v) => setRevenueMetric(v as any),
-          }}
-        />
-        <KpiCard
-          testId="kpi-company-shifts"
-          title=""
-          value={formatNumber(getValueByMetric(summary.totalShifts, shiftsMetric), 0)}
-          icon={<Clock className="w-5 h-5" />}
-          tags={{
-            value: shiftsMetric,
-            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyShifts') : getMetricLabel(o.value as any, t('performance.companyShifts')) })),
-            onChange: (v) => setShiftsMetric(v as any),
-          }}
-        />
-        <KpiCard
-          testId="kpi-company-trips"
-          title=""
-          value={formatNumber(getValueByMetric(summary.totalTrips, tripsMetric), 0)}
-          icon={<Route className="w-5 h-5" />}
-          tags={{
-            value: tripsMetric,
-            options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTrips') : getMetricLabel(o.value as any, t('performance.companyTrips')) })),
-            onChange: (v) => setTripsMetric(v as any),
-          }}
-        />
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('performance.categoryRevenue')}</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            testId="kpi-company-fare"
+            title=""
+            value={formatCurrency(getValueByMetric(summary.totalFare, fareMetric))}
+            icon={<Car className="w-5 h-5" />}
+            tags={{
+              value: fareMetric,
+              options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTotalFare') : getMetricLabel(o.value as any, t('performance.companyTotalFare')) })),
+              onChange: (v) => setFareMetric(v as any),
+            }}
+          />
+          <KpiCard
+            testId="kpi-company-revenue"
+            title=""
+            value={formatCurrency(getValueByMetric(summary.totalRevenue, revenueMetric))}
+            icon={<Banknote className="w-5 h-5" />}
+            tags={{
+              value: revenueMetric,
+              options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyYourRevenue') : getMetricLabel(o.value as any, t('performance.companyYourRevenue')) })),
+              onChange: (v) => setRevenueMetric(v as any),
+            }}
+          />
+          <KpiCard
+            testId="kpi-company-pertrip"
+            title={t('performance.companyPerTrip')}
+            value={formatCurrency(summary.revenuePerTrip)}
+            icon={<Car className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-perkm"
+            title={t('performance.companyPerKm')}
+            value={`${formatNumber(summary.pricePerKm, 2)} €`}
+            icon={<Route className="w-5 h-5" />}
+          />
+        </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          testId="kpi-company-fees"
-          title={t('performance.companyFeesPercent')}
-          value={`${summary.feesPercent.toFixed(1)}%`}
-          icon={<Car className="w-5 h-5" />}
-          className="border-amber-200 bg-amber-50"
-        />
-        <KpiCard
-          testId="kpi-company-cancellation"
-          title={t('performance.companyCancellationRate')}
-          value={`${summary.cancellationRate.toFixed(1)}%`}
-          icon={<X className="w-5 h-5" />}
-          className={summary.cancellationRate > 10 ? "border-red-200 bg-red-50" : ""}
-        />
-        <KpiCard
-          testId="kpi-company-occupancy"
-          title={t('performance.companyOccupancyRate')}
-          value={`${summary.occupancyRate.toFixed(1)}%`}
-          icon={<Users className="w-5 h-5" />}
-        />
-        <KpiCard
-          testId="kpi-company-perkm"
-          title={t('performance.companyPerKm')}
-          value={`${formatNumber(summary.pricePerKm, 2)} €`}
-          icon={<Route className="w-5 h-5" />}
-        />
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('performance.categoryFees')}</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            testId="kpi-company-fees"
+            title={t('performance.companyFeesPercent')}
+            value={`${summary.feesPercent.toFixed(1)}%`}
+            icon={<Car className="w-5 h-5" />}
+          />
+        </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          testId="kpi-company-pertrip"
-          title={t('performance.companyPerTrip')}
-          value={formatCurrency(summary.revenuePerTrip)}
-          icon={<Car className="w-5 h-5" />}
-        />
-        <KpiCard
-          testId="kpi-company-promo-earned"
-          title={t('performance.companyPromoEarned')}
-          value={formatCurrency(promoData?.summary?.totalTheoreticalBonus || 0)}
-          icon={<Gift className="w-5 h-5" />}
-          className="border-emerald-200 bg-emerald-50"
-        />
-        <KpiCard
-          testId="kpi-company-promo-paid"
-          title={t('performance.companyPromoPaid')}
-          value={formatCurrency(promoData?.summary?.totalActualPaid || 0)}
-          icon={<Banknote className="w-5 h-5" />}
-          className="border-blue-200 bg-blue-50"
-        />
-        <KpiCard
-          testId="kpi-company-promo-diff"
-          title={t('performance.companyPromoDiff')}
-          value={formatCurrency(promoDiff)}
-          icon={<TrendingUp className="w-5 h-5" />}
-          className={promoDiff < 0 ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"}
-        />
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('performance.categoryPromo')}</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            testId="kpi-company-promo-earned"
+            title={t('performance.companyPromoEarned')}
+            value={formatCurrency(promoData?.summary?.totalTheoreticalBonus || 0)}
+            icon={<Gift className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-promo-paid"
+            title={t('performance.companyPromoPaid')}
+            value={formatCurrency(promoData?.summary?.totalActualPaid || 0)}
+            icon={<Banknote className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-promo-diff"
+            title={t('performance.companyPromoDiff')}
+            value={formatCurrency(promoDiff)}
+            icon={<TrendingUp className="w-5 h-5" />}
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 mb-2">{t('performance.categoryPerformance')}</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            testId="kpi-company-shifts"
+            title=""
+            value={formatNumber(getValueByMetric(summary.totalShifts, shiftsMetric), 0)}
+            icon={<Clock className="w-5 h-5" />}
+            tags={{
+              value: shiftsMetric,
+              options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyShifts') : getMetricLabel(o.value as any, t('performance.companyShifts')) })),
+              onChange: (v) => setShiftsMetric(v as any),
+            }}
+          />
+          <KpiCard
+            testId="kpi-company-trips"
+            title=""
+            value={formatNumber(getValueByMetric(summary.totalTrips, tripsMetric), 0)}
+            icon={<Route className="w-5 h-5" />}
+            tags={{
+              value: tripsMetric,
+              options: metricOptions.map(o => ({ value: o.value, label: o.value === "total" ? t('performance.companyTrips') : getMetricLabel(o.value as any, t('performance.companyTrips')) })),
+              onChange: (v) => setTripsMetric(v as any),
+            }}
+          />
+          <KpiCard
+            testId="kpi-company-cancellation"
+            title={t('performance.companyCancellationRate')}
+            value={`${summary.cancellationRate.toFixed(1)}%`}
+            icon={<X className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-occupancy"
+            title={t('performance.companyOccupancyRate')}
+            value={`${summary.occupancyRate.toFixed(1)}%`}
+            icon={<Users className="w-5 h-5" />}
+          />
+        </div>
       </div>
     </div>
   );
