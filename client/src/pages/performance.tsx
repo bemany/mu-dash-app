@@ -1576,7 +1576,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
                 <TableHead className="sticky left-0 bg-slate-50/50 z-10"></TableHead>
                 {months.map(month => (
                   <React.Fragment key={`sub-${month}`}>
-                    <TableHead className="text-right text-xs border-l px-2 whitespace-nowrap">{t('performance.tableTheoShort')}</TableHead>
+                    <TableHead className="text-right text-xs border-l px-2 whitespace-nowrap">{t('performance.tableTrips')}</TableHead>
                     <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
                     <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
                   </React.Fragment>
@@ -1597,16 +1597,15 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
                       : data.trips >= 250 
                         ? "bg-amber-100" 
                         : "";
+                    const paidBgClass = data.paid > 0 ? "bg-emerald-100" : "";
+                    const diffBgClass = data.diff < 0 ? "bg-orange-100" : "";
                     return (
                       <React.Fragment key={`${row.licensePlate}-${month}`}>
                         <TableCell className={cn("text-right border-l px-2 whitespace-nowrap", tripBgClass)}>
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs text-slate-500">{data.trips > 0 ? data.trips : ''}</span>
-                            <span>{data.theo ? formatCurrency(data.theo) : '-'}</span>
-                          </div>
+                          {data.trips > 0 ? data.trips : '-'}
                         </TableCell>
-                        <TableCell className={cn("text-right px-2 whitespace-nowrap", tripBgClass)}>{data.paid ? formatCurrency(data.paid) : '-'}</TableCell>
-                        <TableCell className={cn("text-right px-2 whitespace-nowrap", tripBgClass, data.diff < 0 && "text-red-600")}>
+                        <TableCell className={cn("text-right px-2 whitespace-nowrap", paidBgClass)}>{data.paid ? formatCurrency(data.paid) : '-'}</TableCell>
+                        <TableCell className={cn("text-right px-2 whitespace-nowrap", diffBgClass, data.diff < 0 && "text-red-600")}>
                           {data.diff !== 0 ? formatCurrency(data.diff) : '-'}
                         </TableCell>
                       </React.Fragment>
