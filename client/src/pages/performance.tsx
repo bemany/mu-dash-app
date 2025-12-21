@@ -1411,18 +1411,54 @@ interface PromoTabProps {
   isLoading: boolean;
   isDemo: boolean;
   selectedVehicles: string[];
+  dateRange?: DateRange;
 }
 
-function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) {
+function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: PromoTabProps) {
   const { t } = useTranslation();
   
   const reportData = isDemo ? mockPromoReport : data;
   
+  const parseMonth = (monthStr: string): { year: number; month: number } => {
+    if (monthStr.includes('-')) {
+      const [year, month] = monthStr.split('-').map(Number);
+      return { year, month };
+    } else {
+      const [month, year] = monthStr.split('/').map(Number);
+      return { year, month };
+    }
+  };
+
   const filteredRows = useMemo(() => {
     if (!reportData?.rows) return [];
-    if (selectedVehicles.length === 0) return reportData.rows;
-    return reportData.rows.filter(row => selectedVehicles.includes(row.licensePlate));
-  }, [reportData?.rows, selectedVehicles]);
+    let rows = reportData.rows;
+    
+    // Filter by date range
+    if (dateRange?.from || dateRange?.to) {
+      rows = rows.filter(row => {
+        const { year, month } = parseMonth(row.month);
+        // Create date for first day of month
+        const rowDate = new Date(year, month - 1, 1);
+        
+        if (dateRange?.from) {
+          const fromDate = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), 1);
+          if (rowDate < fromDate) return false;
+        }
+        if (dateRange?.to) {
+          const toDate = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth(), 1);
+          if (rowDate > toDate) return false;
+        }
+        return true;
+      });
+    }
+    
+    // Filter by selected vehicles
+    if (selectedVehicles.length > 0) {
+      rows = rows.filter(row => selectedVehicles.includes(row.licensePlate));
+    }
+    
+    return rows;
+  }, [reportData?.rows, selectedVehicles, dateRange]);
   
   const filteredSummary = useMemo(() => {
     if (!reportData?.summary) return { totalTheoreticalBonus: 0, totalActualPaid: 0, totalDifference: 0 };
@@ -1460,20 +1496,12 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
     });
     
     const sortedMonths = Array.from(monthSet).sort((a, b) => {
-      // Handle both "YYYY-MM" and "MM/YYYY" formats
-      let yearA: number, monthA: number, yearB: number, monthB: number;
-      if (a.includes('-')) {
-        [yearA, monthA] = a.split('-').map(Number);
-      } else {
-        [monthA, yearA] = a.split('/').map(Number);
-      }
-      if (b.includes('-')) {
-        [yearB, monthB] = b.split('-').map(Number);
-      } else {
-        [monthB, yearB] = b.split('/').map(Number);
-      }
-      if (yearA !== yearB) return yearA - yearB;
-      return monthA - monthB;
+      const parsedA = parseMonth(a);
+      const parsedB = parseMonth(b);
+      // Use numeric comparison: year * 100 + month for proper chronological sort
+      const valueA = parsedA.year * 100 + parsedA.month;
+      const valueB = parsedB.year * 100 + parsedB.month;
+      return valueA - valueB;
     });
     
     const totals: Record<string, { theo: number; paid: number; diff: number }> = {};
@@ -2581,6 +2609,7 @@ export default function PerformancePage() {
             isLoading={promoLoading} 
             isDemo={isDemo}
             selectedVehicles={selectedVehicles}
+            dateRange={dateRange}
           />
         </TabsContent>
         <TabsContent value="commissions" className="mt-0">
