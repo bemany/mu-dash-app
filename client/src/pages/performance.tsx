@@ -68,6 +68,15 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function formatCurrencyCompact(value: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 function formatNumber(value: number, decimals: number = 2): string {
   return new Intl.NumberFormat("de-DE", {
     minimumFractionDigits: decimals,
@@ -1563,13 +1572,13 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-white z-10 min-w-[120px]">{t('performance.tableLicensePlate')}</TableHead>
+                <TableHead className="sticky left-0 bg-white z-10 min-w-[80px]">{t('performance.tableLicensePlate')}</TableHead>
                 {months.map(month => (
-                  <TableHead key={month} colSpan={3} className="text-center border-l whitespace-nowrap">
+                  <TableHead key={month} colSpan={3} className="text-center border-l whitespace-nowrap text-xs px-1">
                     {month}
                   </TableHead>
                 ))}
-                <TableHead colSpan={3} className="text-center border-l bg-slate-50 font-bold whitespace-nowrap">
+                <TableHead colSpan={3} className="text-center border-l bg-slate-50 font-bold whitespace-nowrap text-xs px-1">
                   {t('performance.total')}
                 </TableHead>
               </TableRow>
@@ -1577,14 +1586,14 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
                 <TableHead className="sticky left-0 bg-slate-50/50 z-10"></TableHead>
                 {months.map(month => (
                   <React.Fragment key={`sub-${month}`}>
-                    <TableHead className="text-right text-xs border-l px-2 whitespace-nowrap">{t('performance.tableTrips')}</TableHead>
-                    <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
-                    <TableHead className="text-right text-xs px-2 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
+                    <TableHead className="text-right text-xs border-l px-1 whitespace-nowrap">{t('performance.tableTrips')}</TableHead>
+                    <TableHead className="text-right text-xs px-1 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
+                    <TableHead className="text-right text-xs px-1 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
                   </React.Fragment>
                 ))}
-                <TableHead className="text-right text-xs border-l bg-slate-100 px-2 whitespace-nowrap">{t('performance.tableTheoShort')}</TableHead>
-                <TableHead className="text-right text-xs bg-slate-100 px-2 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
-                <TableHead className="text-right text-xs bg-slate-100 px-2 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
+                <TableHead className="text-right text-xs border-l bg-slate-100 px-1 whitespace-nowrap">{t('performance.tableTheoShort')}</TableHead>
+                <TableHead className="text-right text-xs bg-slate-100 px-1 whitespace-nowrap">{t('performance.tablePaidShort')}</TableHead>
+                <TableHead className="text-right text-xs bg-slate-100 px-1 whitespace-nowrap">{t('performance.tableDiffShort')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1602,41 +1611,41 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
                     const diffBgClass = data.diff < 0 ? "bg-orange-100" : "";
                     return (
                       <React.Fragment key={`${row.licensePlate}-${month}`}>
-                        <TableCell className={cn("text-right border-l px-2 whitespace-nowrap", tripBgClass)}>
+                        <TableCell className={cn("text-right border-l px-1 whitespace-nowrap text-xs", tripBgClass)}>
                           {data.trips > 0 ? data.trips : '-'}
                         </TableCell>
-                        <TableCell className={cn("text-right px-2 whitespace-nowrap", paidBgClass)}>{data.paid ? formatCurrency(data.paid) : '-'}</TableCell>
-                        <TableCell className={cn("text-right px-2 whitespace-nowrap", diffBgClass, data.diff < 0 && "text-red-600")}>
-                          {data.diff !== 0 ? formatCurrency(data.diff) : '-'}
+                        <TableCell className={cn("text-right px-1 whitespace-nowrap text-xs", paidBgClass)}>{data.paid ? formatCurrencyCompact(data.paid) : '-'}</TableCell>
+                        <TableCell className={cn("text-right px-1 whitespace-nowrap text-xs", diffBgClass, data.diff < 0 && "text-red-600")}>
+                          {data.diff !== 0 ? formatCurrencyCompact(data.diff) : '-'}
                         </TableCell>
                       </React.Fragment>
                     );
                   })}
-                  <TableCell className="text-right border-l bg-slate-50 font-medium px-2 whitespace-nowrap">{formatCurrency(row.total.theo)}</TableCell>
-                  <TableCell className="text-right bg-slate-50 font-medium px-2 whitespace-nowrap">{formatCurrency(row.total.paid)}</TableCell>
-                  <TableCell className={cn("text-right bg-slate-50 font-medium px-2 whitespace-nowrap", row.total.diff < 0 && "text-red-600")}>
-                    {formatCurrency(row.total.diff)}
+                  <TableCell className="text-right border-l bg-slate-50 font-medium px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(row.total.theo)}</TableCell>
+                  <TableCell className="text-right bg-slate-50 font-medium px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(row.total.paid)}</TableCell>
+                  <TableCell className={cn("text-right bg-slate-50 font-medium px-1 whitespace-nowrap text-xs", row.total.diff < 0 && "text-red-600")}>
+                    {formatCurrencyCompact(row.total.diff)}
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-slate-100 font-bold border-t-2">
-                <TableCell className="sticky left-0 bg-slate-100 z-10">{t('performance.total')}</TableCell>
+                <TableCell className="sticky left-0 bg-slate-100 z-10 text-xs">{t('performance.total')}</TableCell>
                 {months.map(month => {
                   const data = monthTotals[month] || { theo: 0, paid: 0, diff: 0 };
                   return (
                     <React.Fragment key={`total-${month}`}>
-                      <TableCell className="text-right border-l px-2 whitespace-nowrap">{formatCurrency(data.theo)}</TableCell>
-                      <TableCell className="text-right px-2 whitespace-nowrap">{formatCurrency(data.paid)}</TableCell>
-                      <TableCell className={cn("text-right px-2 whitespace-nowrap", data.diff < 0 && "text-red-600")}>
-                        {formatCurrency(data.diff)}
+                      <TableCell className="text-right border-l px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(data.theo)}</TableCell>
+                      <TableCell className="text-right px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(data.paid)}</TableCell>
+                      <TableCell className={cn("text-right px-1 whitespace-nowrap text-xs", data.diff < 0 && "text-red-600")}>
+                        {formatCurrencyCompact(data.diff)}
                       </TableCell>
                     </React.Fragment>
                   );
                 })}
-                <TableCell className="text-right border-l bg-slate-200 px-2 whitespace-nowrap">{formatCurrency(grandTotal.theo)}</TableCell>
-                <TableCell className="text-right bg-slate-200 px-2 whitespace-nowrap">{formatCurrency(grandTotal.paid)}</TableCell>
-                <TableCell className={cn("text-right bg-slate-200 px-2 whitespace-nowrap", grandTotal.diff < 0 && "text-red-600")}>
-                  {formatCurrency(grandTotal.diff)}
+                <TableCell className="text-right border-l bg-slate-200 px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(grandTotal.theo)}</TableCell>
+                <TableCell className="text-right bg-slate-200 px-1 whitespace-nowrap text-xs">{formatCurrencyCompact(grandTotal.paid)}</TableCell>
+                <TableCell className={cn("text-right bg-slate-200 px-1 whitespace-nowrap text-xs", grandTotal.diff < 0 && "text-red-600")}>
+                  {formatCurrencyCompact(grandTotal.diff)}
                 </TableCell>
               </TableRow>
             </TableBody>
