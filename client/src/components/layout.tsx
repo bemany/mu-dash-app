@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLocation } from 'wouter';
@@ -52,11 +53,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     if (!inputVorgangsId.trim()) return;
     setIsLoading(true);
     setError('');
+    const loadedId = inputVorgangsId.trim().toUpperCase();
     try {
       const res = await fetch('/api/session/load', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vorgangsId: inputVorgangsId.trim().toUpperCase() }),
+        body: JSON.stringify({ vorgangsId: loadedId }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -65,6 +67,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       }
       await queryClient.invalidateQueries({ queryKey: ['session'] });
       setInputVorgangsId('');
+      toast.success(t('layout.loadSuccess', { id: loadedId }));
       setLocation('/');
     } catch (err) {
       setError(t('layout.loadError'));
@@ -134,7 +137,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   className="h-8 px-2 hover:bg-slate-700"
                   data-testid="sidebar-load-vorgangs-id"
                 >
-                  <Search className="w-4 h-4 text-slate-400" />
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4 text-slate-400" />
+                  )}
                 </Button>
               </div>
               {error && (
