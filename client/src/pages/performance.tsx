@@ -28,6 +28,7 @@ import {
   mockVehicleReport,
   mockPromoReport,
   mockShiftReport,
+  mockCommissionData,
   type DriverReportRow,
   type DriverReportSummary,
   type VehicleReportRow,
@@ -1704,8 +1705,13 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
   const [tripsMetric, setTripsMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [expectedFeePercent, setExpectedFeePercent] = useState<number>(30);
 
+  const effectiveCommissionsData = isDemo ? mockCommissionData : commissionsData;
+  const effectiveDriversData = isDemo ? mockDriverReport : driversData;
+  const effectiveVehiclesData = isDemo ? mockVehicleReport : vehiclesData;
+  const effectivePromoData = isDemo ? mockPromoReport : promoData;
+
   const daysInRange = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return 1;
+    if (!dateRange?.from || !dateRange?.to) return 30;
     const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
   }, [dateRange]);
@@ -1714,10 +1720,10 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
   const monthsInRange = Math.max(1, daysInRange / 30);
 
   const summary = useMemo(() => {
-    const commSummary = commissionsData?.summary || { totalFarePrice: 0, totalRevenue: 0, commissionPercent: 0, tripCount: 0 };
-    const driverSummary = driversData?.summary || { totalShifts: 0, avgRevenuePerKm: 0 };
-    const vehicleSummary = vehiclesData?.summary || { avgOccupancyRate: 0 };
-    const drivers = driversData?.drivers || [];
+    const commSummary = effectiveCommissionsData?.summary || { totalFarePrice: 0, totalRevenue: 0, commissionPercent: 0, tripCount: 0 };
+    const driverSummary = effectiveDriversData?.summary || { totalShifts: 0, avgRevenuePerKm: 0 };
+    const vehicleSummary = effectiveVehiclesData?.summary || { avgOccupancyRate: 0 };
+    const drivers = effectiveDriversData?.drivers || [];
     
     const totalCompletedTrips = drivers.length > 0 
       ? drivers.reduce((sum, d) => sum + d.completedTrips, 0)
@@ -1744,7 +1750,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
       pricePerKm,
       revenuePerTrip,
     };
-  }, [commissionsData, driversData, vehiclesData]);
+  }, [effectiveCommissionsData, effectiveDriversData, effectiveVehiclesData]);
 
   const getValueByMetric = (total: number, metric: "total" | "day" | "week" | "month") => {
     switch (metric) {
@@ -1772,7 +1778,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     );
   }
 
-  if (isDemo || (!commissionsData && !driversData && !vehiclesData)) {
+  if (!effectiveCommissionsData && !effectiveDriversData && !effectiveVehiclesData) {
     return (
       <Card className="p-12 text-center">
         <p className="text-slate-500">{t('performance.companyNoData')}</p>
@@ -1787,7 +1793,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     { value: "month", label: t('performance.companyPerMonth').replace('/', '') },
   ];
 
-  const promoDiff = promoData?.summary?.totalDifference || 0;
+  const promoDiff = effectivePromoData?.summary?.totalDifference || 0;
   
   return (
     <div className="space-y-6">
@@ -1971,7 +1977,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
     }));
   };
   
-  const commissionData = data;
+  const commissionData = isDemo ? mockCommissionData : data;
   
   const filteredByVehicle = useMemo(() => {
     if (!commissionData?.byVehicle) return [];
@@ -2044,7 +2050,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
     );
   }
   
-  if (isDemo || !commissionData || commissionData.summary.tripCount === 0) {
+  if (!commissionData || commissionData.summary.tripCount === 0) {
     return (
       <Card className="p-12 text-center">
         <p className="text-slate-500">{t('performance.commissionNoData')}</p>

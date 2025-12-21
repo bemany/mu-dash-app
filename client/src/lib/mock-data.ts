@@ -430,3 +430,84 @@ export function generateMockTrips(count: number = 5000): UberTrip[] {
 export function generateMockTransactions(): UberTransaction[] {
   return [];
 }
+
+export interface CommissionAnalysis {
+  summary: {
+    totalFarePrice: number;
+    totalRevenue: number;
+    totalCommission: number;
+    commissionPercent: number;
+    tripCount: number;
+  };
+  byDriver: Array<{
+    driverName: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byVehicle: Array<{
+    licensePlate: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+  byMonth: Array<{
+    month: string;
+    farePrice: number;
+    revenue: number;
+    commission: number;
+    commissionPercent: number;
+    tripCount: number;
+  }>;
+}
+
+export const mockCommissionData: CommissionAnalysis = {
+  summary: {
+    totalFarePrice: totalFare * 100,
+    totalRevenue: totalRevenue * 100,
+    totalCommission: (totalFare - totalRevenue) * 100,
+    commissionPercent: ((totalFare - totalRevenue) / totalFare) * 100,
+    tripCount: totalTrips,
+  },
+  byDriver: DEMO_DRIVERS.map(d => {
+    const revenue = d.fare * 0.667;
+    const commission = d.fare - revenue;
+    return {
+      driverName: d.name,
+      farePrice: d.fare * 100,
+      revenue: revenue * 100,
+      commission: commission * 100,
+      commissionPercent: (commission / d.fare) * 100,
+      tripCount: d.trips,
+    };
+  }),
+  byVehicle: DEMO_VEHICLES.map(v => {
+    const revenue = v.fare * 0.667;
+    const commission = v.fare - revenue;
+    return {
+      licensePlate: v.plate,
+      farePrice: v.fare * 100,
+      revenue: revenue * 100,
+      commission: commission * 100,
+      commissionPercent: (commission / v.fare) * 100,
+      tripCount: v.trips,
+    };
+  }),
+  byMonth: [
+    { month: "2025-01", farePrice: 29820000, revenue: 19880000, commission: 9940000, commissionPercent: 33.3, tripCount: 15003 },
+    { month: "2025-02", farePrice: 30100000, revenue: 20070000, commission: 10030000, commissionPercent: 33.3, tripCount: 15112 },
+    { month: "2025-03", farePrice: 32820000, revenue: 21880000, commission: 10940000, commissionPercent: 33.3, tripCount: 16472 },
+    { month: "2025-04", farePrice: 31780000, revenue: 21180000, commission: 10600000, commissionPercent: 33.3, tripCount: 16720 },
+    { month: "2025-05", farePrice: 34300000, revenue: 22870000, commission: 11430000, commissionPercent: 33.3, tripCount: 18509 },
+    { month: "2025-06", farePrice: 25700000, revenue: 17130000, commission: 8570000, commissionPercent: 33.3, tripCount: 13358 },
+    { month: "2025-07", farePrice: 28220000, revenue: 18810000, commission: 9410000, commissionPercent: 33.3, tripCount: 14774 },
+    { month: "2025-08", farePrice: 32290000, revenue: 21530000, commission: 10760000, commissionPercent: 33.3, tripCount: 16233 },
+    { month: "2025-09", farePrice: 29480000, revenue: 19650000, commission: 9830000, commissionPercent: 33.3, tripCount: 13790 },
+    { month: "2025-10", farePrice: 27510000, revenue: 18340000, commission: 9170000, commissionPercent: 33.3, tripCount: 14645 },
+    { month: "2025-11", farePrice: 25450000, revenue: 16970000, commission: 8480000, commissionPercent: 33.3, tripCount: 14137 },
+  ],
+};
