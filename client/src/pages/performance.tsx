@@ -2217,6 +2217,7 @@ export default function PerformancePage() {
   const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
   const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
+  const [showDemoBanner, setShowDemoBanner] = useState(true);
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -2508,10 +2509,10 @@ export default function PerformancePage() {
           </div>
         </div>
 
-        {isDemo && (
-          <Alert className="bg-amber-50 border-amber-200" data-testid="banner-demo-mode">
+        {isDemo && showDemoBanner && (
+          <Alert className="bg-amber-50 border-amber-200 relative" data-testid="banner-demo-mode">
             <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <AlertDescription className="text-amber-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-8">
               <span>{t('performance.demoMode')}</span>
               <Link href="/process">
                 <Button 
@@ -2523,6 +2524,13 @@ export default function PerformancePage() {
                 </Button>
               </Link>
             </AlertDescription>
+            <button
+              onClick={() => setShowDemoBanner(false)}
+              className="absolute top-2 right-2 p-1 rounded-full hover:bg-amber-100 text-amber-600"
+              data-testid="button-close-demo-banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </Alert>
         )}
 
