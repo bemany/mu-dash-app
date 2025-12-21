@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check, Download, FileText, Car, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,8 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'multiple'; sessionId?: string } | null>(null);
 
   const copyVorgangsId = (vorgangsId: string) => {
     navigator.clipboard.writeText(vorgangsId);
@@ -133,15 +136,27 @@ export default function AdminPage() {
     },
   });
 
-  const handleDeleteSession = async (sessionId: string) => {
-    if (confirm(t('admin.deleteConfirm'))) {
-      await deleteSessionMutation.mutateAsync(sessionId);
+  const handleDeleteSession = (sessionId: string) => {
+    setDeleteTarget({ type: 'single', sessionId });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    
+    if (deleteTarget.type === 'single' && deleteTarget.sessionId) {
+      await deleteSessionMutation.mutateAsync(deleteTarget.sessionId);
       setCheckedSessions(prev => {
         const next = new Set(prev);
-        next.delete(sessionId);
+        next.delete(deleteTarget.sessionId!);
         return next;
       });
+    } else if (deleteTarget.type === 'multiple') {
+      await deleteMultipleMutation.mutateAsync(Array.from(checkedSessions));
     }
+    
+    setDeleteDialogOpen(false);
+    setDeleteTarget(null);
   };
 
   const deleteMultipleMutation = useMutation({
@@ -162,11 +177,10 @@ export default function AdminPage() {
     },
   });
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (checkedSessions.size === 0) return;
-    if (confirm(t('admin.deleteMultipleConfirm', { count: checkedSessions.size }))) {
-      await deleteMultipleMutation.mutateAsync(Array.from(checkedSessions));
-    }
+    setDeleteTarget({ type: 'multiple' });
+    setDeleteDialogOpen(true);
   };
 
   const toggleSession = (sessionId: string) => {
@@ -547,6 +561,31 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('common.delete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.type === 'multiple' 
+                ? t('admin.deleteMultipleConfirm', { count: checkedSessions.size })
+                : t('admin.deleteConfirm')
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={detailsModalOpen} onOpenChange={(open) => {
         setDetailsModalOpen(open);
