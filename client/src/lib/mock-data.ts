@@ -1,241 +1,67 @@
-import { UberTrip, UberTransaction } from "./types";
 import { subMonths, format, addMonths } from "date-fns";
 
-// Anonymous Demo Data - completely fictional
-const DEMO_VEHICLES = [
-  { plate: "DEMO-001", counts: [517, 361, 720, 680, 520] },
-  { plate: "DEMO-002", counts: [624, 737, 814, 753, 676] },
-  { plate: "DEMO-003", counts: [301, 736, 486, 268, 290] },
-  { plate: "DEMO-004", counts: [817, 730, 576, 746, 445] },
-  { plate: "DEMO-005", counts: [253, 296, 340, 330, 278] },
-  { plate: "DEMO-006", counts: [758, 806, 720, 536, 650] }
-];
-
-const DEMO_DRIVERS = [
-  "Fahrer 1",
-  "Fahrer 2", 
-  "Fahrer 3",
-  "Fahrer 4",
-  "Fahrer 5"
-];
-
-const START_DATE = new Date(2024, 6, 1);
-
-function createTripsForMonth(plate: string, count: number, monthDate: Date): UberTrip[] {
-  const trips: UberTrip[] = [];
-  const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
-
-  for (let i = 0; i < count; i++) {
-    const day = Math.floor(Math.random() * daysInMonth) + 1;
-    const hour = Math.floor(Math.random() * 24);
-    const minute = Math.floor(Math.random() * 60);
-    
-    const date = new Date(monthDate.getFullYear(), monthDate.getMonth(), day, hour, minute);
-    
-    trips.push({
-      "Kennzeichen": plate,
-      "Zeitpunkt der Fahrtbestellung": date.toISOString(),
-      "Fahrtstatus": "completed",
-      "Fahrt-ID": Math.random().toString(36).substring(7),
-    });
-  }
-  return trips;
-}
-
-export function generateMockTrips(count: number = 5000): UberTrip[] {
-  let allTrips: UberTrip[] = [];
-  const monthsToUse = 3;
-  const startIndex = DEMO_VEHICLES[0].counts.length - monthsToUse;
-
-  DEMO_VEHICLES.forEach(vehicle => {
-    for (let i = startIndex; i < vehicle.counts.length; i++) {
-      const monthDate = addMonths(START_DATE, i);
-      const originalCount = vehicle.counts[i];
-      let sampleCount: number;
-      if (originalCount > 700) {
-        sampleCount = 720 + Math.floor(Math.random() * 50);
-      } else if (originalCount > 250) {
-        sampleCount = 260 + Math.floor(Math.random() * 40);
-      } else {
-        sampleCount = Math.ceil(originalCount / 2);
-      }
-      allTrips = allTrips.concat(createTripsForMonth(vehicle.plate, sampleCount, monthDate));
-    }
-  });
-
-  return allTrips;
-}
-
-export function generateMockTransactions(): UberTransaction[] {
-  const txs: UberTransaction[] = [];
-  const monthsToUse = 3;
-  const startIndex = DEMO_VEHICLES[0].counts.length - monthsToUse;
-
-  DEMO_VEHICLES.forEach(vehicle => {
-    for (let i = startIndex; i < vehicle.counts.length; i++) {
-      const count = vehicle.counts[i];
-      const monthDate = addMonths(START_DATE, i);
-      
-      let expectedBonus = 0;
-      if (count > 699) expectedBonus = 400;
-      else if (count > 249) expectedBonus = 250;
-
-      if (expectedBonus > 0) {
-         const roll = Math.random();
-         let payAmount = expectedBonus;
-         let description = "Werbeprämie " + format(monthDate, "MM/yyyy");
-
-         if (roll < 0.1) {
-            continue; 
-         }
-         else if (roll < 0.2) {
-            payAmount = expectedBonus - 50;
-            description += " (Teilzahlung)";
-         }
-         else if (roll < 0.25) {
-            payAmount = expectedBonus + 50;
-            description += " (Korrektur)";
-         }
-
-         txs.push({
-           "Kennzeichen": vehicle.plate,
-           "Zeitpunkt": monthDate.toISOString(),
-           "Betrag": payAmount,
-           "Beschreibung": description
-         });
-      }
-    }
-  });
-  
-  return txs;
-}
-
-// Performance Dashboard Mock Data
 const today = new Date();
 const performanceThisMonth = format(today, "yyyy-MM");
 const performanceLastMonth = format(subMonths(today, 1), "yyyy-MM");
 
-function generatePerformanceDayData(daysBack: number) {
-  const days = [];
-  const now = new Date();
-  for (let i = daysBack; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-    const baseRevenue = isWeekend ? 85000 : 65000;
-    const variance = Math.floor(Math.random() * 20000) - 10000;
-    days.push({
-      day: format(date, "yyyy-MM-dd"),
-      revenue: baseRevenue + variance,
-      distance: (120 + Math.floor(Math.random() * 80)) * 100000,
-      hoursWorked: 8 + Math.random() * 4,
-      tripCount: 18 + Math.floor(Math.random() * 12),
-    });
-  }
-  return days;
-}
-
-export const mockPerformanceKpis = {
-  totals: {
-    totalRevenue: 2450000,
-    totalDistance: 580000000,
-    totalHoursWorked: 320,
-    tripCount: 892,
-  },
-  byDay: generatePerformanceDayData(30),
-  byMonth: [
-    { month: performanceLastMonth, revenue: 2180000, distance: 520000000, hoursWorked: 295, tripCount: 812 },
-    { month: performanceThisMonth, revenue: 2450000, distance: 580000000, hoursWorked: 320, tripCount: 892 },
-  ],
-};
-
-export const mockPerformanceDrivers = {
-  drivers: [
-    { driverName: "Fahrer 1", revenue: 520000, distance: 125000000, hoursWorked: 72, tripCount: 198, shiftCount: 9 },
-    { driverName: "Fahrer 2", revenue: 485000, distance: 118000000, hoursWorked: 68, tripCount: 185, shiftCount: 8 },
-    { driverName: "Fahrer 3", revenue: 465000, distance: 112000000, hoursWorked: 65, tripCount: 172, shiftCount: 8 },
-    { driverName: "Fahrer 4", revenue: 445000, distance: 108000000, hoursWorked: 62, tripCount: 168, shiftCount: 8 },
-    { driverName: "Fahrer 5", revenue: 535000, distance: 117000000, hoursWorked: 53, tripCount: 169, shiftCount: 7 },
-  ],
-  totals: {
-    revenue: 2450000,
-    distance: 580000000,
-    hoursWorked: 320,
-    tripCount: 892,
-  },
-};
-
-export const mockPerformanceVehicles = {
-  vehicles: [
-    { licensePlate: "DEMO-001", revenue: 620000, distance: 145000000, hoursWorked: 85, tripCount: 228 },
-    { licensePlate: "DEMO-002", revenue: 585000, distance: 138000000, hoursWorked: 78, tripCount: 215 },
-    { licensePlate: "DEMO-003", revenue: 548000, distance: 130000000, hoursWorked: 72, tripCount: 198 },
-    { licensePlate: "DEMO-004", revenue: 465000, distance: 110000000, hoursWorked: 62, tripCount: 168 },
-    { licensePlate: "DEMO-005", revenue: 232000, distance: 57000000, hoursWorked: 23, tripCount: 83 },
-  ],
-  totals: {
-    revenue: 2450000,
-    distance: 580000000,
-    hoursWorked: 320,
-    tripCount: 892,
-  },
-};
-
-export const mockPerformanceShifts = {
-  shifts: [
-    { driverName: "Fahrer 1", licensePlate: "DEMO-001", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), "yyyy-MM-dd") + "T06:00:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), "yyyy-MM-dd") + "T14:30:00Z", shiftType: "day" as const, revenue: 78000, distance: 18500000, hoursWorked: 8.5, tripCount: 28 },
-    { driverName: "Fahrer 2", licensePlate: "DEMO-002", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), "yyyy-MM-dd") + "T07:00:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), "yyyy-MM-dd") + "T15:00:00Z", shiftType: "day" as const, revenue: 72000, distance: 17200000, hoursWorked: 8, tripCount: 25 },
-    { driverName: "Fahrer 3", licensePlate: "DEMO-003", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), "yyyy-MM-dd") + "T18:00:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2), "yyyy-MM-dd") + "T02:30:00Z", shiftType: "night" as const, revenue: 95000, distance: 22000000, hoursWorked: 8.5, tripCount: 32 },
-    { driverName: "Fahrer 4", licensePlate: "DEMO-004", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2), "yyyy-MM-dd") + "T06:30:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2), "yyyy-MM-dd") + "T14:00:00Z", shiftType: "day" as const, revenue: 68000, distance: 16500000, hoursWorked: 7.5, tripCount: 24 },
-    { driverName: "Fahrer 5", licensePlate: "DEMO-005", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2), "yyyy-MM-dd") + "T19:00:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3), "yyyy-MM-dd") + "T03:00:00Z", shiftType: "night" as const, revenue: 88000, distance: 21000000, hoursWorked: 8, tripCount: 30 },
-    { driverName: "Fahrer 1", licensePlate: "DEMO-001", shiftStart: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3), "yyyy-MM-dd") + "T06:00:00Z", shiftEnd: format(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3), "yyyy-MM-dd") + "T14:00:00Z", shiftType: "day" as const, revenue: 75000, distance: 18000000, hoursWorked: 8, tripCount: 26 },
-  ],
-  summary: {
-    totalShifts: 42,
-    dayShifts: 28,
-    nightShifts: 14,
-    avgShiftDuration: 8.2,
-    avgRevenuePerShift: 58333,
-  },
-};
-
-export const mockShiftReport = {
-  shifts: mockPerformanceShifts.shifts,
-  byDriver: [
-    { driverName: "Fahrer 1", totalShifts: 8, dayShifts: 6, nightShifts: 2, totalRevenue: 480000, totalDistance: 115000000 },
-    { driverName: "Fahrer 2", totalShifts: 7, dayShifts: 5, nightShifts: 2, totalRevenue: 420000, totalDistance: 98000000 },
-    { driverName: "Fahrer 3", totalShifts: 6, dayShifts: 2, nightShifts: 4, totalRevenue: 510000, totalDistance: 125000000 },
-    { driverName: "Fahrer 4", totalShifts: 5, dayShifts: 4, nightShifts: 1, totalRevenue: 350000, totalDistance: 82000000 },
-    { driverName: "Fahrer 5", totalShifts: 4, dayShifts: 1, nightShifts: 3, totalRevenue: 380000, totalDistance: 92000000 },
-  ],
-};
-
-export interface BonusPayout {
-  licensePlate: string;
-  month: string;
-  tripCount: number;
-  theoreticalBonus: number;
-  actualPayment: number;
-  difference: number;
-}
-
-export const mockBonusPayouts: BonusPayout[] = [
-  { licensePlate: "DEMO-001", month: performanceThisMonth, tripCount: 856, theoreticalBonus: 40000, actualPayment: 40000, difference: 0 },
-  { licensePlate: "DEMO-002", month: performanceThisMonth, tripCount: 742, theoreticalBonus: 40000, actualPayment: 40000, difference: 0 },
-  { licensePlate: "DEMO-003", month: performanceThisMonth, tripCount: 698, theoreticalBonus: 15000, actualPayment: 15000, difference: 0 },
-  { licensePlate: "DEMO-004", month: performanceThisMonth, tripCount: 512, theoreticalBonus: 15000, actualPayment: 0, difference: -15000 },
-  { licensePlate: "DEMO-005", month: performanceThisMonth, tripCount: 285, theoreticalBonus: 15000, actualPayment: 15000, difference: 0 },
-  { licensePlate: "DEMO-001", month: performanceLastMonth, tripCount: 912, theoreticalBonus: 40000, actualPayment: 40000, difference: 0 },
-  { licensePlate: "DEMO-002", month: performanceLastMonth, tripCount: 788, theoreticalBonus: 40000, actualPayment: 40000, difference: 0 },
-  { licensePlate: "DEMO-003", month: performanceLastMonth, tripCount: 720, theoreticalBonus: 40000, actualPayment: 40000, difference: 0 },
-  { licensePlate: "DEMO-004", month: performanceLastMonth, tripCount: 680, theoreticalBonus: 15000, actualPayment: 15000, difference: 0 },
-  { licensePlate: "DEMO-005", month: performanceLastMonth, tripCount: 320, theoreticalBonus: 15000, actualPayment: 15000, difference: 0 },
+const DEMO_VEHICLES = [
+  { plate: "DEMO-001", trips: 19892, fare: 381675 },
+  { plate: "DEMO-002", trips: 18045, fare: 325443 },
+  { plate: "DEMO-003", trips: 16118, fare: 304697 },
+  { plate: "DEMO-004", trips: 16060, fare: 288060 },
+  { plate: "DEMO-005", trips: 15775, fare: 318980 },
+  { plate: "DEMO-006", trips: 15767, fare: 276062 },
+  { plate: "DEMO-007", trips: 15443, fare: 331249 },
+  { plate: "DEMO-008", trips: 14770, fare: 306652 },
+  { plate: "DEMO-009", trips: 14658, fare: 271035 },
+  { plate: "DEMO-010", trips: 14495, fare: 269558 },
+  { plate: "DEMO-011", trips: 14485, fare: 288477 },
+  { plate: "DEMO-012", trips: 14236, fare: 273831 },
+  { plate: "DEMO-013", trips: 13940, fare: 272627 },
+  { plate: "DEMO-014", trips: 13401, fare: 247761 },
+  { plate: "DEMO-015", trips: 12455, fare: 247400 },
+  { plate: "DEMO-016", trips: 11438, fare: 241081 },
+  { plate: "DEMO-017", trips: 11233, fare: 215041 },
+  { plate: "DEMO-018", trips: 9871, fare: 198840 },
+  { plate: "DEMO-019", trips: 8162, fare: 159737 },
 ];
 
-export const mockBonusSummary = {
-  totalTheoretical: mockBonusPayouts.reduce((sum, p) => sum + p.theoreticalBonus, 0),
-  totalActual: mockBonusPayouts.reduce((sum, p) => sum + p.actualPayment, 0),
-  totalDifference: mockBonusPayouts.reduce((sum, p) => sum + p.difference, 0),
-};
+const DEMO_DRIVERS = [
+  { name: "Fahrer A", trips: 12238, fare: 195280, cancelled: 1052 },
+  { name: "Fahrer B", trips: 10570, fare: 185551, cancelled: 908 },
+  { name: "Fahrer C", trips: 10115, fare: 189620, cancelled: 869 },
+  { name: "Fahrer D", trips: 9610, fare: 199878, cancelled: 826 },
+  { name: "Fahrer E", trips: 9427, fare: 152277, cancelled: 810 },
+  { name: "Fahrer F", trips: 9116, fare: 192319, cancelled: 783 },
+  { name: "Fahrer G", trips: 7496, fare: 134840, cancelled: 644 },
+  { name: "Fahrer H", trips: 7315, fare: 137544, cancelled: 629 },
+  { name: "Fahrer I", trips: 6880, fare: 130873, cancelled: 591 },
+  { name: "Fahrer J", trips: 6251, fare: 115312, cancelled: 537 },
+  { name: "Fahrer K", trips: 6154, fare: 119527, cancelled: 529 },
+  { name: "Fahrer L", trips: 5829, fare: 107509, cancelled: 501 },
+  { name: "Fahrer M", trips: 5793, fare: 120108, cancelled: 498 },
+  { name: "Fahrer N", trips: 5762, fare: 153925, cancelled: 495 },
+  { name: "Fahrer O", trips: 5749, fare: 108809, cancelled: 494 },
+  { name: "Fahrer P", trips: 5382, fare: 97550, cancelled: 462 },
+  { name: "Fahrer Q", trips: 4982, fare: 87167, cancelled: 428 },
+  { name: "Fahrer R", trips: 4630, fare: 88400, cancelled: 398 },
+  { name: "Fahrer S", trips: 4571, fare: 80663, cancelled: 393 },
+  { name: "Fahrer T", trips: 4429, fare: 106085, cancelled: 381 },
+  { name: "Fahrer U", trips: 4372, fare: 77378, cancelled: 376 },
+  { name: "Fahrer V", trips: 4345, fare: 64913, cancelled: 373 },
+  { name: "Fahrer W", trips: 4286, fare: 77283, cancelled: 368 },
+  { name: "Fahrer X", trips: 4049, fare: 89989, cancelled: 348 },
+  { name: "Fahrer Y", trips: 3955, fare: 72067, cancelled: 340 },
+  { name: "Fahrer Z", trips: 3882, fare: 71671, cancelled: 334 },
+  { name: "Fahrer AA", trips: 3861, fare: 56360, cancelled: 332 },
+  { name: "Fahrer AB", trips: 3785, fare: 109395, cancelled: 325 },
+  { name: "Fahrer AC", trips: 3637, fare: 103213, cancelled: 313 },
+  { name: "Fahrer AD", trips: 3635, fare: 62165, cancelled: 312 },
+  { name: "Fahrer AE", trips: 3564, fare: 69630, cancelled: 306 },
+  { name: "Fahrer AF", trips: 3548, fare: 69820, cancelled: 305 },
+  { name: "Fahrer AG", trips: 3393, fare: 57668, cancelled: 292 },
+  { name: "Fahrer AH", trips: 3298, fare: 64353, cancelled: 283 },
+];
 
 export interface DriverReportRow {
   firstName: string;
@@ -330,71 +156,277 @@ export interface PromoReportSummary {
   monthCount: number;
 }
 
+const totalTrips = 213218;
+const totalFare = 3268487;
+const totalRevenue = 2182887;
+const totalDistance = 1809498;
+const totalShifts = 5706;
+const totalHoursWorked = 42991;
+
 export const mockDriverReport: { summary: DriverReportSummary; drivers: DriverReportRow[] } = {
   summary: {
-    totalRevenue: 24500,
-    totalDistance: 5800,
-    totalHoursWorked: 320,
-    totalTrips: 892,
-    totalShifts: 42,
-    uniqueDrivers: 5,
-    avgRevenuePerHour: 76.56,
-    avgRevenuePerDay: 816.67,
-    avgRevenuePerMonth: 24500,
-    avgRevenuePerKm: 4.22,
-    avgRevenuePerTrip: 27.47,
-    avgRevenuePerDriver: 4900,
+    totalRevenue: totalRevenue,
+    totalDistance: totalDistance,
+    totalHoursWorked: totalHoursWorked,
+    totalTrips: totalTrips,
+    totalShifts: totalShifts,
+    uniqueDrivers: 34,
+    avgRevenuePerHour: 39.99,
+    avgRevenuePerDay: 301.32,
+    avgRevenuePerMonth: totalRevenue,
+    avgRevenuePerKm: 1.24,
+    avgRevenuePerTrip: 11.13,
+    avgRevenuePerDriver: 50568.56,
   },
-  drivers: [
-    { firstName: "Max", lastName: "Mustermann", completedTrips: 198, cancelledTrips: 12, totalTrips: 210, avgFarePerTrip: 26.26, avgRevenuePerTrip: 17.94, totalRevenue: 3552.12, distanceInTrip: 1250, pricePerKm: 2.84, revenuePerDay: 118.40, revenuePerHour: 49.33, tripsPerHour: 2.75, acceptanceRate: 94.3, timeInTrip: 72, shiftCount: 9, dayShiftCount: 6, nightShiftCount: 3 },
-    { firstName: "Anna", lastName: "Schmidt", completedTrips: 185, cancelledTrips: 8, totalTrips: 193, avgFarePerTrip: 26.22, avgRevenuePerTrip: 17.91, totalRevenue: 3313.35, distanceInTrip: 1180, pricePerKm: 2.81, revenuePerDay: 110.45, revenuePerHour: 48.73, tripsPerHour: 2.72, acceptanceRate: 95.9, timeInTrip: 68, shiftCount: 8, dayShiftCount: 2, nightShiftCount: 6 },
-    { firstName: "Thomas", lastName: "Weber", completedTrips: 172, cancelledTrips: 15, totalTrips: 187, avgFarePerTrip: 27.03, avgRevenuePerTrip: 18.46, totalRevenue: 3175.12, distanceInTrip: 1120, pricePerKm: 2.83, revenuePerDay: 105.84, revenuePerHour: 48.85, tripsPerHour: 2.65, acceptanceRate: 92.0, timeInTrip: 65, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3 },
-    { firstName: "Lisa", lastName: "Müller", completedTrips: 168, cancelledTrips: 5, totalTrips: 173, avgFarePerTrip: 26.49, avgRevenuePerTrip: 18.09, totalRevenue: 3039.12, distanceInTrip: 1080, pricePerKm: 2.81, revenuePerDay: 101.30, revenuePerHour: 49.02, tripsPerHour: 2.71, acceptanceRate: 97.1, timeInTrip: 62, shiftCount: 8, dayShiftCount: 7, nightShiftCount: 1 },
-    { firstName: "Mehmet", lastName: "Yilmaz", completedTrips: 169, cancelledTrips: 10, totalTrips: 179, avgFarePerTrip: 31.66, avgRevenuePerTrip: 21.62, totalRevenue: 3653.78, distanceInTrip: 1170, pricePerKm: 3.12, revenuePerDay: 121.79, revenuePerHour: 68.94, tripsPerHour: 3.19, acceptanceRate: 94.4, timeInTrip: 53, shiftCount: 7, dayShiftCount: 1, nightShiftCount: 6 },
-  ],
+  drivers: DEMO_DRIVERS.map(d => ({
+    firstName: d.name.split(' ')[0],
+    lastName: d.name.split(' ')[1] || '',
+    completedTrips: d.trips,
+    cancelledTrips: d.cancelled,
+    totalTrips: d.trips + d.cancelled,
+    avgFarePerTrip: d.fare / d.trips,
+    avgRevenuePerTrip: (d.fare * 0.667) / d.trips,
+    totalRevenue: d.fare * 0.667,
+    distanceInTrip: Math.round(d.trips * 8.5),
+    pricePerKm: 1.24,
+    revenuePerDay: (d.fare * 0.667) / 365,
+    revenuePerHour: 39.99,
+    tripsPerHour: 3.59,
+    acceptanceRate: 92 + Math.random() * 5,
+    timeInTrip: Math.round(d.trips * 0.35),
+    shiftCount: Math.round(d.trips / 25),
+    dayShiftCount: Math.round(d.trips / 25 * 0.6),
+    nightShiftCount: Math.round(d.trips / 25 * 0.4),
+  })),
 };
 
 export const mockVehicleReport: { summary: VehicleReportSummary; vehicles: VehicleReportRow[] } = {
   summary: {
-    totalRevenue: 24500,
-    totalDistance: 5800,
-    totalHoursWorked: 320,
-    totalTrips: 892,
-    totalShifts: 42,
-    uniqueVehicles: 5,
-    avgRevenuePerHour: 76.56,
-    avgRevenuePerDay: 816.67,
-    avgRevenuePerMonth: 24500,
-    avgRevenuePerKm: 4.22,
-    avgRevenuePerTrip: 27.47,
-    avgRevenuePerVehicle: 4900,
-    avgOccupancyRate: 72.5,
+    totalRevenue: totalRevenue,
+    totalDistance: totalDistance,
+    totalHoursWorked: totalHoursWorked,
+    totalTrips: totalTrips,
+    totalShifts: totalShifts,
+    uniqueVehicles: 19,
+    avgRevenuePerHour: 40.11,
+    avgRevenuePerDay: 301.32,
+    avgRevenuePerMonth: totalRevenue,
+    avgRevenuePerKm: 1.24,
+    avgRevenuePerTrip: 11.46,
+    avgRevenuePerVehicle: 117918.32,
+    avgOccupancyRate: 79.3,
   },
-  vehicles: [
-    { licensePlate: "DEMO-001", completedTrips: 228, cancelledTrips: 14, totalTrips: 242, avgFarePerTrip: 27.19, avgRevenuePerTrip: 18.57, distanceInTrip: 1450, pricePerKm: 2.92, revenuePerDay: 141.23, revenueNightShift: 1912, revenueDayShift: 2322, totalRevenue: 4234, revenuePerHour: 49.81, tripsPerHour: 2.68, acceptanceRate: 94.2, timeInTrip: 85, shiftCount: 10, dayShiftCount: 6, nightShiftCount: 4, occupancyRate: 85.5 },
-    { licensePlate: "DEMO-002", completedTrips: 215, cancelledTrips: 11, totalTrips: 226, avgFarePerTrip: 27.21, avgRevenuePerTrip: 18.59, distanceInTrip: 1380, pricePerKm: 2.90, revenuePerDay: 133.23, revenueNightShift: 1776, revenueDayShift: 2220, totalRevenue: 3996, revenuePerHour: 51.23, tripsPerHour: 2.76, acceptanceRate: 95.1, timeInTrip: 78, shiftCount: 9, dayShiftCount: 5, nightShiftCount: 4, occupancyRate: 78.2 },
-    { licensePlate: "DEMO-003", completedTrips: 198, cancelledTrips: 9, totalTrips: 207, avgFarePerTrip: 27.68, avgRevenuePerTrip: 18.90, distanceInTrip: 1300, pricePerKm: 2.88, revenuePerDay: 124.78, revenueNightShift: 1639, revenueDayShift: 2103, totalRevenue: 3742, revenuePerHour: 51.97, tripsPerHour: 2.75, acceptanceRate: 95.7, timeInTrip: 72, shiftCount: 8, dayShiftCount: 5, nightShiftCount: 3, occupancyRate: 72.0 },
-    { licensePlate: "DEMO-004", completedTrips: 168, cancelledTrips: 8, totalTrips: 176, avgFarePerTrip: 27.68, avgRevenuePerTrip: 18.90, distanceInTrip: 1100, pricePerKm: 2.89, revenuePerDay: 105.90, revenueNightShift: 1400, revenueDayShift: 1776, totalRevenue: 3176, revenuePerHour: 51.23, tripsPerHour: 2.71, acceptanceRate: 95.5, timeInTrip: 62, shiftCount: 8, dayShiftCount: 4, nightShiftCount: 4, occupancyRate: 65.8 },
-    { licensePlate: "DEMO-005", completedTrips: 83, cancelledTrips: 3, totalTrips: 86, avgFarePerTrip: 27.95, avgRevenuePerTrip: 19.09, distanceInTrip: 570, pricePerKm: 2.78, revenuePerDay: 52.82, revenueNightShift: 683, revenueDayShift: 901, totalRevenue: 1584, revenuePerHour: 68.87, tripsPerHour: 3.61, acceptanceRate: 96.5, timeInTrip: 23, shiftCount: 4, dayShiftCount: 3, nightShiftCount: 1, occupancyRate: 61.0 },
-  ],
+  vehicles: DEMO_VEHICLES.map(v => ({
+    licensePlate: v.plate,
+    completedTrips: v.trips,
+    cancelledTrips: Math.round(v.trips * 0.086),
+    totalTrips: v.trips + Math.round(v.trips * 0.086),
+    avgFarePerTrip: v.fare / v.trips,
+    avgRevenuePerTrip: (v.fare * 0.667) / v.trips,
+    distanceInTrip: Math.round(v.trips * 8.5),
+    pricePerKm: 1.24,
+    revenuePerDay: (v.fare * 0.667) / 365,
+    revenueNightShift: v.fare * 0.667 * 0.4,
+    revenueDayShift: v.fare * 0.667 * 0.6,
+    totalRevenue: v.fare * 0.667,
+    revenuePerHour: 40.11,
+    tripsPerHour: 3.50,
+    acceptanceRate: 91 + Math.random() * 6,
+    timeInTrip: Math.round(v.trips * 0.35),
+    shiftCount: Math.round(v.trips / 40),
+    dayShiftCount: Math.round(v.trips / 40 * 0.6),
+    nightShiftCount: Math.round(v.trips / 40 * 0.4),
+    occupancyRate: 75 + Math.random() * 10,
+  })),
 };
+
+const promoMonths = [
+  "01/2025", "02/2025", "03/2025", "04/2025", "05/2025", "06/2025",
+  "07/2025", "08/2025", "09/2025", "10/2025", "11/2025", "12/2025"
+];
+
+const promoRows: PromoReportRow[] = [];
+DEMO_VEHICLES.forEach(v => {
+  promoMonths.forEach((month, idx) => {
+    const baseTrips = Math.round(v.trips / 12);
+    const variance = Math.floor(Math.random() * 200) - 100;
+    const tripCount = Math.max(0, baseTrips + variance);
+    let theo = 0;
+    if (tripCount >= 700) theo = 400;
+    else if (tripCount >= 250) theo = 250;
+    const paid = Math.random() > 0.15 ? theo : (Math.random() > 0.5 ? theo - 150 : 0);
+    if (theo > 0) {
+      promoRows.push({
+        licensePlate: v.plate,
+        month: month,
+        tripCount: tripCount,
+        theoreticalBonus: theo,
+        actualPaid: paid,
+        difference: paid - theo,
+      });
+    }
+  });
+});
 
 export const mockPromoReport: { summary: PromoReportSummary; rows: PromoReportRow[] } = {
   summary: {
-    totalTheoreticalBonus: 2200,
-    totalActualPaid: 2050,
-    totalDifference: -150,
-    totalTrips: 4293,
-    licensePlateCount: 5,
-    monthCount: 2,
+    totalTheoreticalBonus: promoRows.reduce((s, r) => s + r.theoreticalBonus, 0),
+    totalActualPaid: promoRows.reduce((s, r) => s + r.actualPaid, 0),
+    totalDifference: promoRows.reduce((s, r) => s + r.difference, 0),
+    totalTrips: promoRows.reduce((s, r) => s + r.tripCount, 0),
+    licensePlateCount: 19,
+    monthCount: 12,
   },
-  rows: [
-    { licensePlate: "DEMO-001", month: performanceThisMonth, tripCount: 856, theoreticalBonus: 400, actualPaid: 400, difference: 0 },
-    { licensePlate: "DEMO-002", month: performanceThisMonth, tripCount: 742, theoreticalBonus: 400, actualPaid: 400, difference: 0 },
-    { licensePlate: "DEMO-003", month: performanceThisMonth, tripCount: 698, theoreticalBonus: 250, actualPaid: 250, difference: 0 },
-    { licensePlate: "DEMO-004", month: performanceThisMonth, tripCount: 512, theoreticalBonus: 250, actualPaid: 100, difference: -150 },
-    { licensePlate: "DEMO-005", month: performanceThisMonth, tripCount: 285, theoreticalBonus: 250, actualPaid: 250, difference: 0 },
-    { licensePlate: "DEMO-001", month: performanceLastMonth, tripCount: 912, theoreticalBonus: 400, actualPaid: 400, difference: 0 },
-    { licensePlate: "DEMO-002", month: performanceLastMonth, tripCount: 788, theoreticalBonus: 400, actualPaid: 400, difference: 0 },
+  rows: promoRows,
+};
+
+export const mockPerformanceKpis = {
+  totals: {
+    totalRevenue: totalRevenue * 100,
+    totalDistance: totalDistance * 1000,
+    totalHoursWorked: totalHoursWorked,
+    tripCount: totalTrips,
+  },
+  byDay: Array.from({ length: 30 }, (_, i) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (29 - i));
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    return {
+      day: format(date, "yyyy-MM-dd"),
+      revenue: (isWeekend ? 750000 : 600000) + Math.floor(Math.random() * 100000),
+      distance: 5000000 + Math.floor(Math.random() * 1000000),
+      hoursWorked: 110 + Math.floor(Math.random() * 30),
+      tripCount: 550 + Math.floor(Math.random() * 150),
+    };
+  }),
+  byMonth: [
+    { month: "2025-01", revenue: 198762380, distance: 280276740, hoursWorked: 3576, tripCount: 15003 },
+    { month: "2025-02", revenue: 200567880, distance: 295411410, hoursWorked: 3689, tripCount: 15112 },
+    { month: "2025-03", revenue: 218829880, distance: 321400170, hoursWorked: 3987, tripCount: 16472 },
+    { month: "2025-04", revenue: 211804000, distance: 310266020, hoursWorked: 3890, tripCount: 16720 },
+    { month: "2025-05", revenue: 228689950, distance: 356181830, hoursWorked: 4215, tripCount: 18509 },
+    { month: "2025-06", revenue: 171336340, distance: 276773760, hoursWorked: 3423, tripCount: 13358 },
+    { month: "2025-07", revenue: 188102980, distance: 285184330, hoursWorked: 3598, tripCount: 14774 },
+    { month: "2025-08", revenue: 215271420, distance: 317883670, hoursWorked: 3945, tripCount: 16233 },
+    { month: "2025-09", revenue: 196507100, distance: 299277550, hoursWorked: 3689, tripCount: 13790 },
+    { month: "2025-10", revenue: 183367530, distance: 269514940, hoursWorked: 3534, tripCount: 14645 },
+    { month: "2025-11", revenue: 169647440, distance: 256316550, hoursWorked: 3312, tripCount: 14137 },
   ],
 };
+
+export const mockPerformanceDrivers = {
+  drivers: DEMO_DRIVERS.slice(0, 10).map(d => ({
+    driverName: d.name,
+    revenue: d.fare * 0.667 * 100,
+    distance: d.trips * 8500,
+    hoursWorked: Math.round(d.trips / 3.5),
+    tripCount: d.trips,
+    shiftCount: Math.round(d.trips / 25),
+  })),
+  totals: {
+    revenue: totalRevenue * 100,
+    distance: totalDistance * 1000,
+    hoursWorked: totalHoursWorked,
+    tripCount: totalTrips,
+  },
+};
+
+export const mockPerformanceVehicles = {
+  vehicles: DEMO_VEHICLES.map(v => ({
+    licensePlate: v.plate,
+    revenue: v.fare * 0.667 * 100,
+    distance: v.trips * 8500,
+    hoursWorked: Math.round(v.trips / 3.5),
+    tripCount: v.trips,
+  })),
+  totals: {
+    revenue: totalRevenue * 100,
+    distance: totalDistance * 1000,
+    hoursWorked: totalHoursWorked,
+    tripCount: totalTrips,
+  },
+};
+
+export const mockPerformanceShifts = {
+  shifts: DEMO_DRIVERS.slice(0, 6).flatMap((d, di) => 
+    Array.from({ length: 3 }, (_, i) => {
+      const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i - 1);
+      const isNight = Math.random() > 0.6;
+      return {
+        driverName: d.name,
+        licensePlate: DEMO_VEHICLES[di % DEMO_VEHICLES.length].plate,
+        shiftStart: format(date, "yyyy-MM-dd") + (isNight ? "T18:00:00Z" : "T06:00:00Z"),
+        shiftEnd: format(date, "yyyy-MM-dd") + (isNight ? "T02:30:00Z" : "T14:30:00Z"),
+        shiftType: isNight ? "night" as const : "day" as const,
+        revenue: 60000 + Math.floor(Math.random() * 30000),
+        distance: 15000000 + Math.floor(Math.random() * 8000000),
+        hoursWorked: 7.5 + Math.random() * 2,
+        tripCount: 22 + Math.floor(Math.random() * 12),
+      };
+    })
+  ),
+  summary: {
+    totalShifts: totalShifts,
+    dayShifts: Math.round(totalShifts * 0.6),
+    nightShifts: Math.round(totalShifts * 0.4),
+    avgShiftDuration: 8.2,
+    avgRevenuePerShift: Math.round(totalRevenue / totalShifts * 100),
+  },
+};
+
+export const mockShiftReport = {
+  shifts: mockPerformanceShifts.shifts,
+  byDriver: DEMO_DRIVERS.slice(0, 10).map(d => ({
+    driverName: d.name,
+    totalShifts: Math.round(d.trips / 25),
+    dayShifts: Math.round(d.trips / 25 * 0.6),
+    nightShifts: Math.round(d.trips / 25 * 0.4),
+    totalRevenue: d.fare * 0.667 * 100,
+    totalDistance: d.trips * 8500,
+  })),
+};
+
+export interface BonusPayout {
+  licensePlate: string;
+  month: string;
+  tripCount: number;
+  theoreticalBonus: number;
+  actualPayment: number;
+  difference: number;
+}
+
+export const mockBonusPayouts: BonusPayout[] = promoRows.slice(0, 20).map(r => ({
+  licensePlate: r.licensePlate,
+  month: r.month,
+  tripCount: r.tripCount,
+  theoreticalBonus: r.theoreticalBonus * 100,
+  actualPayment: r.actualPaid * 100,
+  difference: r.difference * 100,
+}));
+
+export const mockBonusSummary = {
+  totalTheoretical: mockBonusPayouts.reduce((sum, p) => sum + p.theoreticalBonus, 0),
+  totalActual: mockBonusPayouts.reduce((sum, p) => sum + p.actualPayment, 0),
+  totalDifference: mockBonusPayouts.reduce((sum, p) => sum + p.difference, 0),
+};
+
+export interface UberTrip {
+  "Kennzeichen": string;
+  "Zeitpunkt der Fahrtbestellung": string;
+  "Fahrtstatus": string;
+  "Fahrt-ID": string;
+}
+
+export interface UberTransaction {
+  "Kennzeichen": string;
+  "Zeitpunkt": string;
+  "Betrag": number;
+  "Beschreibung": string;
+}
+
+export function generateMockTrips(count: number = 5000): UberTrip[] {
+  return [];
+}
+
+export function generateMockTransactions(): UberTransaction[] {
+  return [];
+}
