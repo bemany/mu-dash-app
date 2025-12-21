@@ -1460,8 +1460,18 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles }: PromoTabProps) 
     });
     
     const sortedMonths = Array.from(monthSet).sort((a, b) => {
-      const [monthA, yearA] = a.split('/').map(Number);
-      const [monthB, yearB] = b.split('/').map(Number);
+      // Handle both "YYYY-MM" and "MM/YYYY" formats
+      let yearA: number, monthA: number, yearB: number, monthB: number;
+      if (a.includes('-')) {
+        [yearA, monthA] = a.split('-').map(Number);
+      } else {
+        [monthA, yearA] = a.split('/').map(Number);
+      }
+      if (b.includes('-')) {
+        [yearB, monthB] = b.split('-').map(Number);
+      } else {
+        [monthB, yearB] = b.split('/').map(Number);
+      }
       if (yearA !== yearB) return yearA - yearB;
       return monthA - monthB;
     });
