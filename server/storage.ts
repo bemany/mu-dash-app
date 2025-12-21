@@ -1518,18 +1518,21 @@ export class DatabaseStorage implements IStorage {
 
     // Step 2: Get revenue from TRANSACTIONS (what you receive)
     // Only include "trip completed order" - exclude "trip fare adjust order" (tips, adjustments)
-    // to get accurate commission calculation
+    // Use DISTINCT ON to get only ONE revenue per trip_uuid (avoid duplicates inflating revenue)
     let txQuery = sql`
       SELECT 
         trip_uuid,
-        SUM(revenue) as total_revenue
-      FROM transactions
-      WHERE session_id = ${sessionId}
-        AND trip_uuid IS NOT NULL
-        AND trip_uuid != '00000000-0000-0000-0000-000000000000'
-        AND revenue IS NOT NULL
-        AND raw_data->>'Beschreibung' = 'trip completed order'
-      GROUP BY trip_uuid
+        revenue as total_revenue
+      FROM (
+        SELECT DISTINCT ON (trip_uuid) trip_uuid, revenue
+        FROM transactions
+        WHERE session_id = ${sessionId}
+          AND trip_uuid IS NOT NULL
+          AND trip_uuid != '00000000-0000-0000-0000-000000000000'
+          AND revenue IS NOT NULL
+          AND raw_data->>'Beschreibung' = 'trip completed order'
+        ORDER BY trip_uuid, transaction_time DESC
+      ) unique_tx
     `;
     
     const txResult = await db.execute(txQuery);
