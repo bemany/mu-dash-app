@@ -282,8 +282,8 @@ export const mockPromoReport: { summary: PromoReportSummary; rows: PromoReportRo
 
 export const mockPerformanceKpis = {
   totals: {
-    totalRevenue: totalRevenue * 100,
-    totalDistance: totalDistance * 1000,
+    totalRevenue: totalRevenue,
+    totalDistance: totalDistance,
     totalHoursWorked: totalHoursWorked,
     tripCount: totalTrips,
   },
@@ -292,39 +292,39 @@ export const mockPerformanceKpis = {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     return {
       day: format(date, "yyyy-MM-dd"),
-      revenue: (isWeekend ? 750000 : 600000) + Math.floor(Math.random() * 100000),
-      distance: 5000000 + Math.floor(Math.random() * 1000000),
+      revenue: (isWeekend ? 7500 : 6000) + Math.floor(Math.random() * 1000),
+      distance: 50000 + Math.floor(Math.random() * 10000),
       hoursWorked: 110 + Math.floor(Math.random() * 30),
       tripCount: 550 + Math.floor(Math.random() * 150),
     };
   }),
   byMonth: [
-    { month: "2025-01", revenue: 198762380, distance: 280276740, hoursWorked: 3576, tripCount: 15003 },
-    { month: "2025-02", revenue: 200567880, distance: 295411410, hoursWorked: 3689, tripCount: 15112 },
-    { month: "2025-03", revenue: 218829880, distance: 321400170, hoursWorked: 3987, tripCount: 16472 },
-    { month: "2025-04", revenue: 211804000, distance: 310266020, hoursWorked: 3890, tripCount: 16720 },
-    { month: "2025-05", revenue: 228689950, distance: 356181830, hoursWorked: 4215, tripCount: 18509 },
-    { month: "2025-06", revenue: 171336340, distance: 276773760, hoursWorked: 3423, tripCount: 13358 },
-    { month: "2025-07", revenue: 188102980, distance: 285184330, hoursWorked: 3598, tripCount: 14774 },
-    { month: "2025-08", revenue: 215271420, distance: 317883670, hoursWorked: 3945, tripCount: 16233 },
-    { month: "2025-09", revenue: 196507100, distance: 299277550, hoursWorked: 3689, tripCount: 13790 },
-    { month: "2025-10", revenue: 183367530, distance: 269514940, hoursWorked: 3534, tripCount: 14645 },
-    { month: "2025-11", revenue: 169647440, distance: 256316550, hoursWorked: 3312, tripCount: 14137 },
+    { month: "2025-01", revenue: 198762, distance: 280277, hoursWorked: 3576, tripCount: 15003 },
+    { month: "2025-02", revenue: 200568, distance: 295411, hoursWorked: 3689, tripCount: 15112 },
+    { month: "2025-03", revenue: 218830, distance: 321400, hoursWorked: 3987, tripCount: 16472 },
+    { month: "2025-04", revenue: 211804, distance: 310266, hoursWorked: 3890, tripCount: 16720 },
+    { month: "2025-05", revenue: 228690, distance: 356182, hoursWorked: 4215, tripCount: 18509 },
+    { month: "2025-06", revenue: 171336, distance: 276774, hoursWorked: 3423, tripCount: 13358 },
+    { month: "2025-07", revenue: 188103, distance: 285184, hoursWorked: 3598, tripCount: 14774 },
+    { month: "2025-08", revenue: 215271, distance: 317884, hoursWorked: 3945, tripCount: 16233 },
+    { month: "2025-09", revenue: 196507, distance: 299278, hoursWorked: 3689, tripCount: 13790 },
+    { month: "2025-10", revenue: 183368, distance: 269515, hoursWorked: 3534, tripCount: 14645 },
+    { month: "2025-11", revenue: 169647, distance: 256317, hoursWorked: 3312, tripCount: 14137 },
   ],
 };
 
 export const mockPerformanceDrivers = {
   drivers: DEMO_DRIVERS.slice(0, 10).map(d => ({
     driverName: d.name,
-    revenue: d.fare * 0.667 * 100,
-    distance: d.trips * 8500,
+    revenue: d.fare * 0.667,
+    distance: d.trips * 85,
     hoursWorked: Math.round(d.trips / 3.5),
     tripCount: d.trips,
     shiftCount: Math.round(d.trips / 25),
   })),
   totals: {
-    revenue: totalRevenue * 100,
-    distance: totalDistance * 1000,
+    revenue: totalRevenue,
+    distance: totalDistance,
     hoursWorked: totalHoursWorked,
     tripCount: totalTrips,
   },
@@ -333,14 +333,14 @@ export const mockPerformanceDrivers = {
 export const mockPerformanceVehicles = {
   vehicles: DEMO_VEHICLES.map(v => ({
     licensePlate: v.plate,
-    revenue: v.fare * 0.667 * 100,
-    distance: v.trips * 8500,
+    revenue: v.fare * 0.667,
+    distance: v.trips * 85,
     hoursWorked: Math.round(v.trips / 3.5),
     tripCount: v.trips,
   })),
   totals: {
-    revenue: totalRevenue * 100,
-    distance: totalDistance * 1000,
+    revenue: totalRevenue,
+    distance: totalDistance,
     hoursWorked: totalHoursWorked,
     tripCount: totalTrips,
   },
@@ -357,8 +357,8 @@ export const mockPerformanceShifts = {
         shiftStart: format(date, "yyyy-MM-dd") + (isNight ? "T18:00:00Z" : "T06:00:00Z"),
         shiftEnd: format(date, "yyyy-MM-dd") + (isNight ? "T02:30:00Z" : "T14:30:00Z"),
         shiftType: isNight ? "night" as const : "day" as const,
-        revenue: 60000 + Math.floor(Math.random() * 30000),
-        distance: 15000000 + Math.floor(Math.random() * 8000000),
+        revenue: 600 + Math.floor(Math.random() * 300),
+        distance: 150 + Math.floor(Math.random() * 80),
         hoursWorked: 7.5 + Math.random() * 2,
         tripCount: 22 + Math.floor(Math.random() * 12),
       };
@@ -369,7 +369,7 @@ export const mockPerformanceShifts = {
     dayShifts: Math.round(totalShifts * 0.6),
     nightShifts: Math.round(totalShifts * 0.4),
     avgShiftDuration: 8.2,
-    avgRevenuePerShift: Math.round(totalRevenue / totalShifts * 100),
+    avgRevenuePerShift: Math.round(totalRevenue / totalShifts),
   },
 };
 
@@ -380,8 +380,8 @@ export const mockShiftReport = {
     totalShifts: Math.round(d.trips / 25),
     dayShifts: Math.round(d.trips / 25 * 0.6),
     nightShifts: Math.round(d.trips / 25 * 0.4),
-    totalRevenue: d.fare * 0.667 * 100,
-    totalDistance: d.trips * 8500,
+    totalRevenue: d.fare * 0.667,
+    totalDistance: d.trips * 85,
   })),
 };
 
@@ -398,9 +398,9 @@ export const mockBonusPayouts: BonusPayout[] = promoRows.slice(0, 20).map(r => (
   licensePlate: r.licensePlate,
   month: r.month,
   tripCount: r.tripCount,
-  theoreticalBonus: r.theoreticalBonus * 100,
-  actualPayment: r.actualPaid * 100,
-  difference: r.difference * 100,
+  theoreticalBonus: r.theoreticalBonus,
+  actualPayment: r.actualPaid,
+  difference: r.difference,
 }));
 
 export const mockBonusSummary = {
@@ -467,9 +467,9 @@ export interface CommissionAnalysis {
 
 export const mockCommissionData: CommissionAnalysis = {
   summary: {
-    totalFarePrice: totalFare * 100,
-    totalRevenue: totalRevenue * 100,
-    totalCommission: (totalFare - totalRevenue) * 100,
+    totalFarePrice: totalFare,
+    totalRevenue: totalRevenue,
+    totalCommission: totalFare - totalRevenue,
     commissionPercent: ((totalFare - totalRevenue) / totalFare) * 100,
     tripCount: totalTrips,
   },
@@ -478,9 +478,9 @@ export const mockCommissionData: CommissionAnalysis = {
     const commission = d.fare - revenue;
     return {
       driverName: d.name,
-      farePrice: d.fare * 100,
-      revenue: revenue * 100,
-      commission: commission * 100,
+      farePrice: d.fare,
+      revenue: revenue,
+      commission: commission,
       commissionPercent: (commission / d.fare) * 100,
       tripCount: d.trips,
     };
@@ -490,24 +490,24 @@ export const mockCommissionData: CommissionAnalysis = {
     const commission = v.fare - revenue;
     return {
       licensePlate: v.plate,
-      farePrice: v.fare * 100,
-      revenue: revenue * 100,
-      commission: commission * 100,
+      farePrice: v.fare,
+      revenue: revenue,
+      commission: commission,
       commissionPercent: (commission / v.fare) * 100,
       tripCount: v.trips,
     };
   }),
   byMonth: [
-    { month: "2025-01", farePrice: 29820000, revenue: 19880000, commission: 9940000, commissionPercent: 33.3, tripCount: 15003 },
-    { month: "2025-02", farePrice: 30100000, revenue: 20070000, commission: 10030000, commissionPercent: 33.3, tripCount: 15112 },
-    { month: "2025-03", farePrice: 32820000, revenue: 21880000, commission: 10940000, commissionPercent: 33.3, tripCount: 16472 },
-    { month: "2025-04", farePrice: 31780000, revenue: 21180000, commission: 10600000, commissionPercent: 33.3, tripCount: 16720 },
-    { month: "2025-05", farePrice: 34300000, revenue: 22870000, commission: 11430000, commissionPercent: 33.3, tripCount: 18509 },
-    { month: "2025-06", farePrice: 25700000, revenue: 17130000, commission: 8570000, commissionPercent: 33.3, tripCount: 13358 },
-    { month: "2025-07", farePrice: 28220000, revenue: 18810000, commission: 9410000, commissionPercent: 33.3, tripCount: 14774 },
-    { month: "2025-08", farePrice: 32290000, revenue: 21530000, commission: 10760000, commissionPercent: 33.3, tripCount: 16233 },
-    { month: "2025-09", farePrice: 29480000, revenue: 19650000, commission: 9830000, commissionPercent: 33.3, tripCount: 13790 },
-    { month: "2025-10", farePrice: 27510000, revenue: 18340000, commission: 9170000, commissionPercent: 33.3, tripCount: 14645 },
-    { month: "2025-11", farePrice: 25450000, revenue: 16970000, commission: 8480000, commissionPercent: 33.3, tripCount: 14137 },
+    { month: "2025-01", farePrice: 298200, revenue: 198800, commission: 99400, commissionPercent: 33.3, tripCount: 15003 },
+    { month: "2025-02", farePrice: 301000, revenue: 200700, commission: 100300, commissionPercent: 33.3, tripCount: 15112 },
+    { month: "2025-03", farePrice: 328200, revenue: 218800, commission: 109400, commissionPercent: 33.3, tripCount: 16472 },
+    { month: "2025-04", farePrice: 317800, revenue: 211800, commission: 106000, commissionPercent: 33.3, tripCount: 16720 },
+    { month: "2025-05", farePrice: 343000, revenue: 228700, commission: 114300, commissionPercent: 33.3, tripCount: 18509 },
+    { month: "2025-06", farePrice: 257000, revenue: 171300, commission: 85700, commissionPercent: 33.3, tripCount: 13358 },
+    { month: "2025-07", farePrice: 282200, revenue: 188100, commission: 94100, commissionPercent: 33.3, tripCount: 14774 },
+    { month: "2025-08", farePrice: 322900, revenue: 215300, commission: 107600, commissionPercent: 33.3, tripCount: 16233 },
+    { month: "2025-09", farePrice: 294800, revenue: 196500, commission: 98300, commissionPercent: 33.3, tripCount: 13790 },
+    { month: "2025-10", farePrice: 275100, revenue: 183400, commission: 91700, commissionPercent: 33.3, tripCount: 14645 },
+    { month: "2025-11", farePrice: 254500, revenue: 169700, commission: 84800, commissionPercent: 33.3, tripCount: 14137 },
   ],
 };
