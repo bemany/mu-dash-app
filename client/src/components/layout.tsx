@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useLocation } from 'wouter';
 import { useTranslation } from '@/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { playNotificationSound } from '@/lib/notification-sound';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ['session'] });
+      playNotificationSound();
       setInputVorgangsId('');
       toast.success(t('layout.loadSuccess', { id: loadedId }));
       setLocation('/');
