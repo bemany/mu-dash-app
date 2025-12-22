@@ -2547,30 +2547,6 @@ export default function PerformancePage() {
           </div>
         </div>
 
-        {isDemo && showDemoBanner && (
-          <Alert className="bg-amber-50 border-amber-200 relative" data-testid="banner-demo-mode">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pr-8">
-              <span>{t('performance.demoMode')}</span>
-              <Link href="/process">
-                <Button 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                  data-testid="button-start-import"
-                >
-                  <Upload className="h-4 w-4" />
-                  {t('performance.startImport')}
-                </Button>
-              </Link>
-            </AlertDescription>
-            <button
-              onClick={() => setShowDemoBanner(false)}
-              className="absolute top-2 right-2 p-1 rounded-full hover:bg-amber-100 text-amber-600"
-              data-testid="button-close-demo-banner"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </Alert>
-        )}
 
         <TabsContent value="drivers" className="mt-0">
           <DriversTab 
@@ -2632,6 +2608,40 @@ export default function PerformancePage() {
           />
         </TabsContent>
       </Tabs>
+
+      {isDemo && showDemoBanner && (
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-50 bg-amber-50 border-t-2 border-amber-300 shadow-lg"
+          data-testid="banner-demo-mode"
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+              </div>
+              <span className="text-amber-800 font-medium">{t('performance.demoMode')}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/process">
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  data-testid="button-start-import"
+                >
+                  <Upload className="h-4 w-4" />
+                  {t('performance.startImport')}
+                </Button>
+              </Link>
+              <button
+                onClick={() => setShowDemoBanner(false)}
+                className="p-2 rounded-full hover:bg-amber-100 text-amber-600"
+                data-testid="button-close-demo-banner"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
