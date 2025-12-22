@@ -1037,6 +1037,19 @@ export async function registerRoutes(
     }
   };
 
+  const parseEndDateParam = (dateStr: string | undefined): Date | undefined => {
+    if (!dateStr) return undefined;
+    try {
+      const parsed = parseISO(dateStr);
+      if (isNaN(parsed.getTime())) return undefined;
+      // Set to end of day (23:59:59.999) to include all records on the last day
+      parsed.setHours(23, 59, 59, 999);
+      return parsed;
+    } catch {
+      return undefined;
+    }
+  };
+
   const validateSession = async (req: any, res: any): Promise<string | null> => {
     const sessionId = req.session.uberRetterSessionId;
     if (!sessionId) {
@@ -1073,7 +1086,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
       
@@ -1094,7 +1107,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const [metrics, shiftAnalysis] = await Promise.all([
         storage.getPerformanceMetrics(sessionId, startDate, endDate),
@@ -1128,7 +1141,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const metrics = await storage.getPerformanceMetrics(sessionId, startDate, endDate);
       
@@ -1148,7 +1161,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const analysis = await storage.getShiftAnalysis(sessionId, startDate, endDate);
       
@@ -1165,7 +1178,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const analysis = await storage.getCommissionAnalysis(sessionId, startDate, endDate);
       
@@ -1182,7 +1195,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const report = await storage.getDriverReport(sessionId, startDate, endDate);
       
@@ -1199,7 +1212,7 @@ export async function registerRoutes(
       if (!sessionId) return;
 
       const startDate = parseDateParam(req.query.startDate as string);
-      const endDate = parseDateParam(req.query.endDate as string);
+      const endDate = parseEndDateParam(req.query.endDate as string);
 
       const report = await storage.getVehicleReport(sessionId, startDate, endDate);
       
