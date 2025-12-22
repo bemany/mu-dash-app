@@ -11,6 +11,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
 import { useTranslation } from "@/i18n";
+import { playNotificationSound } from "@/lib/notification-sound";
 import { 
   Upload, 
   FileUp, 
@@ -110,6 +111,7 @@ export default function UploadPage() {
     onSuccess: (data) => {
       setUploadResult(data);
       queryClient.invalidateQueries({ queryKey: ["session"] });
+      playNotificationSound();
       
       toast({
         title: t('upload.success'),
@@ -159,6 +161,7 @@ export default function UploadPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["session"] });
+      playNotificationSound();
       setLoadDialogOpen(false);
       setLoadVorgangsId("");
       setLocation('/');
