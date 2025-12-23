@@ -88,6 +88,7 @@ export interface DriverReportRow {
   shiftCount: number;
   dayShiftCount: number;
   nightShiftCount: number;
+  activeDays: number;
 }
 
 export interface DriverReportSummary {
@@ -97,6 +98,7 @@ export interface DriverReportSummary {
   totalTrips: number;
   totalShifts: number;
   uniqueDrivers: number;
+  totalActiveDays: number;
   avgRevenuePerHour: number;
   avgRevenuePerDay: number;
   avgRevenuePerMonth: number;
@@ -177,6 +179,7 @@ export const mockDriverReport: { summary: DriverReportSummary; drivers: DriverRe
     totalTrips: totalTrips,
     totalShifts: totalShifts,
     uniqueDrivers: 34,
+    totalActiveDays: 34 * 22,
     avgRevenuePerHour: 39.99,
     avgRevenuePerDay: 301.32,
     avgRevenuePerMonth: totalRevenue,
@@ -203,6 +206,7 @@ export const mockDriverReport: { summary: DriverReportSummary; drivers: DriverRe
     shiftCount: Math.round(d.trips / 25),
     dayShiftCount: Math.round(d.trips / 25 * 0.6),
     nightShiftCount: Math.round(d.trips / 25 * 0.4),
+    activeDays: 15 + Math.round(Math.random() * 10),
   })),
 };
 

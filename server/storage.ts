@@ -105,6 +105,7 @@ export interface DriverReportRow {
   shiftCount: number;
   dayShiftCount: number;
   nightShiftCount: number;
+  activeDays: number;
 }
 
 export interface DriverReportSummary {
@@ -114,6 +115,7 @@ export interface DriverReportSummary {
   totalTrips: number;
   totalShifts: number;
   uniqueDrivers: number;
+  totalActiveDays: number;
   avgRevenuePerHour: number;
   avgRevenuePerDay: number;
   avgRevenuePerMonth: number;
@@ -1166,6 +1168,7 @@ export class DatabaseStorage implements IStorage {
       shiftCount: Number(row.shift_count) || 0,
       dayShiftCount: Number(row.day_shift_count) || 0,
       nightShiftCount: Number(row.night_shift_count) || 0,
+      activeDays: Number(row.active_days) || 0,
     }));
 
     const totalRevenue = drivers.reduce((sum, d) => sum + d.totalRevenue, 0);
@@ -1185,6 +1188,7 @@ export class DatabaseStorage implements IStorage {
       totalTrips,
       totalShifts,
       uniqueDrivers,
+      totalActiveDays,
       avgRevenuePerHour: totalHoursWorked > 0 ? totalRevenue / totalHoursWorked : 0,
       avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
       avgRevenuePerMonth: totalActiveMonths > 0 ? totalRevenue / totalActiveMonths : 0,
