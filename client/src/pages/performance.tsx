@@ -859,8 +859,8 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     .replace('{{revenue}}', formatCurrency(filteredSummary.totalRevenue));
   
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 flex-shrink-0">
         <KpiCard
           testId="kpi-driver-time"
           title=""
@@ -921,7 +921,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           tooltip={shiftsTooltip}
         />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
         <KpiCard
           testId="kpi-driver-cleaned-revenue"
           title={t('performance.kpiCleanedRevenue')}
@@ -974,8 +974,8 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
         isDemo={isDemo}
       />
       
-      <Card>
-        <div className="max-h-[60vh] overflow-auto">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1069,7 +1069,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             </TableBody>
           </Table>
         </div>
-        <div className="p-3 border-t flex justify-end">
+        <div className="p-3 border-t flex justify-end flex-shrink-0">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-drivers">
             <Download className="w-4 h-4 mr-2" />
             {t('performance.exportExcel')}
@@ -1348,8 +1348,8 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   };
   
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 flex-shrink-0">
         <KpiCard
           testId="kpi-vehicle-time"
           title=""
@@ -1479,8 +1479,8 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
         isDemo={isDemo}
       />
       
-      <Card>
-        <div className="max-h-[60vh] overflow-auto">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1557,7 +1557,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
             </TableBody>
           </Table>
         </div>
-        <div className="p-3 border-t flex justify-end">
+        <div className="p-3 border-t flex justify-end flex-shrink-0">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-vehicles">
             <Download className="w-4 h-4 mr-2" />
             {t('performance.exportExcel')}
@@ -1744,8 +1744,8 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
   };
   
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
         <KpiCard
           testId="kpi-promo-theoretical"
           title={t('performance.promoTheoreticalTitle')}
@@ -1767,8 +1767,8 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
         />
       </div>
       
-      <Card>
-        <div className="max-h-[60vh] overflow-auto">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1851,7 +1851,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
             </TableBody>
           </Table>
         </div>
-        <div className="p-3 border-t flex justify-end">
+        <div className="p-3 border-t flex justify-end flex-shrink-0">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-promo">
             <Download className="w-4 h-4 mr-2" />
             {t('performance.exportExcel')}
@@ -2318,8 +2318,8 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
     : 0;
   
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+    <div className="flex flex-col gap-4 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 flex-shrink-0">
         <KpiCard
           testId="kpi-commission-fareprice"
           title={t('performance.commissionFarePrice')}
@@ -2354,8 +2354,8 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
         />
       </div>
       
-      <Card>
-        <div className="p-3 border-b flex justify-between items-center">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <div className="p-3 border-b flex justify-between items-center flex-shrink-0">
           <div className="flex gap-2">
             <Button 
               variant={viewMode === "byMonth" ? "default" : "outline"} 
@@ -2383,7 +2383,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
             </Button>
           </div>
         </div>
-        <div className="max-h-[60vh] overflow-auto">
+        <div className="flex-1 overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -2437,7 +2437,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
             </TableBody>
           </Table>
         </div>
-        <div className="p-3 border-t flex justify-end">
+        <div className="p-3 border-t flex justify-end flex-shrink-0">
           <Button variant="outline" size="sm" onClick={exportToExcel} data-testid="export-commissions">
             <Download className="w-4 h-4 mr-2" />
             {t('performance.exportExcel')}
@@ -2650,8 +2650,8 @@ export default function PerformancePage() {
 
   return (
     <DashboardLayout>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-[1920px] mx-auto space-y-4 pb-20">
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-[1920px] mx-auto flex flex-col flex-1 overflow-hidden gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3 flex-shrink-0">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center gap-6 flex-wrap">
               <div>
@@ -2756,7 +2756,7 @@ export default function PerformancePage() {
         </div>
 
 
-        <TabsContent value="drivers" className="mt-0">
+        <TabsContent value="drivers" className="mt-0 flex-1 overflow-auto">
           <DriversTab 
             data={driversData} 
             isLoading={driversLoading} 
@@ -2772,7 +2772,7 @@ export default function PerformancePage() {
             shiftFilter={shiftFilter}
           />
         </TabsContent>
-        <TabsContent value="vehicles" className="mt-0">
+        <TabsContent value="vehicles" className="mt-0 flex-1 overflow-auto">
           <VehiclesTab 
             data={vehiclesData} 
             isLoading={vehiclesLoading} 
@@ -2787,7 +2787,7 @@ export default function PerformancePage() {
             setSelectedVehicles={setSelectedVehicles}
           />
         </TabsContent>
-        <TabsContent value="promo" className="mt-0">
+        <TabsContent value="promo" className="mt-0 flex-1 overflow-auto">
           <PromoTab 
             data={promoData} 
             isLoading={promoLoading} 
@@ -2796,7 +2796,7 @@ export default function PerformancePage() {
             dateRange={dateRange}
           />
         </TabsContent>
-        <TabsContent value="commissions" className="mt-0">
+        <TabsContent value="commissions" className="mt-0 flex-1 overflow-auto">
           <CommissionsTab 
             data={commissionsData} 
             isLoading={commissionsLoading} 
@@ -2804,7 +2804,7 @@ export default function PerformancePage() {
             selectedVehicles={selectedVehicles}
           />
         </TabsContent>
-        <TabsContent value="company" className="mt-0">
+        <TabsContent value="company" className="mt-0 flex-1 overflow-auto">
           <CompanyTab 
             commissionsData={commissionsData}
             driversData={driversData}

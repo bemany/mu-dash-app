@@ -79,7 +79,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+    <div className="h-screen bg-slate-50 flex font-sans text-slate-900 overflow-hidden">
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:block shadow-xl",
@@ -236,7 +236,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
            <div className="w-10" />
         </header>
 
-        <main className="flex-1 overflow-auto p-2 md:p-4 lg:p-6">
+        <main className="flex-1 overflow-hidden p-2 md:p-4 lg:p-6 flex flex-col">
           {children}
         </main>
       </div>
