@@ -860,7 +860,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-9 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <KpiCard
           testId="kpi-driver-time"
           title=""
@@ -920,6 +920,8 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           onClick={() => setShowShiftsDialog(true)}
           tooltip={shiftsTooltip}
         />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           testId="kpi-driver-cleaned-revenue"
           title={t('performance.kpiCleanedRevenue')}
@@ -973,7 +975,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
       />
       
       <Card>
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1478,7 +1480,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
       />
       
       <Card>
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1766,7 +1768,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
       </div>
       
       <Card>
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -2381,7 +2383,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="max-h-[60vh] overflow-auto">
           <Table>
             <TableHeader>
               <TableRow>
