@@ -697,6 +697,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   const [cleanedRevenueMetric, setCleanedRevenueMetric] = useState<"day" | "week" | "month">("day");
+  const [kmTimeMetric, setKmTimeMetric] = useState<"day" | "week" | "month">("day");
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -832,10 +833,34 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
       .replace('{{days}}', days.toString())
       .replace('{{result}}', result);
   };
+
+  const kmPerTrip = filteredSummary.totalTrips > 0 
+    ? filteredSummary.totalDistance / filteredSummary.totalTrips 
+    : 0;
+  
+  const kmPerDay = filteredSummary.totalActiveDays > 0 
+    ? filteredSummary.totalDistance / filteredSummary.totalActiveDays 
+    : 0;
+  
+  const getKmTimeValue = (metric: "day" | "week" | "month") => {
+    switch (metric) {
+      case "day": return kmPerDay;
+      case "week": return kmPerDay * 7;
+      case "month": return kmPerDay * 30;
+    }
+  };
+
+  const kmPerDriver = filteredSummary.uniqueDrivers > 0 
+    ? filteredSummary.totalDistance / filteredSummary.uniqueDrivers 
+    : 0;
+
+  const shiftsTooltip = t('performance.kpiShiftsTooltip')
+    .replace('{{trips}}', formatNumber(filteredSummary.totalTrips, 0))
+    .replace('{{revenue}}', formatCurrency(filteredSummary.totalRevenue));
   
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-9 gap-3">
         <KpiCard
           testId="kpi-driver-time"
           title=""
@@ -893,6 +918,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
+          tooltip={shiftsTooltip}
         />
         <KpiCard
           testId="kpi-driver-cleaned-revenue"
@@ -909,6 +935,33 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             onChange: (v) => setCleanedRevenueMetric(v as "day" | "week" | "month"),
           }}
           tooltip={getCleanedRevenueTooltip(cleanedRevenueMetric)}
+        />
+        <KpiCard
+          testId="kpi-driver-km-per-trip"
+          title={t('performance.kpiKmPerTrip')}
+          value={`${formatNumber(kmPerTrip, 1)} km`}
+          icon={<Route className="w-5 h-5" />}
+        />
+        <KpiCard
+          testId="kpi-driver-km-per-time"
+          title=""
+          value={`${formatNumber(getKmTimeValue(kmTimeMetric), 0)} km`}
+          icon={<Route className="w-5 h-5" />}
+          tags={{
+            value: kmTimeMetric,
+            options: [
+              { value: "day", label: t('performance.kpiKmPerDay') },
+              { value: "week", label: t('performance.kpiKmPerWeek') },
+              { value: "month", label: t('performance.kpiKmPerMonth') },
+            ],
+            onChange: (v) => setKmTimeMetric(v as "day" | "week" | "month"),
+          }}
+        />
+        <KpiCard
+          testId="kpi-driver-km-per-driver"
+          title={t('performance.kpiKmPerDriver')}
+          value={`${formatNumber(kmPerDriver, 0)} km`}
+          icon={<User className="w-5 h-5" />}
         />
       </div>
       
