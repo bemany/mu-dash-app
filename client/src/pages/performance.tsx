@@ -677,6 +677,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
   const { t } = useTranslation();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
+  const [cleanedRevenueMetric, setCleanedRevenueMetric] = useState<"day" | "week" | "month">("day");
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -789,9 +790,20 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
         ? tripsPerWeek
         : tripsPerMonth;
   
+  const cleanedRevenuePerDay = filteredSummary.totalActiveDays > 0 
+    ? filteredSummary.totalRevenue / filteredSummary.totalActiveDays 
+    : 0;
+  const getCleanedRevenueValue = (metric: "day" | "week" | "month") => {
+    switch (metric) {
+      case "day": return cleanedRevenuePerDay;
+      case "week": return cleanedRevenuePerDay * 7;
+      case "month": return cleanedRevenuePerDay * 30;
+    }
+  };
+  
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <KpiCard
           testId="kpi-driver-time"
           title=""
@@ -849,6 +861,21 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
           value={filteredSummary.totalShifts.toString()}
           icon={<Clock className="w-5 h-5" />}
           onClick={() => setShowShiftsDialog(true)}
+        />
+        <KpiCard
+          testId="kpi-driver-cleaned-revenue"
+          title={t('performance.kpiCleanedRevenue')}
+          value={formatCurrency(getCleanedRevenueValue(cleanedRevenueMetric))}
+          icon={<TrendingUp className="w-5 h-5" />}
+          tags={{
+            value: cleanedRevenueMetric,
+            options: [
+              { value: "day", label: t('performance.kpiCleanedDay') },
+              { value: "week", label: t('performance.kpiCleanedWeek') },
+              { value: "month", label: t('performance.kpiCleanedMonth') },
+            ],
+            onChange: (v) => setCleanedRevenueMetric(v as "day" | "week" | "month"),
+          }}
         />
       </div>
       
@@ -995,6 +1022,7 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[], originalSummary
       totalTrips: 0,
       uniqueVehicles: 0,
       avgOccupancyRate: 0,
+      totalActiveDays: 0,
     };
   }
   
@@ -1005,12 +1033,12 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[], originalSummary
   const totalTrips = vehicles.reduce((acc, v) => acc + v.completedTrips, 0);
   const totalShifts = vehicles.reduce((acc, v) => acc + (v.shiftCount || 0), 0);
   
-  const activeDaysEstimate = Math.max(1, totalShifts);
-  const activeMonthsEstimate = Math.max(1, Math.ceil(activeDaysEstimate / 22));
+  const totalActiveDays = Math.max(1, totalShifts);
+  const activeMonthsEstimate = Math.max(1, Math.ceil(totalActiveDays / 22));
   
   return {
     avgRevenuePerHour: totalHours > 0 ? totalRevenue / totalHours : 0,
-    avgRevenuePerDay: activeDaysEstimate > 0 ? totalRevenue / activeDaysEstimate : 0,
+    avgRevenuePerDay: totalActiveDays > 0 ? totalRevenue / totalActiveDays : 0,
     avgRevenuePerMonth: activeMonthsEstimate > 0 ? totalRevenue / activeMonthsEstimate : 0,
     avgRevenuePerKm: totalDistanceKm > 0 ? totalRevenue / totalDistanceKm : 0,
     avgRevenuePerTrip: totalTrips > 0 ? totalRevenue / totalTrips : 0,
@@ -1022,6 +1050,7 @@ function recalculateVehicleSummary(vehicles: VehicleReportRow[], originalSummary
     totalTrips,
     uniqueVehicles: totalVehicles,
     avgOccupancyRate: originalSummary?.avgOccupancyRate || 0,
+    totalActiveDays,
   };
 }
 
@@ -1103,6 +1132,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "completedTrips", direction: "desc" });
   const [showShiftsDialog, setShowShiftsDialog] = useState(false);
   const [showOccupancyDialog, setShowOccupancyDialog] = useState(false);
+  const [cleanedRevenueMetric, setCleanedRevenueMetric] = useState<"day" | "week" | "month">("day");
   
   const handleSort = (key: string) => {
     setSortConfig(prev => ({
@@ -1203,10 +1233,22 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
       : tripsMetric === "week"
         ? tripsPerWeek
         : tripsPerMonth;
+
+  const vehicleActiveDays = filteredSummary.totalActiveDays || filteredSummary.totalShifts || 1;
+  const cleanedRevenuePerDay = vehicleActiveDays > 0 
+    ? filteredSummary.totalRevenue / vehicleActiveDays
+    : 0;
+  const getCleanedRevenueValue = (metric: "day" | "week" | "month") => {
+    switch (metric) {
+      case "day": return cleanedRevenuePerDay;
+      case "week": return cleanedRevenuePerDay * 7;
+      case "month": return cleanedRevenuePerDay * 30;
+    }
+  };
   
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
         <KpiCard
           testId="kpi-vehicle-time"
           title=""
@@ -1271,6 +1313,21 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
           value={`${formatNumber(filteredSummary.avgOccupancyRate, 1)}%`}
           icon={<Users className="w-5 h-5" />}
           onClick={() => setShowOccupancyDialog(true)}
+        />
+        <KpiCard
+          testId="kpi-vehicle-cleaned-revenue"
+          title={t('performance.kpiCleanedRevenue')}
+          value={formatCurrency(getCleanedRevenueValue(cleanedRevenueMetric))}
+          icon={<TrendingUp className="w-5 h-5" />}
+          tags={{
+            value: cleanedRevenueMetric,
+            options: [
+              { value: "day", label: t('performance.kpiCleanedDay') },
+              { value: "week", label: t('performance.kpiCleanedWeek') },
+              { value: "month", label: t('performance.kpiCleanedMonth') },
+            ],
+            onChange: (v) => setCleanedRevenueMetric(v as "day" | "week" | "month"),
+          }}
         />
       </div>
       

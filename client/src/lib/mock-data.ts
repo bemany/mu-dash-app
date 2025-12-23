@@ -144,6 +144,7 @@ export interface VehicleReportSummary {
   avgRevenuePerTrip: number;
   avgRevenuePerVehicle: number;
   avgOccupancyRate: number;
+  totalActiveDays?: number;
 }
 
 export interface PromoReportRow {
@@ -225,6 +226,7 @@ export const mockVehicleReport: { summary: VehicleReportSummary; vehicles: Vehic
     avgRevenuePerTrip: 11.46,
     avgRevenuePerVehicle: 117918.32,
     avgOccupancyRate: 79.3,
+    totalActiveDays: 19 * 22,
   },
   vehicles: DEMO_VEHICLES.map(v => ({
     licensePlate: v.plate,
