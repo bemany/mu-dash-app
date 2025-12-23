@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   format, 
@@ -96,10 +97,11 @@ interface KpiCardProps {
     onChange: (value: string) => void;
   };
   onClick?: () => void;
+  tooltip?: string;
 }
 
-function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCardProps) {
-  return (
+function KpiCard({ title, value, icon, testId, className, tags, onClick, tooltip }: KpiCardProps) {
+  const cardContent = (
     <Card
       data-testid={testId}
       className={cn(
@@ -145,6 +147,23 @@ function KpiCard({ title, value, icon, testId, className, tags, onClick }: KpiCa
       </CardContent>
     </Card>
   );
+
+  if (tooltip) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {cardContent}
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs bg-slate-800 text-white">
+            <p>{tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 }
 
 interface MultiSelectProps {
@@ -801,6 +820,19 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
     }
   };
   
+  const getCleanedRevenueTooltip = (metric: "day" | "week" | "month") => {
+    const revenue = formatCurrency(filteredSummary.totalRevenue);
+    const days = filteredSummary.totalActiveDays;
+    const result = formatCurrency(getCleanedRevenueValue(metric));
+    const tooltipKey = metric === "day" ? 'performance.kpiCleanedTooltipDay' 
+      : metric === "week" ? 'performance.kpiCleanedTooltipWeek' 
+      : 'performance.kpiCleanedTooltipMonth';
+    return t(tooltipKey)
+      .replace('{{revenue}}', revenue)
+      .replace('{{days}}', days.toString())
+      .replace('{{result}}', result);
+  };
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -876,6 +908,7 @@ function DriversTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, distan
             ],
             onChange: (v) => setCleanedRevenueMetric(v as "day" | "week" | "month"),
           }}
+          tooltip={getCleanedRevenueTooltip(cleanedRevenueMetric)}
         />
       </div>
       
@@ -1246,6 +1279,19 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
     }
   };
   
+  const getCleanedRevenueTooltip = (metric: "day" | "week" | "month") => {
+    const revenue = formatCurrency(filteredSummary.totalRevenue);
+    const days = vehicleActiveDays;
+    const result = formatCurrency(getCleanedRevenueValue(metric));
+    const tooltipKey = metric === "day" ? 'performance.kpiCleanedTooltipDay' 
+      : metric === "week" ? 'performance.kpiCleanedTooltipWeek' 
+      : 'performance.kpiCleanedTooltipMonth';
+    return t(tooltipKey)
+      .replace('{{revenue}}', revenue)
+      .replace('{{days}}', days.toString())
+      .replace('{{result}}', result);
+  };
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
@@ -1328,6 +1374,7 @@ function VehiclesTab({ data, isLoading, isDemo, timeMetric, setTimeMetric, dista
             ],
             onChange: (v) => setCleanedRevenueMetric(v as "day" | "week" | "month"),
           }}
+          tooltip={getCleanedRevenueTooltip(cleanedRevenueMetric)}
         />
       </div>
       
@@ -1892,6 +1939,19 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     }
   };
 
+  const getCleanedRevenueTooltip = (metric: "day" | "week" | "month") => {
+    const revenue = formatCurrency(summary.totalRevenue || 0);
+    const days = summary.totalActiveDays || 0;
+    const result = formatCurrency(getCleanedRevenueValue(metric));
+    const tooltipKey = metric === "day" ? 'performance.kpiCleanedTooltipDay' 
+      : metric === "week" ? 'performance.kpiCleanedTooltipWeek' 
+      : 'performance.kpiCleanedTooltipMonth';
+    return t(tooltipKey)
+      .replace('{{revenue}}', revenue)
+      .replace('{{days}}', days.toString())
+      .replace('{{result}}', result);
+  };
+
   const cleanedRevenueMetricOptions = [
     { value: "day", label: t('performance.companyCleanedPerDay') },
     { value: "week", label: t('performance.companyCleanedPerWeek') },
@@ -2090,6 +2150,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
               options: cleanedRevenueMetricOptions,
               onChange: (v) => setCleanedRevenueMetric(v as any),
             }}
+            tooltip={getCleanedRevenueTooltip(cleanedRevenueMetric)}
           />
         </div>
       </div>
