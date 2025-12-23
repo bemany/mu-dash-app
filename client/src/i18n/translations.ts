@@ -412,6 +412,9 @@ export const translations = {
       companyTotalFees: 'Gebühren Gesamt',
       expectedFees: 'Erwartet',
       excessFees: 'Zuviel berechnet',
+      companyCleanedPerDay: 'Ø Umsatz/Fahrer/Tag',
+      companyCleanedPerWeek: 'Ø Umsatz/Fahrer/Woche',
+      companyCleanedPerMonth: 'Ø Umsatz/Fahrer/Monat',
     },
   },
   en: {
@@ -818,6 +821,9 @@ export const translations = {
       companyTotalFees: 'Total Fees',
       expectedFees: 'Expected',
       excessFees: 'Overcharged',
+      companyCleanedPerDay: 'Ø Revenue/Driver/Day',
+      companyCleanedPerWeek: 'Ø Revenue/Driver/Week',
+      companyCleanedPerMonth: 'Ø Revenue/Driver/Month',
     },
   },
   tr: {
@@ -1224,6 +1230,9 @@ export const translations = {
       companyTotalFees: 'Toplam Ücretler',
       expectedFees: 'Beklenen',
       excessFees: 'Fazla Hesaplanan',
+      companyCleanedPerDay: 'Ø Gelir/Sürücü/Gün',
+      companyCleanedPerWeek: 'Ø Gelir/Sürücü/Hafta',
+      companyCleanedPerMonth: 'Ø Gelir/Sürücü/Ay',
     },
   },
   ar: {
@@ -1630,6 +1639,9 @@ export const translations = {
       companyTotalFees: 'إجمالي الرسوم',
       expectedFees: 'المتوقع',
       excessFees: 'المحسوب بالزيادة',
+      companyCleanedPerDay: 'متوسط الإيرادات/سائق/يوم',
+      companyCleanedPerWeek: 'متوسط الإيرادات/سائق/أسبوع',
+      companyCleanedPerMonth: 'متوسط الإيرادات/سائق/شهر',
     },
   },
 } as const;

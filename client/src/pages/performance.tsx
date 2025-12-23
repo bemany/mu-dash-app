@@ -505,6 +505,7 @@ function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSumma
       totalHoursWorked: 0,
       totalTrips: 0,
       uniqueDrivers: 0,
+      totalActiveDays: 0,
     };
   }
   
@@ -514,8 +515,9 @@ function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSumma
   const totalHours = drivers.reduce((acc, d) => acc + d.timeInTrip, 0);
   const totalTrips = drivers.reduce((acc, d) => acc + d.completedTrips, 0);
   const totalShifts = drivers.reduce((acc, d) => acc + (d.shiftCount || 0), 0);
+  const totalActiveDays = drivers.reduce((acc, d) => acc + (d.activeDays || 0), 0);
   
-  const activeDaysEstimate = Math.max(1, totalShifts);
+  const activeDaysEstimate = Math.max(1, totalActiveDays || totalShifts);
   const activeMonthsEstimate = Math.max(1, Math.ceil(activeDaysEstimate / 22));
   
   return {
@@ -531,6 +533,7 @@ function recalculateDriverSummary(drivers: DriverReportRow[]): DriverReportSumma
     totalHoursWorked: totalHours,
     totalTrips,
     uniqueDrivers: totalDrivers,
+    totalActiveDays,
   };
 }
 
@@ -1750,6 +1753,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
   const [revenueMetric, setRevenueMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [shiftsMetric, setShiftsMetric] = useState<"total" | "day" | "week" | "month">("total");
   const [tripsMetric, setTripsMetric] = useState<"total" | "day" | "week" | "month">("total");
+  const [cleanedRevenueMetric, setCleanedRevenueMetric] = useState<"day" | "week" | "month">("day");
   const [expectedFeePercent, setExpectedFeePercent] = useState<number>(30);
 
   const effectiveCommissionsData = isDemo ? mockCommissionData : commissionsData;
@@ -1768,7 +1772,7 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
 
   const summary = useMemo(() => {
     const commSummary = effectiveCommissionsData?.summary || { totalFarePrice: 0, totalRevenue: 0, commissionPercent: 0, tripCount: 0 };
-    const driverSummary = effectiveDriversData?.summary || { totalShifts: 0, avgRevenuePerKm: 0 };
+    const driverSummary = effectiveDriversData?.summary || { totalShifts: 0, avgRevenuePerKm: 0, totalActiveDays: 0, totalRevenue: 0 };
     const vehicleSummary = effectiveVehiclesData?.summary || { avgOccupancyRate: 0 };
     const drivers = effectiveDriversData?.drivers || [];
     
@@ -1785,6 +1789,9 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
     
     const totalFees = commSummary.totalFarePrice - commSummary.totalRevenue;
     
+    const totalActiveDays = (driverSummary as any).totalActiveDays || 0;
+    const cleanedRevenuePerDay = totalActiveDays > 0 ? (driverSummary as any).totalRevenue / totalActiveDays : 0;
+    
     return {
       totalFare: commSummary.totalFarePrice,
       totalRevenue: commSummary.totalRevenue,
@@ -1796,6 +1803,8 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
       occupancyRate: vehicleSummary.avgOccupancyRate || 0,
       pricePerKm,
       revenuePerTrip,
+      totalActiveDays,
+      cleanedRevenuePerDay,
     };
   }, [effectiveCommissionsData, effectiveDriversData, effectiveVehiclesData]);
 
@@ -1816,6 +1825,21 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
       default: return baseLabel;
     }
   };
+
+  const getCleanedRevenueValue = (metric: "day" | "week" | "month") => {
+    const perDay = summary.cleanedRevenuePerDay;
+    switch (metric) {
+      case "day": return perDay;
+      case "week": return perDay * 7;
+      case "month": return perDay * 30;
+    }
+  };
+
+  const cleanedRevenueMetricOptions = [
+    { value: "day", label: t('performance.companyCleanedPerDay') },
+    { value: "week", label: t('performance.companyCleanedPerWeek') },
+    { value: "month", label: t('performance.companyCleanedPerMonth') },
+  ];
 
   if (isLoading) {
     return (
@@ -1998,6 +2022,17 @@ function CompanyTab({ commissionsData, driversData, vehiclesData, promoData, isL
             title={t('performance.companyOccupancyRate')}
             value={`${summary.occupancyRate.toFixed(1)}%`}
             icon={<Users className="w-5 h-5" />}
+          />
+          <KpiCard
+            testId="kpi-company-cleaned-revenue"
+            title=""
+            value={formatCurrency(getCleanedRevenueValue(cleanedRevenueMetric))}
+            icon={<TrendingUp className="w-5 h-5" />}
+            tags={{
+              value: cleanedRevenueMetric,
+              options: cleanedRevenueMetricOptions,
+              onChange: (v) => setCleanedRevenueMetric(v as any),
+            }}
           />
         </div>
       </div>
