@@ -22,6 +22,7 @@ export const translations = {
       notFound: 'Nicht gefunden',
       loadError: 'Fehler beim Laden',
       loadSuccess: 'Vorgang {{id}} erfolgreich geladen',
+      loadingSession: 'Vorgang wird geladen...',
     },
     dashboard: {
       title: 'Mietwagenunternehmer Dashboard',
@@ -444,6 +445,7 @@ export const translations = {
       notFound: 'Not found',
       loadError: 'Error loading',
       loadSuccess: 'Process {{id}} loaded successfully',
+      loadingSession: 'Loading process...',
     },
     dashboard: {
       title: 'Rental Car Entrepreneur Dashboard',
@@ -866,6 +868,7 @@ export const translations = {
       notFound: 'Bulunamadı',
       loadError: 'Yükleme hatası',
       loadSuccess: 'İşlem {{id}} başarıyla yüklendi',
+      loadingSession: 'İşlem yükleniyor...',
     },
     dashboard: {
       title: 'Kiralık Araç Girişimci Paneli',
@@ -1288,6 +1291,7 @@ export const translations = {
       notFound: 'غير موجود',
       loadError: 'خطأ في التحميل',
       loadSuccess: 'تم تحميل العملية {{id}} بنجاح',
+      loadingSession: 'جارٍ تحميل العملية...',
     },
     dashboard: {
       title: 'لوحة تحكم رواد أعمال تأجير السيارات',

@@ -241,10 +241,18 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
         </header>
 
         <main className={cn(
-          "flex-1 p-2 md:p-4 lg:p-6",
+          "flex-1 p-2 md:p-4 lg:p-6 relative",
           fullHeight ? "overflow-hidden flex flex-col" : "overflow-auto"
         )}>
           {children}
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                <span className="text-sm font-medium text-slate-600">{t('layout.loadingSession')}</span>
+              </div>
+            </div>
+          )}
         </main>
       </div>
       
