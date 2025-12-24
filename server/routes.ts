@@ -537,14 +537,10 @@ export async function registerRoutes(
         }
       }
 
-      const existingTrips = await storage.getTripsBySession(sessionId);
-      const existingTripIds = new Set(
-        existingTrips.map(t => t.tripId || `${t.licensePlate}-${t.orderTime.getTime()}`)
-      );
-      const existingTransactions = await storage.getTransactionsBySession(sessionId);
-      const existingTxKeys = new Set(
-        existingTransactions.map(tx => `${tx.licensePlate}-${tx.transactionTime.getTime()}-${tx.amount}`)
-      );
+      // Deduplication now handled by database unique indexes (ON CONFLICT DO NOTHING)
+      // This avoids loading all existing data into memory for large datasets
+      const seenTripKeys = new Set<string>();
+      const seenTxKeys = new Set<string>();
 
       const parseFile = (file: Express.Multer.File): Promise<any[]> => {
         return new Promise((resolve, reject) => {
@@ -583,14 +579,16 @@ export async function registerRoutes(
       });
 
       // Import ALL trips (including cancelled) for acceptance rate analysis
+      // Deduplication handled by database - here we just filter out invalid data and same-batch duplicates
       const validTrips = allTripData.filter((trip: any) => {
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) return false;
         if (!trip["Fahrtstatus"]) return false; // Must have status
         const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
         if (!orderTime || isNaN(orderTime.getTime())) return false;
-        const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
-        if (existingTripIds.has(id)) return false;
-        existingTripIds.add(id);
+        // Only check for same-batch duplicates (db handles existing data duplicates)
+        const key = `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
+        if (seenTripKeys.has(key)) return false;
+        seenTripKeys.add(key);
         return true;
       });
 
@@ -611,6 +609,7 @@ export async function registerRoutes(
         console.log("[DEBUG] First payment vs-Berichterstattung:", allPaymentData[0]["vs-Berichterstattung"]);
       }
 
+      // Deduplication handled by database - here we just filter out invalid data and same-batch duplicates
       const validTransactions = allPaymentData.filter((tx: any) => {
         let amount: number;
         if (tx["An dein Unternehmen gezahlt"] !== undefined) {
@@ -639,16 +638,13 @@ export async function registerRoutes(
         if (!licensePlate && tx["Beschreibung"]) {
           licensePlate = extractLicensePlate(tx["Beschreibung"]);
         }
-        const tripUuid = tx["Fahrt-UUID"] || null;
         
         // Import ALL payments - no filter on license plate or tripUuid
-
         const amountCents = Math.round(amount * 100);
-        // For deduplication, use tripUuid, licensePlate, or description hash
-        const keyIdentifier = tripUuid || licensePlate || (tx["Beschreibung"] || "unknown");
-        const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
-        if (existingTxKeys.has(key)) return false;
-        existingTxKeys.add(key);
+        // Only check for same-batch duplicates (db handles existing data duplicates)
+        const key = `${licensePlate || 'unknown'}-${timestamp.getTime()}-${amountCents}`;
+        if (seenTxKeys.has(key)) return false;
+        seenTxKeys.add(key);
         return true;
       });
 
