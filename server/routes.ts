@@ -869,6 +869,19 @@ export async function registerRoutes(
     res.json({ isAdmin: !!req.session.isAdmin });
   });
 
+  app.get("/api/admin/performance-logs", async (req, res) => {
+    if (!req.session.isAdmin) {
+      return res.status(401).json({ error: "Nicht autorisiert" });
+    }
+    try {
+      const logs = await storage.getPerformanceLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching performance logs:", error);
+      res.status(500).json({ error: "Failed to fetch performance logs" });
+    }
+  });
+
   const requireAdmin = (req: any, res: any, next: any) => {
     if (!req.session.isAdmin) {
       return res.status(401).json({ error: "Nicht autorisiert" });
