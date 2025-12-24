@@ -11,7 +11,7 @@ export const translations = {
   de: {
     layout: {
       appName: 'MU-Dash',
-      navProcess: 'Prüfvorgang',
+      navProcess: 'Import',
       navPerformance: 'Performance',
       navHelp: 'Hilfe',
       navUpdates: 'Updates',
@@ -129,7 +129,8 @@ export const translations = {
       success: 'Upload erfolgreich!',
       error: 'Fehler beim Upload',
       uploadComplete: 'Daten erfolgreich hochgeladen!',
-      redirecting: 'Sie werden weitergeleitet...',
+      dateRange: 'Zeitraum',
+      goToDashboard: 'Zum Dashboard',
       processing: 'Dateien werden verarbeitet...',
       uploading: 'Wird hochgeladen...',
       uploadButton: 'Daten hochladen',
@@ -439,7 +440,7 @@ export const translations = {
   en: {
     layout: {
       appName: 'MU-Dash',
-      navProcess: 'Check Process',
+      navProcess: 'Import',
       navPerformance: 'Performance',
       navHelp: 'Help',
       navUpdates: 'Updates',
@@ -557,7 +558,8 @@ export const translations = {
       success: 'Upload successful!',
       error: 'Upload error',
       uploadComplete: 'Data uploaded successfully!',
-      redirecting: 'Redirecting...',
+      dateRange: 'Date Range',
+      goToDashboard: 'Go to Dashboard',
       processing: 'Processing files...',
       uploading: 'Uploading...',
       uploadButton: 'Upload Data',
@@ -867,7 +869,7 @@ export const translations = {
   tr: {
     layout: {
       appName: 'MU-Dash',
-      navProcess: 'Kontrol İşlemi',
+      navProcess: 'İçe Aktar',
       navPerformance: 'Performans',
       navHelp: 'Yardım',
       navUpdates: 'Güncellemeler',
@@ -985,7 +987,8 @@ export const translations = {
       success: 'Yükleme başarılı!',
       error: 'Yükleme hatası',
       uploadComplete: 'Veriler başarıyla yüklendi!',
-      redirecting: 'Yönlendiriliyor...',
+      dateRange: 'Tarih Aralığı',
+      goToDashboard: 'Panele Git',
       processing: 'Dosyalar işleniyor...',
       uploading: 'Yükleniyor...',
       uploadButton: 'Verileri Yükle',
@@ -1295,7 +1298,7 @@ export const translations = {
   ar: {
     layout: {
       appName: 'MU-Dash',
-      navProcess: 'عملية الفحص',
+      navProcess: 'استيراد',
       navPerformance: 'الأداء',
       navHelp: 'المساعدة',
       navUpdates: 'التحديثات',
@@ -1413,7 +1416,8 @@ export const translations = {
       success: 'تم التحميل بنجاح!',
       error: 'خطأ في التحميل',
       uploadComplete: 'تم تحميل البيانات بنجاح!',
-      redirecting: 'جاري التحويل...',
+      dateRange: 'نطاق التاريخ',
+      goToDashboard: 'الذهاب إلى لوحة القيادة',
       processing: 'جاري معالجة الملفات...',
       uploading: 'جاري التحميل...',
       uploadButton: 'تحميل البيانات',

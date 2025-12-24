@@ -781,6 +781,20 @@ export async function registerRoutes(
         await storage.updateSessionActivity(sessionId, 2);
       }
 
+      // Calculate date range from trips
+      let dateRange: { from: string; to: string } | undefined;
+      if (dbTrips.length > 0) {
+        const tripDates = dbTrips.map(t => t.orderTime.getTime()).filter(d => !isNaN(d));
+        if (tripDates.length > 0) {
+          const minDate = new Date(Math.min(...tripDates));
+          const maxDate = new Date(Math.max(...tripDates));
+          dateRange = {
+            from: minDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
+            to: maxDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
+          };
+        }
+      }
+
       progressBroker.broadcast(expressSessionId, {
         phase: "complete",
         total: dbTrips.length + dbTransactions.length,
@@ -795,6 +809,7 @@ export async function registerRoutes(
         tripsAdded: dbTrips.length,
         transactionsAdded: dbTransactions.length,
         filesProcessed: files.length,
+        dateRange,
       });
     } catch (error: any) {
       console.error("Error in file upload:", error);

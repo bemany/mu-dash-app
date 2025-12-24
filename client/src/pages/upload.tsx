@@ -37,6 +37,7 @@ export default function UploadPage() {
     vorgangsId: string | null;
     tripsAdded: number;
     transactionsAdded: number;
+    dateRange?: { from: string; to: string };
   } | null>(null);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [loadVorgangsId, setLoadVorgangsId] = useState("");
@@ -127,14 +128,10 @@ export default function UploadPage() {
     },
   });
 
-  useEffect(() => {
-    if (uploadResult) {
-      const timer = setTimeout(() => {
-        setLocation('/');
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadResult, setLocation]);
+  const resetForMoreData = () => {
+    setUploadResult(null);
+    setFiles([]);
+  };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -202,15 +199,20 @@ export default function UploadPage() {
 
         {uploadResult ? (
           <Card className="border-emerald-200 bg-emerald-50">
-            <CardContent className="p-8 text-center space-y-4">
+            <CardContent className="p-8 text-center space-y-6">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                 <CheckCircle className="w-8 h-8 text-emerald-600" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-emerald-800">{t('upload.uploadComplete')}</h2>
                 <p className="text-emerald-700 mt-2">
-                  {uploadResult.tripsAdded} {t('upload.trips')} • {uploadResult.transactionsAdded} {t('upload.payments')}
+                  {uploadResult.tripsAdded.toLocaleString('de-DE')} {t('upload.trips')} • {uploadResult.transactionsAdded.toLocaleString('de-DE')} {t('upload.payments')}
                 </p>
+                {uploadResult.dateRange && (
+                  <p className="text-emerald-600 text-sm mt-1">
+                    {t('upload.dateRange')}: {uploadResult.dateRange.from} - {uploadResult.dateRange.to}
+                  </p>
+                )}
                 {uploadResult.vorgangsId && (
                   <div className="mt-4 bg-white rounded-lg p-4 inline-block border border-emerald-200">
                     <p className="text-sm text-slate-600">{t('performance.yourVorgangsId')}</p>
@@ -220,7 +222,24 @@ export default function UploadPage() {
                   </div>
                 )}
               </div>
-              <p className="text-sm text-emerald-600">{t('upload.redirecting')}</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <Button
+                  variant="outline"
+                  onClick={resetForMoreData}
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                  data-testid="button-add-more-data"
+                >
+                  <FileUp className="w-4 h-4 mr-2" />
+                  {t('dashboard.addMoreData')}
+                </Button>
+                <Button
+                  onClick={() => setLocation('/')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  data-testid="button-go-to-dashboard"
+                >
+                  {t('upload.goToDashboard')}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (

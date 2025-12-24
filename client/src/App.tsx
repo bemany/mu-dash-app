@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/dashboard";
 import UploadPage from "@/pages/upload";
 import AdminPage from "@/pages/admin";
 import HelpPage from "@/pages/help";
@@ -16,9 +15,8 @@ function Router() {
     <Switch>
       <Route path="/" component={PerformancePage} />
       <Route path="/performance" component={PerformancePage} />
-      <Route path="/process" component={Dashboard} />
-      <Route path="/process/details" component={Dashboard} />
-      <Route path="/v/:vorgangsId" component={Dashboard} />
+      <Route path="/process" component={UploadPage} />
+      <Route path="/v/:vorgangsId" component={PerformancePage} />
       <Route path="/help" component={HelpPage} />
       <Route path="/updates" component={UpdatesPage} />
       <Route path="/admin" component={AdminPage} />
