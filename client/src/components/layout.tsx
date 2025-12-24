@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext } from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2 } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,22 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
       navigator.clipboard.writeText(sessionData.vorgangsId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const exitSession = async () => {
+    try {
+      const res = await fetch('/api/session/exit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        await queryClient.invalidateQueries({ queryKey: ['session'] });
+        toast.success(t('layout.exitSuccess'));
+        setLocation('/');
+      }
+    } catch (err) {
+      toast.error(t('layout.exitError'));
     }
   };
 
@@ -112,13 +128,24 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
                   <span className="text-xs text-slate-400">{t('layout.processId')}</span>
                   <span className="font-mono font-bold text-emerald-400">{sessionData.vorgangsId}</span>
                 </div>
-                <button
-                  onClick={copyVorgangsId}
-                  className="p-1.5 rounded hover:bg-emerald-500/20 transition-colors"
-                  data-testid="sidebar-copy-vorgangs-id"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-emerald-400/70" />}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={copyVorgangsId}
+                    className="p-1.5 rounded hover:bg-emerald-500/20 transition-colors"
+                    data-testid="sidebar-copy-vorgangs-id"
+                    title={t('layout.copyId')}
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-emerald-400/70" />}
+                  </button>
+                  <button
+                    onClick={exitSession}
+                    className="p-1.5 rounded hover:bg-red-500/20 transition-colors"
+                    data-testid="sidebar-exit-session"
+                    title={t('layout.exitSession')}
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-red-400/70" />
+                  </button>
+                </div>
               </div>
               {sessionData.companyName && (
                 <div className="flex items-center gap-2 mt-2">
@@ -270,6 +297,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
           onClick={() => setSidebarOpen(false)}
         />
       )}
+    </div>
     </LayoutLoadingContext.Provider>
   );
 }

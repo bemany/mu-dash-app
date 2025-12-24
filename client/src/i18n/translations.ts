@@ -24,6 +24,10 @@ export const translations = {
       loadSuccess: 'Vorgang {{id}} erfolgreich geladen',
       loadingSession: 'Vorgang wird geladen...',
       loadingSessionHint: 'Dies kann bis zu 2 Minuten dauern',
+      copyId: 'Vorgangs-ID kopieren',
+      exitSession: 'Vorgang verlassen',
+      exitSuccess: 'Vorgang verlassen',
+      exitError: 'Fehler beim Verlassen',
     },
     dashboard: {
       title: 'Mietwagenunternehmer Dashboard',
@@ -448,6 +452,10 @@ export const translations = {
       loadSuccess: 'Process {{id}} loaded successfully',
       loadingSession: 'Loading process...',
       loadingSessionHint: 'This may take up to 2 minutes',
+      copyId: 'Copy process ID',
+      exitSession: 'Exit process',
+      exitSuccess: 'Process exited',
+      exitError: 'Error exiting process',
     },
     dashboard: {
       title: 'Rental Car Entrepreneur Dashboard',
@@ -872,6 +880,10 @@ export const translations = {
       loadSuccess: 'İşlem {{id}} başarıyla yüklendi',
       loadingSession: 'İşlem yükleniyor...',
       loadingSessionHint: 'Bu işlem 2 dakikaya kadar sürebilir',
+      copyId: 'İşlem kimliğini kopyala',
+      exitSession: 'İşlemden çık',
+      exitSuccess: 'İşlemden çıkıldı',
+      exitError: 'İşlemden çıkış hatası',
     },
     dashboard: {
       title: 'Kiralık Araç Girişimci Paneli',
@@ -1296,6 +1308,10 @@ export const translations = {
       loadSuccess: 'تم تحميل العملية {{id}} بنجاح',
       loadingSession: 'جارٍ تحميل العملية...',
       loadingSessionHint: 'قد يستغرق هذا حتى دقيقتين',
+      copyId: 'نسخ معرف العملية',
+      exitSession: 'الخروج من العملية',
+      exitSuccess: 'تم الخروج من العملية',
+      exitError: 'خطأ في الخروج',
     },
     dashboard: {
       title: 'لوحة تحكم رواد أعمال تأجير السيارات',

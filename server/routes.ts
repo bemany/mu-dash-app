@@ -216,6 +216,16 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/session/exit", async (req, res) => {
+    try {
+      req.session.uberRetterSessionId = undefined;
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error exiting session:", error);
+      res.status(500).json({ error: "Failed to exit session" });
+    }
+  });
+
   app.post("/api/session/step", async (req, res) => {
     try {
       const sessionId = req.session.uberRetterSessionId!;
