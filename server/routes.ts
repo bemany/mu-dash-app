@@ -215,8 +215,6 @@ export async function registerRoutes(
 
       // Log performance (best-effort, don't fail the request if logging fails)
       const durationMs = Date.now() - startTime;
-      const totalRecords = tripCount + transactionCount;
-      const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
       
       try {
         await storage.createPerformanceLog({
@@ -226,7 +224,7 @@ export async function registerRoutes(
           durationMs,
           tripCount,
           transactionCount,
-          recordsPerSecond,
+          recordsPerSecond: 0,
         });
       } catch (logError) {
         console.error("Failed to log performance metrics:", logError);

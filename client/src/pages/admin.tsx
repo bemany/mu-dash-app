@@ -593,12 +593,14 @@ export default function AdminPage() {
                                       ? `${session.lastPerformanceLog.durationMs}ms` 
                                       : `${(session.lastPerformanceLog.durationMs / 1000).toFixed(1)}s`}
                                   </span>
-                                  <span className="text-xs text-emerald-600 flex items-center gap-1">
-                                    <Zap className="w-3 h-3" />
-                                    {session.lastPerformanceLog.recordsPerSecond >= 1000 
-                                      ? `${(session.lastPerformanceLog.recordsPerSecond / 1000).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}k/s`
-                                      : `${session.lastPerformanceLog.recordsPerSecond?.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/s`}
-                                  </span>
+                                  {session.lastPerformanceLog.operationType === 'import' && session.lastPerformanceLog.recordsPerSecond > 0 && (
+                                    <span className="text-xs text-emerald-600 flex items-center gap-1">
+                                      <Zap className="w-3 h-3" />
+                                      {session.lastPerformanceLog.recordsPerSecond >= 1000 
+                                        ? `${(session.lastPerformanceLog.recordsPerSecond / 1000).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}k/s`
+                                        : `${session.lastPerformanceLog.recordsPerSecond?.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/s`}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -818,7 +820,7 @@ export default function AdminPage() {
                               {log.transactionCount.toLocaleString('de-DE')}
                             </td>
                             <td className="py-2 px-2 text-right font-medium text-emerald-600">
-                              {log.recordsPerSecond 
+                              {log.operationType === 'import' && log.recordsPerSecond > 0
                                 ? (log.recordsPerSecond >= 1000 
                                     ? `${(log.recordsPerSecond / 1000).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}k`
                                     : log.recordsPerSecond.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
