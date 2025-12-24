@@ -924,6 +924,122 @@ export async function registerRoutes(
     }
   });
 
+  // Reprocess session data from stored CSV files
+  app.post("/api/admin/sessions/:sessionId/reprocess", requireAdmin, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      
+      // Get stored uploads
+      const uploads = await storage.getUploadsBySession(sessionId);
+      if (uploads.length === 0) {
+        return res.status(400).json({ error: "Keine gespeicherten Dateien gefunden" });
+      }
+      
+      // Delete existing trips and transactions
+      await storage.deleteTripsForSession(sessionId);
+      await storage.deleteTransactionsForSession(sessionId);
+      
+      let tripsAdded = 0;
+      let transactionsAdded = 0;
+      
+      for (const upload of uploads) {
+        // Decode base64 content
+        const content = Buffer.from(upload.content, 'base64').toString('utf-8');
+        
+        // Parse CSV
+        const parsed = await new Promise<any[]>((resolve, reject) => {
+          Papa.parse(content, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => resolve(results.data),
+            error: (error: any) => reject(error),
+          });
+        });
+        
+        if (upload.fileType === 'trips') {
+          // Process trips
+          const validTrips = parsed.filter((row: any) => {
+            const tripStatus = row["Fahrtstatus"];
+            const timestamp = row["Zeitpunkt der Fahrtbestellung"];
+            const licensePlate = row["Kennzeichen"];
+            return tripStatus && timestamp && licensePlate;
+          });
+          
+          const dbTrips = validTrips.map((row: any) => ({
+            sessionId,
+            licensePlate: row["Kennzeichen"] || "",
+            orderTime: parseISO(row["Zeitpunkt der Fahrtbestellung"]),
+            tripStatus: row["Fahrtstatus"],
+            tripId: row["Fahrt-ID"] || null,
+            rawData: row,
+          }));
+          
+          if (dbTrips.length > 0) {
+            await storage.createTrips(dbTrips);
+            tripsAdded += dbTrips.length;
+          }
+        } else if (upload.fileType === 'payments') {
+          // Process payments
+          const validTransactions = parsed.filter((tx: any) => {
+            const hasTimestamp = tx["vs-Berichterstattung"] || tx["Zeitpunkt"];
+            const hasAmount = tx["An dein Unternehmen gezahlt"] !== undefined || tx["Betrag"] !== undefined;
+            return hasTimestamp && hasAmount;
+          });
+          
+          const dbTransactions = validTransactions.map((tx: any) => {
+            let amount: number;
+            if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+              amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
+                ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
+                : tx["An dein Unternehmen gezahlt"];
+            } else {
+              amount = typeof tx["Betrag"] === 'string'
+                ? parseFloat(tx["Betrag"].replace(',', '.'))
+                : tx["Betrag"];
+            }
+            
+            let timestamp: Date;
+            if (tx["vs-Berichterstattung"]) {
+              timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+            } else {
+              timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
+            }
+            
+            let licensePlate = tx["Kennzeichen"] || "";
+            if (!licensePlate && tx["Beschreibung"]) {
+              licensePlate = extractLicensePlate(tx["Beschreibung"]) || "";
+            }
+            
+            return {
+              sessionId,
+              licensePlate,
+              transactionTime: timestamp,
+              amount: Math.round(amount * 100),
+              description: tx["Beschreibung"] || null,
+              tripUuid: tx["Fahrt-UUID"] || null,
+              rawData: tx,
+            };
+          });
+          
+          if (dbTransactions.length > 0) {
+            await storage.createTransactions(dbTransactions);
+            transactionsAdded += dbTransactions.length;
+          }
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        tripsAdded, 
+        transactionsAdded,
+        filesProcessed: uploads.length 
+      });
+    } catch (error) {
+      console.error("Error reprocessing session:", error);
+      res.status(500).json({ error: "Fehler beim Neu-Einlesen der Daten" });
+    }
+  });
+
   // Upload file storage endpoint
   app.post("/api/uploads", async (req, res) => {
     try {

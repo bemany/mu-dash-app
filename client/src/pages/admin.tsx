@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataTable } from "@/components/ui/data-table";
+// DataTable removed - no longer needed in admin panel
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,28 @@ export default function AdminPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'multiple'; sessionId?: string } | null>(null);
+  const [isReprocessing, setIsReprocessing] = useState(false);
+
+  const handleReprocessData = async () => {
+    if (!selectedSession) return;
+    setIsReprocessing(true);
+    try {
+      const res = await fetch(`/api/admin/sessions/${selectedSession}/reprocess`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Reprocess failed');
+      }
+      // Refresh session data
+      await queryClient.invalidateQueries({ queryKey: ['admin-session-details', selectedSession] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
+    } catch (error) {
+      console.error('Reprocess error:', error);
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
 
   const copyVorgangsId = (vorgangsId: string) => {
     navigator.clipboard.writeText(vorgangsId);
@@ -640,17 +662,18 @@ export default function AdminPage() {
             </DialogTitle>
           </DialogHeader>
           
-          {processedData ? (
-            <div className="space-y-4 mt-4">
-              {sessionUploads?.uploads && sessionUploads.uploads.length > 0 && (
-                <Card className="border-slate-100 shadow-sm">
-                  <CardHeader className="py-3 px-4">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Hochgeladene Dateien
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4 pt-0">
+          <div className="space-y-4 mt-4">
+            {/* Uploaded Files Section */}
+            <Card className="border-slate-100 shadow-sm">
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Hochgeladene Dateien
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0">
+                {sessionUploads?.uploads && sessionUploads.uploads.length > 0 ? (
+                  <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {sessionUploads.uploads.map((upload: any) => (
                         <div
@@ -685,10 +708,39 @@ export default function AdminPage() {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                    <div className="pt-2 border-t border-slate-100">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReprocessData()}
+                        disabled={isReprocessing}
+                        className="w-full"
+                        data-testid="button-reprocess-data"
+                      >
+                        {isReprocessing ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Daten werden neu verarbeitet...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Daten neu einlesen
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">
+                    Keine Dateien hochgeladen
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
+            {/* Summary Stats */}
+            {processedData && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="border-slate-100 shadow-sm bg-blue-50/50">
                   <CardContent className="p-4">
@@ -732,19 +784,8 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               </div>
-
-              <DataTable
-                summaries={processedData.summaries}
-                monthHeaders={processedData.monthHeaders}
-                totals={processedData.totals}
-                showDiff={true}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
