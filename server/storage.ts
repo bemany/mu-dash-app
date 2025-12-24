@@ -5,6 +5,7 @@ import {
   trips,
   transactions,
   uploads,
+  performanceLogs,
   type Session,
   type InsertSession,
   type Trip,
@@ -13,6 +14,8 @@ import {
   type InsertTransaction,
   type Upload,
   type InsertUpload,
+  type PerformanceLog,
+  type InsertPerformanceLog,
 } from "@shared/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 
@@ -280,6 +283,10 @@ export interface IStorage {
   
   // Admin session stats
   getSessionStats(sessionId: string): Promise<SessionStats>;
+  
+  // Performance logging
+  createPerformanceLog(log: InsertPerformanceLog): Promise<PerformanceLog>;
+  getPerformanceLogs(): Promise<PerformanceLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1812,6 +1819,22 @@ export class DatabaseStorage implements IStorage {
       summaries,
       monthHeaders,
     };
+  }
+
+  async createPerformanceLog(log: InsertPerformanceLog): Promise<PerformanceLog> {
+    const result = await db
+      .insert(performanceLogs)
+      .values(log)
+      .returning();
+    return result[0];
+  }
+
+  async getPerformanceLogs(): Promise<PerformanceLog[]> {
+    return db
+      .select()
+      .from(performanceLogs)
+      .orderBy(desc(performanceLogs.createdAt))
+      .limit(100);
   }
 }
 
