@@ -2820,7 +2820,7 @@ export default function PerformancePage() {
 
       {isDemo && showDemoBanner && !isLayoutLoading && (
         <div 
-          className="fixed bottom-0 left-0 right-0 z-50 bg-amber-50 border-t-2 border-amber-300 shadow-lg"
+          className="fixed bottom-0 left-0 right-0 lg:left-64 z-40 bg-amber-50 border-t-2 border-amber-300 shadow-lg"
           data-testid="banner-demo-mode"
         >
           <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
