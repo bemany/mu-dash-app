@@ -585,8 +585,10 @@ export async function registerRoutes(
         if (!trip["Fahrtstatus"]) return false; // Must have status
         const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
         if (!orderTime || isNaN(orderTime.getTime())) return false;
+        // Normalize license plate (trim whitespace) for deduplication
+        const licensePlate = trip["Kennzeichen"].toString().trim();
         // Only check for same-batch duplicates (db handles existing data duplicates)
-        const key = `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
+        const key = `${licensePlate}-${orderTime.getTime()}`;
         if (seenTripKeys.has(key)) return false;
         seenTripKeys.add(key);
         return true;
@@ -594,10 +596,10 @@ export async function registerRoutes(
 
       const dbTrips = validTrips.map((trip: any) => ({
         sessionId,
-        tripId: trip["Fahrt-ID"] || null,
-        licensePlate: trip["Kennzeichen"],
+        tripId: trip["Fahrt-ID"] ? trip["Fahrt-ID"].toString().trim() : null,
+        licensePlate: trip["Kennzeichen"].toString().trim(),
         orderTime: parseISO(trip["Zeitpunkt der Fahrtbestellung"]),
-        tripStatus: trip["Fahrtstatus"],
+        tripStatus: trip["Fahrtstatus"].toString().trim(),
         rawData: trip,
       }));
 
@@ -634,15 +636,17 @@ export async function registerRoutes(
         if (isNaN(timestamp.getTime())) return false;
 
         // Check for direct Kennzeichen column first, then extract from Beschreibung
-        let licensePlate = tx["Kennzeichen"];
+        let licensePlate = tx["Kennzeichen"] ? tx["Kennzeichen"].toString().trim() : null;
         if (!licensePlate && tx["Beschreibung"]) {
           licensePlate = extractLicensePlate(tx["Beschreibung"]);
         }
         
         // Import ALL payments - no filter on license plate or tripUuid
         const amountCents = Math.round(amount * 100);
+        // Normalize license plate for deduplication
+        const normalizedPlate = licensePlate ? licensePlate.trim() : 'unknown';
         // Only check for same-batch duplicates (db handles existing data duplicates)
-        const key = `${licensePlate || 'unknown'}-${timestamp.getTime()}-${amountCents}`;
+        const key = `${normalizedPlate}-${timestamp.getTime()}-${amountCents}`;
         if (seenTxKeys.has(key)) return false;
         seenTxKeys.add(key);
         return true;
@@ -688,11 +692,12 @@ export async function registerRoutes(
         }
 
         // Check for direct Kennzeichen column first, then extract from Beschreibung
-        let licensePlate = tx["Kennzeichen"] || "";
+        // Normalize by trimming whitespace
+        let licensePlate = tx["Kennzeichen"] ? tx["Kennzeichen"].toString().trim() : "";
         if (!licensePlate && tx["Beschreibung"]) {
-          licensePlate = extractLicensePlate(tx["Beschreibung"]) || "";
+          licensePlate = (extractLicensePlate(tx["Beschreibung"]) || "").trim();
         }
-        const tripUuid = tx["Fahrt-UUID"] || null;
+        const tripUuid = tx["Fahrt-UUID"] ? tx["Fahrt-UUID"].toString().trim() : null;
         
         // Extract revenue and farePrice for trip-based transactions
         // Support both column formats: with spaces around colons and without
