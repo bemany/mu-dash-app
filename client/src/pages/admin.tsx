@@ -595,7 +595,9 @@ export default function AdminPage() {
                                   </span>
                                   <span className="text-xs text-emerald-600 flex items-center gap-1">
                                     <Zap className="w-3 h-3" />
-                                    {session.lastPerformanceLog.recordsPerSecond?.toLocaleString('de-DE')}/s
+                                    {session.lastPerformanceLog.recordsPerSecond >= 1000 
+                                      ? `${(session.lastPerformanceLog.recordsPerSecond / 1000).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}k/s`
+                                      : `${session.lastPerformanceLog.recordsPerSecond?.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/s`}
                                   </span>
                                 </div>
                               )}
@@ -816,7 +818,11 @@ export default function AdminPage() {
                               {log.transactionCount.toLocaleString('de-DE')}
                             </td>
                             <td className="py-2 px-2 text-right font-medium text-emerald-600">
-                              {log.recordsPerSecond?.toLocaleString('de-DE') || '-'}
+                              {log.recordsPerSecond 
+                                ? (log.recordsPerSecond >= 1000 
+                                    ? `${(log.recordsPerSecond / 1000).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}k`
+                                    : log.recordsPerSecond.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+                                : '-'}
                             </td>
                           </tr>
                         ))}
