@@ -280,7 +280,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
         )}>
           {children}
           {isLoading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-[100] flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
                 <span className="text-sm font-medium text-slate-600">{t('layout.loadingSession')}</span>
