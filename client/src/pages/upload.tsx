@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
 import { useTranslation } from "@/i18n";
 import { playNotificationSound } from "@/lib/notification-sound";
+import Papa from "papaparse";
 import { 
   Upload, 
   FileUp, 
@@ -20,9 +21,19 @@ import {
   AlertCircle, 
   FolderOpen,
   X,
-  FileText
+  FileText,
+  Car,
+  CreditCard,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface FilePreview {
+  file: File;
+  type: 'trips' | 'payments' | 'unknown';
+  rowCount: number;
+  dateRange?: { from: string; to: string };
+}
 
 export default function UploadPage() {
   const { t } = useTranslation();
@@ -31,6 +42,8 @@ export default function UploadPage() {
   const queryClient = useQueryClient();
   
   const [files, setFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{
@@ -58,36 +71,106 @@ export default function UploadPage() {
     document.title = `${t('upload.title')} - MU-Dash`;
   }, [t]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const analyzeFiles = async (filesToAnalyze: File[]) => {
+    setIsAnalyzing(true);
+    const previews: FilePreview[] = [];
+
+    for (const file of filesToAnalyze) {
+      try {
+        const content = await file.text();
+        const firstLine = content.split('\n')[0] || '';
+        
+        let type: 'trips' | 'payments' | 'unknown' = 'unknown';
+        if (firstLine.includes('Kennzeichen') && firstLine.includes('Zeitpunkt der Fahrtbestellung')) {
+          type = 'trips';
+        } else if (firstLine.includes('Beschreibung') || firstLine.includes('An dein Unternehmen gezahlt')) {
+          type = 'payments';
+        }
+
+        const parsed = await new Promise<any[]>((resolve) => {
+          Papa.parse(content, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => resolve(results.data),
+            error: () => resolve([]),
+          });
+        });
+
+        let dateRange: { from: string; to: string } | undefined;
+        if (type === 'trips' && parsed.length > 0) {
+          const dates = parsed
+            .map((row: any) => {
+              const timestamp = row['Zeitpunkt der Fahrtbestellung'];
+              if (timestamp) {
+                const d = new Date(timestamp);
+                return isNaN(d.getTime()) ? null : d;
+              }
+              return null;
+            })
+            .filter((d): d is Date => d !== null);
+
+          if (dates.length > 0) {
+            const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+            const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+            dateRange = {
+              from: minDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+              to: maxDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            };
+          }
+        }
+
+        previews.push({
+          file,
+          type,
+          rowCount: parsed.length,
+          dateRange,
+        });
+      } catch (error) {
+        previews.push({
+          file,
+          type: 'unknown',
+          rowCount: 0,
+        });
+      }
+    }
+
+    setFilePreviews(prev => [...prev, ...previews]);
+    setIsAnalyzing(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  }, []);
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFiles = Array.from(e.dataTransfer.files).filter(
       f => f.name.endsWith('.csv')
     );
     setFiles(prev => [...prev, ...droppedFiles]);
-  }, []);
+    analyzeFiles(droppedFiles);
+  };
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files).filter(
         f => f.name.endsWith('.csv')
       );
       setFiles(prev => [...prev, ...selectedFiles]);
+      analyzeFiles(selectedFiles);
     }
-  }, []);
+  };
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    setFilePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const uploadMutation = useMutation({
@@ -131,7 +214,19 @@ export default function UploadPage() {
   const resetForMoreData = () => {
     setUploadResult(null);
     setFiles([]);
+    setFilePreviews([]);
   };
+
+  const tripPreviews = filePreviews.filter(p => p.type === 'trips');
+  const paymentPreviews = filePreviews.filter(p => p.type === 'payments');
+  const totalTrips = tripPreviews.reduce((sum, p) => sum + p.rowCount, 0);
+  const totalPayments = paymentPreviews.reduce((sum, p) => sum + p.rowCount, 0);
+  
+  const combinedTripDateRange = tripPreviews.length > 0 ? (() => {
+    const allDates = tripPreviews.flatMap(p => p.dateRange ? [p.dateRange.from, p.dateRange.to] : []);
+    if (allDates.length === 0) return null;
+    return `${tripPreviews[0]?.dateRange?.from || ''} - ${tripPreviews[tripPreviews.length - 1]?.dateRange?.to || ''}`;
+  })() : null;
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -278,39 +373,97 @@ export default function UploadPage() {
                 </p>
               </div>
 
-              {files.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-medium text-slate-700">{t('upload.selectedFiles')} ({files.length})</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {files.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200"
-                        data-testid={`file-item-${index}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-5 h-5 text-slate-400" />
-                          <div>
-                            <p className="text-sm font-medium text-slate-700">{file.name}</p>
-                            <p className="text-xs text-slate-400">
-                              {(file.size / 1024).toFixed(1)} KB
-                            </p>
+              {filePreviews.length > 0 && (
+                <div className="space-y-4">
+                  {isAnalyzing && (
+                    <div className="flex items-center gap-2 text-slate-500 text-sm">
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      {t('upload.analyzing')}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {tripPreviews.length > 0 && (
+                      <Card className="border-emerald-200 bg-emerald-50/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Car className="w-5 h-5 text-emerald-600" />
+                              <span className="font-semibold text-slate-800">{t('upload.trips')}</span>
+                            </div>
+                            <span className="text-emerald-700 font-bold">
+                              {totalTrips.toLocaleString('de-DE')} {t('upload.records')}
+                            </span>
                           </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFile(index);
-                          }}
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-500"
-                          data-testid={`button-remove-file-${index}`}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          {combinedTripDateRange && (
+                            <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                              <Calendar className="w-4 h-4" />
+                              <span>{t('upload.dateRange')}: {combinedTripDateRange}</span>
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            {tripPreviews.map((preview, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-sm bg-white rounded p-2 border border-emerald-100">
+                                <span className="text-slate-600 truncate flex-1">{preview.file.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-emerald-600 font-medium">{preview.rowCount.toLocaleString('de-DE')}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeFile(filePreviews.indexOf(preview))}
+                                    className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {paymentPreviews.length > 0 && (
+                      <Card className="border-blue-200 bg-blue-50/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="w-5 h-5 text-blue-600" />
+                              <span className="font-semibold text-slate-800">{t('upload.payments')}</span>
+                            </div>
+                            <span className="text-blue-700 font-bold">
+                              {totalPayments.toLocaleString('de-DE')} {t('upload.records')}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            {paymentPreviews.map((preview, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-sm bg-white rounded p-2 border border-blue-100">
+                                <span className="text-slate-600 truncate flex-1">{preview.file.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-600 font-medium">{preview.rowCount.toLocaleString('de-DE')}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeFile(filePreviews.indexOf(preview))}
+                                    className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-slate-100 rounded-lg p-3">
+                    <span className="text-slate-600">{t('upload.readyToUpload')}</span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-emerald-700 font-semibold">{totalTrips.toLocaleString('de-DE')} {t('upload.trips')}</span>
+                      <span className="text-blue-700 font-semibold">{totalPayments.toLocaleString('de-DE')} {t('upload.payments')}</span>
+                    </div>
                   </div>
                 </div>
               )}
