@@ -213,20 +213,24 @@ export async function registerRoutes(
         await storage.updateSessionActivity(session.sessionId, newStep);
       }
 
-      // Log performance
+      // Log performance (best-effort, don't fail the request if logging fails)
       const durationMs = Date.now() - startTime;
       const totalRecords = tripCount + transactionCount;
       const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
       
-      await storage.createPerformanceLog({
-        vorgangsId: normalizedId,
-        operationType: "load",
-        softwareVersion: SOFTWARE_VERSION,
-        durationMs,
-        tripCount,
-        transactionCount,
-        recordsPerSecond,
-      });
+      try {
+        await storage.createPerformanceLog({
+          vorgangsId: normalizedId,
+          operationType: "load",
+          softwareVersion: SOFTWARE_VERSION,
+          durationMs,
+          tripCount,
+          transactionCount,
+          recordsPerSecond,
+        });
+      } catch (logError) {
+        console.error("Failed to log performance metrics:", logError);
+      }
       
       res.json({ success: true, sessionId: session.sessionId });
     } catch (error) {
@@ -752,6 +756,11 @@ export async function registerRoutes(
         }) : Promise.resolve([]),
       ]);
 
+      // Get actual inserted counts (after deduplication)
+      const [insertedTripsList, insertedTransactionsList] = saveResults;
+      const insertedTrips = insertedTripsList.length;
+      const insertedTransactions = insertedTransactionsList.length;
+
       const firstTxWithCompany = allPaymentData.find((tx: any) =>
         tx["Name des Unternehmens"] || tx["Firmenname"]
       );
@@ -795,32 +804,36 @@ export async function registerRoutes(
 
       progressBroker.broadcast(expressSessionId, {
         phase: "complete",
-        total: dbTrips.length + dbTransactions.length,
-        processed: dbTrips.length + dbTransactions.length,
+        total: insertedTrips + insertedTransactions,
+        processed: insertedTrips + insertedTransactions,
         percent: 100,
         message: "Upload abgeschlossen!",
       });
 
-      // Log performance
+      // Log performance (best-effort, don't fail the request if logging fails)
       const durationMs = Date.now() - startTime;
-      const totalRecords = dbTrips.length + dbTransactions.length;
+      const totalRecords = insertedTrips + insertedTransactions;
       const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
       
-      await storage.createPerformanceLog({
-        vorgangsId,
-        operationType: "import",
-        softwareVersion: SOFTWARE_VERSION,
-        durationMs,
-        tripCount: dbTrips.length,
-        transactionCount: dbTransactions.length,
-        recordsPerSecond,
-      });
+      try {
+        await storage.createPerformanceLog({
+          vorgangsId,
+          operationType: "import",
+          softwareVersion: SOFTWARE_VERSION,
+          durationMs,
+          tripCount: insertedTrips,
+          transactionCount: insertedTransactions,
+          recordsPerSecond,
+        });
+      } catch (logError) {
+        console.error("Failed to log performance metrics:", logError);
+      }
 
       res.json({
         success: true,
         vorgangsId,
-        tripsAdded: dbTrips.length,
-        transactionsAdded: dbTransactions.length,
+        tripsAdded: insertedTrips,
+        transactionsAdded: insertedTransactions,
         filesProcessed: files.length,
         dateRange,
       });

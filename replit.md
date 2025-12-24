@@ -45,10 +45,24 @@ The backend serves both the API and static files in production. In development, 
 ### Data Storage
 - **Database**: PostgreSQL
 - **ORM**: Drizzle ORM with drizzle-zod for schema validation
-- **Schema**: Three main tables:
+- **Schema**: Main tables:
   - `sessions` - Tracks user workflow progress, includes vorgangsId for session retrieval
   - `trips` - Stores uploaded trip data with license plates and timestamps
   - `transactions` - Stores payment transaction records
+  - `uploads` - Stores original CSV files as base64
+  - `performance_logs` - Tracks import/load performance metrics
+
+### Performance Logging
+- **Table**: `performance_logs` tracks duration, software version, and record counts
+- **Logged Operations**: 
+  - `import` - When files are uploaded via /api/upload
+  - `load` - When a session is loaded via /api/session/load
+- **Metrics**: 
+  - `durationMs` - How long the operation took
+  - `tripCount` / `transactionCount` - Number of records processed
+  - `recordsPerSecond` - Calculated throughput
+  - `softwareVersion` - Current app version (from SOFTWARE_VERSION constant)
+- **Admin View**: Performance logs visible in admin panel at /admin
 
 ### Vorgangs-ID Feature
 Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after uploading data:

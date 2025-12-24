@@ -110,6 +110,16 @@ export default function AdminPage() {
     enabled: isAdmin,
   });
 
+  const { data: performanceLogs } = useQuery({
+    queryKey: ["admin-performance-logs"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/performance-logs");
+      if (!res.ok) throw new Error("Failed to fetch performance logs");
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
+
   const { data: sessionDetails } = useQuery({
     queryKey: ["admin-session-details", selectedSession],
     queryFn: async () => {
@@ -615,6 +625,77 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Performance Logs Section */}
+        <Card className="border-slate-100 shadow-sm mt-6">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-bold">Performance Logs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {performanceLogs && performanceLogs.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium text-slate-600">Zeitpunkt</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-600">Typ</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-600">Vorgangs-ID</th>
+                      <th className="text-left py-2 px-3 font-medium text-slate-600">Version</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-600">Dauer</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-600">Fahrten</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-600">Zahlungen</th>
+                      <th className="text-right py-2 px-3 font-medium text-slate-600">Records/s</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {performanceLogs.map((log: any) => (
+                      <tr key={log.id} className="border-b last:border-0 hover:bg-slate-50">
+                        <td className="py-2 px-3 text-slate-600">
+                          {format(new Date(log.createdAt), "dd.MM.yyyy HH:mm:ss", { locale: de })}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={cn(
+                            "px-2 py-1 rounded-full text-xs font-medium",
+                            log.operationType === 'import' 
+                              ? "bg-blue-100 text-blue-700" 
+                              : "bg-emerald-100 text-emerald-700"
+                          )}>
+                            {log.operationType === 'import' ? 'Import' : 'Laden'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 font-mono text-slate-700">
+                          {log.vorgangsId || '-'}
+                        </td>
+                        <td className="py-2 px-3 font-mono text-slate-600">
+                          {log.softwareVersion}
+                        </td>
+                        <td className="py-2 px-3 text-right font-medium">
+                          {log.durationMs < 1000 
+                            ? `${log.durationMs}ms` 
+                            : `${(log.durationMs / 1000).toFixed(1)}s`}
+                        </td>
+                        <td className="py-2 px-3 text-right text-slate-600">
+                          {log.tripCount.toLocaleString('de-DE')}
+                        </td>
+                        <td className="py-2 px-3 text-right text-slate-600">
+                          {log.transactionCount.toLocaleString('de-DE')}
+                        </td>
+                        <td className="py-2 px-3 text-right font-medium text-emerald-600">
+                          {log.recordsPerSecond?.toLocaleString('de-DE') || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Keine Performance-Logs vorhanden</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
