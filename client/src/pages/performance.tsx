@@ -2451,7 +2451,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
 export default function PerformancePage() {
   const { t, language } = useTranslation();
   const dateLocale = dateLocaleMap[language] || de;
-  const isLayoutLoading = useLayoutLoading();
+  const { isLoading: isLayoutLoading, setIsLoading } = useLayoutLoading();
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
@@ -2476,6 +2476,13 @@ export default function PerformancePage() {
   });
 
   const isDemo = !sessionData?.vorgangsId || sessionData?.tripCount === 0;
+
+  // Turn off loading overlay when session data is loaded
+  useEffect(() => {
+    if (sessionData && isLayoutLoading) {
+      setIsLoading(false);
+    }
+  }, [sessionData, isLayoutLoading, setIsLoading]);
 
   useEffect(() => {
     const currentVorgangsId = sessionData?.vorgangsId || null;

@@ -15,7 +15,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const LayoutLoadingContext = createContext<boolean>(false);
+interface LayoutLoadingContextType {
+  isLoading: boolean;
+  setIsLoading: (loading: boolean) => void;
+}
+
+const LayoutLoadingContext = createContext<LayoutLoadingContextType>({
+  isLoading: false,
+  setIsLoading: () => {},
+});
 
 export function useLayoutLoading() {
   return useContext(LayoutLoadingContext);
@@ -101,7 +109,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
   };
 
   return (
-    <LayoutLoadingContext.Provider value={isLoading}>
+    <LayoutLoadingContext.Provider value={{ isLoading, setIsLoading }}>
     <div className={cn(
       "bg-slate-50 flex font-sans text-slate-900",
       fullHeight ? "h-screen overflow-hidden" : "min-h-screen"

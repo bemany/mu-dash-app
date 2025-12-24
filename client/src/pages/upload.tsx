@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayout } from "@/components/layout";
+import { DashboardLayout, useLayoutLoading } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,27 @@ interface FilePreview {
   type: 'trips' | 'payments' | 'unknown';
   rowCount: number;
   dateRange?: { from: string; to: string };
+}
+
+function GoToDashboardButton() {
+  const { t } = useTranslation();
+  const [, setLocation] = useLocation();
+  const { setIsLoading } = useLayoutLoading();
+
+  const handleClick = () => {
+    setIsLoading(true);
+    setLocation('/');
+  };
+
+  return (
+    <Button
+      onClick={handleClick}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+      data-testid="button-go-to-dashboard"
+    >
+      {t('upload.goToDashboard')}
+    </Button>
+  );
 }
 
 export default function UploadPage() {
@@ -326,13 +347,7 @@ export default function UploadPage() {
                   <FileUp className="w-4 h-4 mr-2" />
                   {t('dashboard.addMoreData')}
                 </Button>
-                <Button
-                  onClick={() => setLocation('/')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  data-testid="button-go-to-dashboard"
-                >
-                  {t('upload.goToDashboard')}
-                </Button>
+                <GoToDashboardButton />
               </div>
             </CardContent>
           </Card>
