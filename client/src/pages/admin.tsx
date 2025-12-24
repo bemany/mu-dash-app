@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check, Download, FileText, Car, CreditCard } from "lucide-react";
+import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check, Download, FileText, Car, CreditCard, Timer, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 // processTripsAndTransactions no longer needed - stats come pre-aggregated from backend
 import { format } from "date-fns";
@@ -110,15 +110,6 @@ export default function AdminPage() {
     enabled: isAdmin,
   });
 
-  const { data: performanceLogs } = useQuery({
-    queryKey: ["admin-performance-logs"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/performance-logs");
-      if (!res.ok) throw new Error("Failed to fetch performance logs");
-      return res.json();
-    },
-    enabled: isAdmin,
-  });
 
   const { data: sessionDetails } = useQuery({
     queryKey: ["admin-session-details", selectedSession],
@@ -586,6 +577,28 @@ export default function AdminPage() {
                                 {session.tripCount.toLocaleString('de-DE')} {t('admin.trips')} • {session.transactionCount.toLocaleString('de-DE')} {t('admin.payments')}
                               </p>
                               <p className="text-xs text-slate-500 mt-1">{session.uploadCount || 0} CSV-Dateien</p>
+                              {session.lastPerformanceLog && (
+                                <div className="flex items-center justify-end gap-2 mt-1.5">
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded text-xs font-medium",
+                                    session.lastPerformanceLog.operationType === 'import' 
+                                      ? "bg-blue-100 text-blue-700" 
+                                      : "bg-emerald-100 text-emerald-700"
+                                  )}>
+                                    {session.lastPerformanceLog.operationType === 'import' ? 'Import' : 'Load'}
+                                  </span>
+                                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                                    <Timer className="w-3 h-3" />
+                                    {session.lastPerformanceLog.durationMs < 1000 
+                                      ? `${session.lastPerformanceLog.durationMs}ms` 
+                                      : `${(session.lastPerformanceLog.durationMs / 1000).toFixed(1)}s`}
+                                  </span>
+                                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                                    <Zap className="w-3 h-3" />
+                                    {session.lastPerformanceLog.recordsPerSecond?.toLocaleString('de-DE')}/s
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -625,77 +638,6 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Performance Logs Section */}
-        <Card className="border-slate-100 shadow-sm mt-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold">Performance Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {performanceLogs && performanceLogs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3 font-medium text-slate-600">Zeitpunkt</th>
-                      <th className="text-left py-2 px-3 font-medium text-slate-600">Typ</th>
-                      <th className="text-left py-2 px-3 font-medium text-slate-600">Vorgangs-ID</th>
-                      <th className="text-left py-2 px-3 font-medium text-slate-600">Version</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-600">Dauer</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-600">Fahrten</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-600">Zahlungen</th>
-                      <th className="text-right py-2 px-3 font-medium text-slate-600">Records/s</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {performanceLogs.map((log: any) => (
-                      <tr key={log.id} className="border-b last:border-0 hover:bg-slate-50">
-                        <td className="py-2 px-3 text-slate-600">
-                          {format(new Date(log.createdAt), "dd.MM.yyyy HH:mm:ss", { locale: de })}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className={cn(
-                            "px-2 py-1 rounded-full text-xs font-medium",
-                            log.operationType === 'import' 
-                              ? "bg-blue-100 text-blue-700" 
-                              : "bg-emerald-100 text-emerald-700"
-                          )}>
-                            {log.operationType === 'import' ? 'Import' : 'Laden'}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 font-mono text-slate-700">
-                          {log.vorgangsId || '-'}
-                        </td>
-                        <td className="py-2 px-3 font-mono text-slate-600">
-                          {log.softwareVersion}
-                        </td>
-                        <td className="py-2 px-3 text-right font-medium">
-                          {log.durationMs < 1000 
-                            ? `${log.durationMs}ms` 
-                            : `${(log.durationMs / 1000).toFixed(1)}s`}
-                        </td>
-                        <td className="py-2 px-3 text-right text-slate-600">
-                          {log.tripCount.toLocaleString('de-DE')}
-                        </td>
-                        <td className="py-2 px-3 text-right text-slate-600">
-                          {log.transactionCount.toLocaleString('de-DE')}
-                        </td>
-                        <td className="py-2 px-3 text-right font-medium text-emerald-600">
-                          {log.recordsPerSecond?.toLocaleString('de-DE') || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500">
-                <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Keine Performance-Logs vorhanden</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -819,6 +761,71 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Performance Logs Section */}
+            {sessionDetails?.performanceLogs && sessionDetails.performanceLogs.length > 0 && (
+              <Card className="border-slate-100 shadow-sm">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Timer className="w-4 h-4" />
+                    Performance Logs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2 font-medium text-slate-600">Zeitpunkt</th>
+                          <th className="text-left py-2 px-2 font-medium text-slate-600">Typ</th>
+                          <th className="text-left py-2 px-2 font-medium text-slate-600">Version</th>
+                          <th className="text-right py-2 px-2 font-medium text-slate-600">Dauer</th>
+                          <th className="text-right py-2 px-2 font-medium text-slate-600">Fahrten</th>
+                          <th className="text-right py-2 px-2 font-medium text-slate-600">Zahlungen</th>
+                          <th className="text-right py-2 px-2 font-medium text-slate-600">Records/s</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sessionDetails.performanceLogs.map((log: any) => (
+                          <tr key={log.id} className="border-b last:border-0 hover:bg-slate-50">
+                            <td className="py-2 px-2 text-slate-600">
+                              {format(new Date(log.createdAt), "dd.MM.yyyy HH:mm:ss", { locale: de })}
+                            </td>
+                            <td className="py-2 px-2">
+                              <span className={cn(
+                                "px-2 py-1 rounded-full text-xs font-medium",
+                                log.operationType === 'import' 
+                                  ? "bg-blue-100 text-blue-700" 
+                                  : "bg-emerald-100 text-emerald-700"
+                              )}>
+                                {log.operationType === 'import' ? 'Import' : 'Laden'}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2 font-mono text-slate-600">
+                              {log.softwareVersion}
+                            </td>
+                            <td className="py-2 px-2 text-right font-medium">
+                              {log.durationMs < 1000 
+                                ? `${log.durationMs}ms` 
+                                : `${(log.durationMs / 1000).toFixed(1)}s`}
+                            </td>
+                            <td className="py-2 px-2 text-right text-slate-600">
+                              {log.tripCount.toLocaleString('de-DE')}
+                            </td>
+                            <td className="py-2 px-2 text-right text-slate-600">
+                              {log.transactionCount.toLocaleString('de-DE')}
+                            </td>
+                            <td className="py-2 px-2 text-right font-medium text-emerald-600">
+                              {log.recordsPerSecond?.toLocaleString('de-DE') || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Summary Stats */}
             {processedData && (

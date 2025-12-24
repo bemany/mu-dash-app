@@ -287,6 +287,8 @@ export interface IStorage {
   // Performance logging
   createPerformanceLog(log: InsertPerformanceLog): Promise<PerformanceLog>;
   getPerformanceLogs(): Promise<PerformanceLog[]>;
+  getPerformanceLogsByVorgangsId(vorgangsId: string): Promise<PerformanceLog[]>;
+  getLatestPerformanceLogByVorgangsId(vorgangsId: string): Promise<PerformanceLog | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1835,6 +1837,24 @@ export class DatabaseStorage implements IStorage {
       .from(performanceLogs)
       .orderBy(desc(performanceLogs.createdAt))
       .limit(100);
+  }
+
+  async getPerformanceLogsByVorgangsId(vorgangsId: string): Promise<PerformanceLog[]> {
+    return db
+      .select()
+      .from(performanceLogs)
+      .where(eq(performanceLogs.vorgangsId, vorgangsId))
+      .orderBy(desc(performanceLogs.createdAt));
+  }
+
+  async getLatestPerformanceLogByVorgangsId(vorgangsId: string): Promise<PerformanceLog | null> {
+    const result = await db
+      .select()
+      .from(performanceLogs)
+      .where(eq(performanceLogs.vorgangsId, vorgangsId))
+      .orderBy(desc(performanceLogs.createdAt))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
   }
 }
 

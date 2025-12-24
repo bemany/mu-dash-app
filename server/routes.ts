@@ -908,10 +908,11 @@ export async function registerRoutes(
       
       const sessionsWithCounts = await Promise.all(
         sessions.map(async (session) => {
-          const [tripCount, transactionCount, uploadCount] = await Promise.all([
+          const [tripCount, transactionCount, uploadCount, lastPerformanceLog] = await Promise.all([
             storage.getTripCountBySession(session.sessionId),
             storage.getTransactionCountBySession(session.sessionId),
             storage.getUploadCountBySession(session.sessionId),
+            session.vorgangsId ? storage.getLatestPerformanceLogByVorgangsId(session.vorgangsId) : Promise.resolve(null),
           ]);
           
           return {
@@ -919,6 +920,7 @@ export async function registerRoutes(
             tripCount,
             transactionCount,
             uploadCount,
+            lastPerformanceLog,
           };
         })
       );
@@ -938,12 +940,16 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Session not found" });
       }
       
-      // Get aggregated stats instead of all raw data
-      const stats = await storage.getSessionStats(sessionId);
+      // Get aggregated stats and performance logs
+      const [stats, performanceLogs] = await Promise.all([
+        storage.getSessionStats(sessionId),
+        session.vorgangsId ? storage.getPerformanceLogsByVorgangsId(session.vorgangsId) : Promise.resolve([]),
+      ]);
       
       res.json({
         session,
         stats,
+        performanceLogs,
       });
     } catch (error) {
       console.error("Error fetching session details:", error);
