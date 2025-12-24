@@ -17,9 +17,10 @@ import {
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  fullHeight?: boolean;
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, fullHeight = false }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [location, setLocation] = useLocation();
   const { t, language, setLanguage, languages } = useTranslation();
@@ -79,7 +80,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="h-screen bg-slate-50 flex font-sans text-slate-900 overflow-hidden">
+    <div className={cn(
+      "bg-slate-50 flex font-sans text-slate-900",
+      fullHeight ? "h-screen overflow-hidden" : "min-h-screen"
+    )}>
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:block shadow-xl",
@@ -236,7 +240,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
            <div className="w-10" />
         </header>
 
-        <main className="flex-1 overflow-hidden p-2 md:p-4 lg:p-6 flex flex-col">
+        <main className={cn(
+          "flex-1 p-2 md:p-4 lg:p-6",
+          fullHeight ? "overflow-hidden flex flex-col" : "overflow-auto"
+        )}>
           {children}
         </main>
       </div>

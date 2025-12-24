@@ -2649,7 +2649,7 @@ export default function PerformancePage() {
   }, [isDemo, dateRangeData, t, language]);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout fullHeight>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-[1920px] mx-auto flex flex-col flex-1 overflow-hidden gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3 flex-shrink-0">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
