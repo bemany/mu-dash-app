@@ -201,6 +201,13 @@ export default function UploadPage() {
         title: t('upload.success'),
         description: `${data.tripsAdded} ${t('upload.trips')}, ${data.transactionsAdded} ${t('upload.payments')}`,
       });
+      
+      // Auto-navigate to dashboard with the vorgangsId after short delay
+      if (data.vorgangsId) {
+        setTimeout(() => {
+          setLocation(`/v/${data.vorgangsId}`);
+        }, 1500);
+      }
     },
     onError: (error: any) => {
       toast({

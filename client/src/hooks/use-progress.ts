@@ -28,6 +28,7 @@ export function useProgress(): UseProgressReturn {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const maxPercentRef = useRef<number>(0);
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -44,18 +45,30 @@ export function useProgress(): UseProgressReturn {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          const newPercent = data.percent || 0;
+          
+          // Reset max when starting new upload (percent drops to 0 with new phase)
+          if (newPercent === 0 && data.phase === 'parsing') {
+            maxPercentRef.current = 0;
+          }
+          
+          // Only update if percent increases (prevents jumping backwards)
+          const displayPercent = Math.max(maxPercentRef.current, newPercent);
+          maxPercentRef.current = displayPercent;
+          
           setProgress({
             phase: data.phase || '',
             total: data.total || 0,
             processed: data.processed || 0,
-            percent: data.percent || 0,
+            percent: displayPercent,
             message: data.message || '',
-            isActive: data.percent < 100,
+            isActive: displayPercent < 100,
           });
 
-          if (data.percent >= 100) {
+          if (displayPercent >= 100) {
             setTimeout(() => {
               setProgress(prev => ({ ...prev, isActive: false }));
+              maxPercentRef.current = 0;
             }, 500);
           }
         } catch (e) {
