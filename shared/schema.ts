@@ -57,6 +57,19 @@ export const uploads = pgTable("uploads", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Performance logs table - tracks import and load performance
+export const performanceLogs = pgTable("performance_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vorgangsId: text("vorgangs_id"),
+  operationType: text("operation_type").notNull(), // 'import' or 'load'
+  softwareVersion: text("software_version").notNull(),
+  durationMs: integer("duration_ms").notNull(),
+  tripCount: integer("trip_count").notNull().default(0),
+  transactionCount: integer("transaction_count").notNull().default(0),
+  recordsPerSecond: integer("records_per_second"), // calculated: (tripCount + transactionCount) / (durationMs / 1000)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertSessionSchema = createInsertSchema(sessions).omit({
   id: true,
@@ -79,6 +92,11 @@ export const insertUploadSchema = createInsertSchema(uploads).omit({
   createdAt: true,
 });
 
+export const insertPerformanceLogSchema = createInsertSchema(performanceLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
@@ -91,3 +109,6 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 
 export type Upload = typeof uploads.$inferSelect;
 export type InsertUpload = z.infer<typeof insertUploadSchema>;
+
+export type PerformanceLog = typeof performanceLogs.$inferSelect;
+export type InsertPerformanceLog = z.infer<typeof insertPerformanceLogSchema>;
