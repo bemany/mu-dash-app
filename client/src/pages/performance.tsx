@@ -2454,7 +2454,7 @@ export default function PerformancePage() {
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
-  const [activeTab, setActiveTab] = useState("drivers");
+  const [activeTab, setActiveTab] = useState("company");
   const [timeMetric, setTimeMetric] = useState<string>("hour");
   const [distanceMetric, setDistanceMetric] = useState<string>("km");
   const [tripsMetric, setTripsMetric] = useState<string>("hour");
@@ -2663,11 +2663,11 @@ export default function PerformancePage() {
                 </p>
               </div>
               <TabsList>
+                <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
                 <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
                 <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
                 <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
                 <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
-                <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
               </TabsList>
             </div>
           </div>
