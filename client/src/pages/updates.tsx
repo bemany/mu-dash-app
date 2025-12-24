@@ -16,6 +16,17 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "24.12.2024",
+    version: "2.0.0",
+    items: [
+      { type: 'feature', text: "Admin-Panel: CSV-Dateien anzeigen und herunterladen" },
+      { type: 'feature', text: "Admin-Panel: Daten aus gespeicherten CSV-Dateien neu einlesen" },
+      { type: 'feature', text: "Session beenden ohne Vorgangsdaten zu löschen" },
+      { type: 'improvement', text: "Admin-Panel lädt nur aggregierte Statistiken (schneller bei 298k+ Fahrten)" },
+      { type: 'fix', text: "Demo-Banner überlappt Sidebar nicht mehr" },
+    ]
+  },
+  {
     date: "19.12.2024",
     version: "1.9.0",
     items: [
