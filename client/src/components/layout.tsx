@@ -202,8 +202,8 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
               <NavItem 
                 icon={<ClipboardCheck className="w-5 h-5" />} 
                 label={t('layout.navProcess')} 
-                active={location === '/process' || location.startsWith('/v/')} 
-                onClick={() => setLocation('/process')}
+                active={location === '/import' || location.startsWith('/v/')} 
+                onClick={() => setLocation('/import')}
                 testId="nav-pruefvorgang"
               />
               <NavItem 

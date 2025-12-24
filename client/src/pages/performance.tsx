@@ -2831,7 +2831,7 @@ export default function PerformancePage() {
               <span className="text-amber-800 font-medium">{t('performance.demoMode')}</span>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/process">
+              <Link href="/import">
                 <Button 
                   className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
                   data-testid="button-start-import"

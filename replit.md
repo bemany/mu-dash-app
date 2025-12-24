@@ -68,8 +68,7 @@ Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after up
 ### Routing
 - **/** - Performance Dashboard (home page with demo data if no session loaded)
 - **/performance** - Same as above
-- **/process** - Simplified upload page for CSV files
-- **/process/details** - Detailed 3-step workflow (calculation and comparison)
+- **/import** - Simplified upload page for CSV files
 - **/v/:vorgangsId** - Load session by Vorgangs-ID
 - **/help** - Help page
 - **/updates** - Updates page
@@ -77,7 +76,7 @@ Each session receives a unique 6-character Vorgangs-ID (e.g., "A7C8RU") after up
 
 ### Customer Journey (New)
 1. User visits platform → sees Performance Dashboard with demo data
-2. User clicks "Datenimport starten" button → redirected to /process
+2. User clicks "Datenimport starten" button → redirected to /import
 3. User uploads CSV files (drag & drop or file picker)
 4. Files are processed on the SERVER (parallel processing for speed)
 5. After upload → automatic redirect to Performance Dashboard with Vorgangs-ID displayed
