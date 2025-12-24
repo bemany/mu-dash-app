@@ -250,6 +250,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
                 <span className="text-sm font-medium text-slate-600">{t('layout.loadingSession')}</span>
+                <span className="text-xs text-slate-400">{t('layout.loadingSessionHint')}</span>
               </div>
             </div>
           )}

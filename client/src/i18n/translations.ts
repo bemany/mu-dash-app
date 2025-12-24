@@ -23,6 +23,7 @@ export const translations = {
       loadError: 'Fehler beim Laden',
       loadSuccess: 'Vorgang {{id}} erfolgreich geladen',
       loadingSession: 'Vorgang wird geladen...',
+      loadingSessionHint: 'Dies kann bis zu 2 Minuten dauern',
     },
     dashboard: {
       title: 'Mietwagenunternehmer Dashboard',
@@ -446,6 +447,7 @@ export const translations = {
       loadError: 'Error loading',
       loadSuccess: 'Process {{id}} loaded successfully',
       loadingSession: 'Loading process...',
+      loadingSessionHint: 'This may take up to 2 minutes',
     },
     dashboard: {
       title: 'Rental Car Entrepreneur Dashboard',
@@ -869,6 +871,7 @@ export const translations = {
       loadError: 'Yükleme hatası',
       loadSuccess: 'İşlem {{id}} başarıyla yüklendi',
       loadingSession: 'İşlem yükleniyor...',
+      loadingSessionHint: 'Bu işlem 2 dakikaya kadar sürebilir',
     },
     dashboard: {
       title: 'Kiralık Araç Girişimci Paneli',
@@ -1292,6 +1295,7 @@ export const translations = {
       loadError: 'خطأ في التحميل',
       loadSuccess: 'تم تحميل العملية {{id}} بنجاح',
       loadingSession: 'جارٍ تحميل العملية...',
+      loadingSessionHint: 'قد يستغرق هذا حتى دقيقتين',
     },
     dashboard: {
       title: 'لوحة تحكم رواد أعمال تأجير السيارات',
