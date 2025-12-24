@@ -252,38 +252,25 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid trips data" });
       }
 
-      const existingTrips = await storage.getTripsBySession(sessionId);
-      const existingIds = new Set(
-        existingTrips.map(t => 
-          t.tripId || `${t.licensePlate}-${t.orderTime.getTime()}`
-        )
-      );
-
-      // Filter out invalid trips and duplicates (including same-batch duplicates)
-      // NOTE: We import ALL trips (including cancelled) for acceptance rate analysis
+      // Filter out invalid trips and same-batch duplicates only
+      // Database handles session-level duplicates via ON CONFLICT DO NOTHING
+      const seenIds = new Set<string>();
       const validTrips = trips.filter((trip: any) => {
-        // Must have required fields
         if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) {
           return false;
         }
-        
-        // Must have a trip status
         if (!trip["Fahrtstatus"]) {
           return false;
         }
-        
-        // Normalize the timestamp for comparison
         const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
         if (!orderTime || isNaN(orderTime.getTime())) {
           return false;
         }
-        
-        const id = trip["Fahrt-ID"] || `${trip["Kennzeichen"]}-${orderTime.getTime()}`;
-        if (existingIds.has(id)) {
+        const id = `${trip["Kennzeichen"].trim()}-${orderTime.getTime()}`;
+        if (seenIds.has(id)) {
           return false;
         }
-        // Add to set to prevent same-batch duplicates
-        existingIds.add(id);
+        seenIds.add(id);
         return true;
       });
 
@@ -344,13 +331,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid transactions data" });
       }
 
-      const existingTransactions = await storage.getTransactionsBySession(sessionId);
-      const existingKeys = new Set(
-        existingTransactions.map(tx => 
-          `${tx.licensePlate}-${tx.transactionTime.getTime()}-${tx.amount}`
-        )
-      );
-
       const parseEuroAmountLocal = (value: any): number | null => {
         if (value === undefined || value === null || value === '') return null;
         const numVal = typeof value === 'string' 
@@ -359,6 +339,9 @@ export async function registerRoutes(
         return isNaN(numVal) ? null : Math.round(numVal * 100);
       };
 
+      // Filter out invalid transactions and same-batch duplicates only
+      // Database handles session-level duplicates via ON CONFLICT DO NOTHING
+      const seenKeys = new Set<string>();
       const newTransactions = transactions.filter((tx: any) => {
         let amount: number;
         if (tx["An dein Unternehmen gezahlt"] !== undefined) {
@@ -380,7 +363,6 @@ export async function registerRoutes(
           return false;
         }
         
-        // Skip records with invalid timestamp
         if (!timestamp || isNaN(timestamp.getTime())) {
           return false;
         }
@@ -389,18 +371,13 @@ export async function registerRoutes(
         if (!licensePlate && tx["Beschreibung"]) {
           licensePlate = extractLicensePlate(tx["Beschreibung"]);
         }
-        const tripUuid = tx["Fahrt-UUID"] || null;
-        
-        // Import ALL payments - no filter on license plate or tripUuid
         
         const amountCents = Math.round(amount * 100);
-        const keyIdentifier = tripUuid || licensePlate || (tx["Beschreibung"] || "unknown");
-        const key = `${keyIdentifier}-${timestamp.getTime()}-${amountCents}`;
-        if (existingKeys.has(key)) {
+        const key = `${(licensePlate || '').trim()}-${timestamp.getTime()}-${amountCents}`;
+        if (seenKeys.has(key)) {
           return false;
         }
-        // Add to set to prevent same-batch duplicates
-        existingKeys.add(key);
+        seenKeys.add(key);
         return true;
       });
 

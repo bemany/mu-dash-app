@@ -394,7 +394,7 @@ export class DatabaseStorage implements IStorage {
   async createTrips(newTrips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]> {
     if (newTrips.length === 0) return [];
     
-    const BATCH_SIZE = 500;
+    const BATCH_SIZE = 2000;
     const results: Trip[] = [];
     const total = newTrips.length;
     
@@ -460,7 +460,7 @@ export class DatabaseStorage implements IStorage {
   async createTransactions(newTransactions: InsertTransaction[], onProgress?: OnProgressCallback): Promise<Transaction[]> {
     if (newTransactions.length === 0) return [];
     
-    const BATCH_SIZE = 500;
+    const BATCH_SIZE = 2000;
     const results: Transaction[] = [];
     const total = newTransactions.length;
     
