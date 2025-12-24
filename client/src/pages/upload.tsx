@@ -256,7 +256,6 @@ export default function UploadPage() {
       playNotificationSound();
       setLoadDialogOpen(false);
       setLoadVorgangsId("");
-      setLocation('/');
     },
     onError: (error: any) => {
       setLoadError(error.message);

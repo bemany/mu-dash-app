@@ -93,7 +93,6 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
       playNotificationSound();
       setInputVorgangsId('');
       toast.success(t('layout.loadSuccess', { id: loadedId }));
-      setLocation('/');
     } catch (err) {
       setError(t('layout.loadError'));
     } finally {
