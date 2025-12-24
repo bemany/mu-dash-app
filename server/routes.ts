@@ -7,6 +7,8 @@ import { parseISO, parse } from "date-fns";
 import multer from "multer";
 import Papa from "papaparse";
 
+const SOFTWARE_VERSION = "1.0.0";
+
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
@@ -180,6 +182,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/session/load", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { vorgangsId } = req.body;
       
@@ -201,13 +204,29 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Dieser Vorgang enthält keine Daten mehr" });
       }
 
+      const transactionCount = await storage.getTransactionCountBySession(session.sessionId);
+
       req.session.uberRetterSessionId = session.sessionId;
       
       if (session.currentStep === 1 && tripCount > 0) {
-        const transactionCount = await storage.getTransactionCountBySession(session.sessionId);
         const newStep = transactionCount > 0 ? 3 : 2;
         await storage.updateSessionActivity(session.sessionId, newStep);
       }
+
+      // Log performance
+      const durationMs = Date.now() - startTime;
+      const totalRecords = tripCount + transactionCount;
+      const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
+      
+      await storage.createPerformanceLog({
+        vorgangsId: normalizedId,
+        operationType: "load",
+        softwareVersion: SOFTWARE_VERSION,
+        durationMs,
+        tripCount,
+        transactionCount,
+        recordsPerSecond,
+      });
       
       res.json({ success: true, sessionId: session.sessionId });
     } catch (error) {
@@ -483,6 +502,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/upload", upload.array("files", 100), async (req, res) => {
+    const startTime = Date.now();
     try {
       const sessionId = req.session.uberRetterSessionId!;
       const expressSessionId = req.sessionID!;
@@ -779,6 +799,21 @@ export async function registerRoutes(
         processed: dbTrips.length + dbTransactions.length,
         percent: 100,
         message: "Upload abgeschlossen!",
+      });
+
+      // Log performance
+      const durationMs = Date.now() - startTime;
+      const totalRecords = dbTrips.length + dbTransactions.length;
+      const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
+      
+      await storage.createPerformanceLog({
+        vorgangsId,
+        operationType: "import",
+        softwareVersion: SOFTWARE_VERSION,
+        durationMs,
+        tripCount: dbTrips.length,
+        transactionCount: dbTransactions.length,
+        recordsPerSecond,
       });
 
       res.json({
