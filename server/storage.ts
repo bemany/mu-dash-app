@@ -215,6 +215,18 @@ export interface CommissionAnalysis {
   }>;
 }
 
+export interface SessionStats {
+  tripCount: number;
+  transactionCount: number;
+  totalBonus: number;
+  totalPaid: number;
+  summaries: Array<{
+    licensePlate: string;
+    months: Record<string, { tripCount: number; bonus: number; paid: number }>;
+  }>;
+  monthHeaders: string[];
+}
+
 export interface IStorage {
   // Session management
   getOrCreateSession(sessionId: string): Promise<Session>;
@@ -264,6 +276,9 @@ export interface IStorage {
   
   // Commission analysis
   getCommissionAnalysis(sessionId: string, startDate?: Date, endDate?: Date): Promise<CommissionAnalysis>;
+  
+  // Admin session stats
+  getSessionStats(sessionId: string): Promise<SessionStats>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1665,6 +1680,103 @@ export class DatabaseStorage implements IStorage {
       byDriver,
       byVehicle,
       byMonth,
+    };
+  }
+
+  async getSessionStats(sessionId: string): Promise<SessionStats> {
+    // Get aggregated trip counts by license plate and month using SQL
+    const tripAggregation = await db.execute(sql`
+      SELECT 
+        license_plate,
+        TO_CHAR(order_time, 'YYYY-MM') as month,
+        COUNT(*) as trip_count
+      FROM trips 
+      WHERE session_id = ${sessionId} AND trip_status = 'Abgeschlossen'
+      GROUP BY license_plate, TO_CHAR(order_time, 'YYYY-MM')
+      ORDER BY license_plate, month
+    `);
+
+    // Get aggregated transaction amounts by license plate and month
+    const txAggregation = await db.execute(sql`
+      SELECT 
+        license_plate,
+        TO_CHAR(transaction_time, 'YYYY-MM') as month,
+        SUM(amount) as total_amount
+      FROM transactions 
+      WHERE session_id = ${sessionId} AND license_plate IS NOT NULL AND license_plate != ''
+      GROUP BY license_plate, TO_CHAR(transaction_time, 'YYYY-MM')
+      ORDER BY license_plate, month
+    `);
+
+    // Get counts
+    const [tripCount, transactionCount] = await Promise.all([
+      this.getTripCountBySession(sessionId),
+      this.getTransactionCountBySession(sessionId),
+    ]);
+
+    // Build the summaries structure
+    const licensePlateMap = new Map<string, Record<string, { tripCount: number; bonus: number; paid: number }>>();
+    const allMonths = new Set<string>();
+
+    // Process trip data
+    for (const row of tripAggregation.rows as any[]) {
+      const lp = row.license_plate;
+      const month = row.month;
+      const count = parseInt(row.trip_count, 10);
+      
+      allMonths.add(month);
+      
+      if (!licensePlateMap.has(lp)) {
+        licensePlateMap.set(lp, {});
+      }
+      const months = licensePlateMap.get(lp)!;
+      if (!months[month]) {
+        months[month] = { tripCount: 0, bonus: 0, paid: 0 };
+      }
+      months[month].tripCount = count;
+      // Calculate bonus: 5€ per trip
+      months[month].bonus = count * 500; // in cents
+    }
+
+    // Process transaction data
+    for (const row of txAggregation.rows as any[]) {
+      const lp = row.license_plate;
+      const month = row.month;
+      const amount = parseInt(row.total_amount, 10);
+      
+      allMonths.add(month);
+      
+      if (!licensePlateMap.has(lp)) {
+        licensePlateMap.set(lp, {});
+      }
+      const months = licensePlateMap.get(lp)!;
+      if (!months[month]) {
+        months[month] = { tripCount: 0, bonus: 0, paid: 0 };
+      }
+      months[month].paid = amount;
+    }
+
+    // Calculate totals
+    let totalBonus = 0;
+    let totalPaid = 0;
+
+    const summaries = Array.from(licensePlateMap.entries()).map(([licensePlate, months]) => {
+      for (const monthData of Object.values(months)) {
+        totalBonus += monthData.bonus;
+        totalPaid += monthData.paid;
+      }
+      return { licensePlate, months };
+    }).sort((a, b) => a.licensePlate.localeCompare(b.licensePlate));
+
+    const monthHeaders = Array.from(allMonths).sort();
+
+    return {
+      tripCount,
+      transactionCount,
+      totalBonus,
+      totalPaid,
+      summaries,
+      monthHeaders,
     };
   }
 }

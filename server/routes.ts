@@ -881,29 +881,13 @@ export async function registerRoutes(
       if (!session) {
         return res.status(404).json({ error: "Session not found" });
       }
-      const trips = await storage.getTripsBySession(sessionId);
-      const transactions = await storage.getTransactionsBySession(sessionId);
-
-      const frontendTrips = trips.map(t => ({
-        "Kennzeichen": t.licensePlate,
-        "Zeitpunkt der Fahrtbestellung": t.orderTime.toISOString(),
-        "Fahrtstatus": t.tripStatus,
-        "Fahrt-ID": t.tripId || undefined,
-        ...t.rawData as any,
-      }));
-
-      const frontendTransactions = transactions.map(tx => ({
-        "Kennzeichen": tx.licensePlate,
-        "Zeitpunkt": tx.transactionTime.toISOString(),
-        "Betrag": tx.amount / 100,
-        "Beschreibung": tx.description || undefined,
-        ...tx.rawData as any,
-      }));
-
+      
+      // Get aggregated stats instead of all raw data
+      const stats = await storage.getSessionStats(sessionId);
+      
       res.json({
         session,
-        trips: frontendTrips,
-        transactions: frontendTransactions,
+        stats,
       });
     } catch (error) {
       console.error("Error fetching session details:", error);

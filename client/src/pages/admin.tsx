@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Trash2, Eye, Users, Database, Lock, LogIn, Calendar, X, Copy, Check, Download, FileText, Car, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { processTripsAndTransactions, getMonthHeaders } from "@/lib/data-processor";
+// processTripsAndTransactions no longer needed - stats come pre-aggregated from backend
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { useTranslation } from "@/i18n";
@@ -244,21 +244,56 @@ export default function AdminPage() {
   }, [sessions]);
 
   const processedData = useMemo(() => {
-    if (!sessionDetails) return null;
+    if (!sessionDetails?.stats) return null;
     
-    const { trips, transactions } = sessionDetails;
-    const summaries = processTripsAndTransactions(trips, transactions);
-    const monthHeaders = getMonthHeaders(summaries);
+    const { stats } = sessionDetails;
     
-    const totalTrips = summaries.reduce((acc, curr) => acc + curr.totalCount, 0);
-    const totalBonus = summaries.reduce((acc, curr) => acc + curr.totalBonus, 0);
-    const totalPaid = summaries.reduce((acc, curr) => acc + curr.totalPaid, 0);
-    const totalDiff = summaries.reduce((acc, curr) => acc + curr.totalDifference, 0);
+    // Transform stats to DriverSummary format for DataTable
+    const summaries = stats.summaries.map((s: any) => {
+      const statsObj: Record<string, { monthKey: string; count: number; bonus: number; paidAmount: number; difference: number }> = {};
+      let totalCount = 0;
+      let totalBonus = 0;
+      let totalPaid = 0;
+      let totalDifference = 0;
+      
+      for (const [month, data] of Object.entries(s.months) as [string, any][]) {
+        const bonus = data.bonus / 100; // Convert from cents
+        const paid = data.paid / 100; // Convert from cents
+        const diff = bonus - paid;
+        
+        statsObj[month] = {
+          monthKey: month,
+          count: data.tripCount,
+          bonus,
+          paidAmount: paid,
+          difference: diff,
+        };
+        
+        totalCount += data.tripCount;
+        totalBonus += bonus;
+        totalPaid += paid;
+        totalDifference += diff;
+      }
+      
+      return {
+        licensePlate: s.licensePlate,
+        stats: statsObj,
+        totalCount,
+        totalBonus,
+        totalPaid,
+        totalDifference,
+      };
+    });
 
     return {
       summaries,
-      monthHeaders,
-      totals: { trips: totalTrips, bonus: totalBonus, paid: totalPaid, diff: totalDiff }
+      monthHeaders: stats.monthHeaders,
+      totals: { 
+        trips: stats.tripCount, 
+        bonus: stats.totalBonus / 100, 
+        paid: stats.totalPaid / 100, 
+        diff: (stats.totalBonus - stats.totalPaid) / 100 
+      }
     };
   }, [sessionDetails]);
 
