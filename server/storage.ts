@@ -393,13 +393,19 @@ export class DatabaseStorage implements IStorage {
   async createTrips(newTrips: InsertTrip[], onProgress?: OnProgressCallback): Promise<Trip[]> {
     if (newTrips.length === 0) return [];
     
-    const BATCH_SIZE = 500;
+    const BATCH_SIZE = 1000;
     const results: Trip[] = [];
     const total = newTrips.length;
     
     for (let i = 0; i < newTrips.length; i += BATCH_SIZE) {
       const batch = newTrips.slice(i, i + BATCH_SIZE);
-      const inserted = await db.insert(trips).values(batch).returning();
+      const inserted = await db
+        .insert(trips)
+        .values(batch)
+        .onConflictDoNothing({
+          target: [trips.sessionId, trips.licensePlate, trips.orderTime]
+        })
+        .returning();
       results.push(...inserted);
       
       if (onProgress) {
@@ -446,13 +452,19 @@ export class DatabaseStorage implements IStorage {
   async createTransactions(newTransactions: InsertTransaction[], onProgress?: OnProgressCallback): Promise<Transaction[]> {
     if (newTransactions.length === 0) return [];
     
-    const BATCH_SIZE = 500;
+    const BATCH_SIZE = 1000;
     const results: Transaction[] = [];
     const total = newTransactions.length;
     
     for (let i = 0; i < newTransactions.length; i += BATCH_SIZE) {
       const batch = newTransactions.slice(i, i + BATCH_SIZE);
-      const inserted = await db.insert(transactions).values(batch).returning();
+      const inserted = await db
+        .insert(transactions)
+        .values(batch)
+        .onConflictDoNothing({
+          target: [transactions.sessionId, transactions.licensePlate, transactions.transactionTime, transactions.amount]
+        })
+        .returning();
       results.push(...inserted);
       
       if (onProgress) {
