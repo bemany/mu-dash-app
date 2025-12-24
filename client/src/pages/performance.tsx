@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
-import { DashboardLayout } from "@/components/layout";
+import { DashboardLayout, useLayoutLoading } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -2451,6 +2451,7 @@ function CommissionsTab({ data, isLoading, isDemo, selectedVehicles }: Commissio
 export default function PerformancePage() {
   const { t, language } = useTranslation();
   const dateLocale = dateLocaleMap[language] || de;
+  const isLayoutLoading = useLayoutLoading();
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [hasInitializedDateRange, setHasInitializedDateRange] = useState(false);
@@ -2817,7 +2818,7 @@ export default function PerformancePage() {
         </TabsContent>
       </Tabs>
 
-      {isDemo && showDemoBanner && (
+      {isDemo && showDemoBanner && !isLayoutLoading && (
         <div 
           className="fixed bottom-0 left-0 right-0 z-50 bg-amber-50 border-t-2 border-amber-300 shadow-lg"
           data-testid="banner-demo-mode"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { cn } from '@/lib/utils';
 import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +14,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const LayoutLoadingContext = createContext<boolean>(false);
+
+export function useLayoutLoading() {
+  return useContext(LayoutLoadingContext);
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -80,6 +86,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
   };
 
   return (
+    <LayoutLoadingContext.Provider value={isLoading}>
     <div className={cn(
       "bg-slate-50 flex font-sans text-slate-900",
       fullHeight ? "h-screen overflow-hidden" : "min-h-screen"
@@ -263,7 +270,7 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </div>
+    </LayoutLoadingContext.Provider>
   );
 }
 
