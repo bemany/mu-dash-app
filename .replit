@@ -48,4 +48,4 @@ mockupState = "FULLSTACK"
 [userenv]
 
 [userenv.shared]
-ADMIN_PASSWORD = "bestdriver"
+ADMIN_PASSWORD = ""
