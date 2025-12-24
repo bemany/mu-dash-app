@@ -257,6 +257,7 @@ export interface IStorage {
   // Upload management
   createUpload(upload: InsertUpload): Promise<Upload>;
   getUploadsBySession(sessionId: string): Promise<Upload[]>;
+  getUploadCountBySession(sessionId: string): Promise<number>;
   getUploadById(uploadId: string): Promise<Upload | null>;
   deleteUploadsForSession(sessionId: string): Promise<void>;
   
@@ -525,6 +526,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(uploads)
       .where(eq(uploads.sessionId, sessionId));
+  }
+
+  async getUploadCountBySession(sessionId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(uploads)
+      .where(eq(uploads.sessionId, sessionId));
+    return result[0]?.count || 0;
   }
 
   async getUploadById(uploadId: string): Promise<Upload | null> {

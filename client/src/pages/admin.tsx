@@ -575,7 +575,7 @@ export default function AdminPage() {
                               <p className="text-sm font-medium text-slate-600">
                                 {session.tripCount.toLocaleString('de-DE')} {t('admin.trips')} • {session.transactionCount.toLocaleString('de-DE')} {t('admin.payments')}
                               </p>
-                              <p className="text-xs text-slate-500 mt-1">{t('admin.step')} {session.currentStep}/4</p>
+                              <p className="text-xs text-slate-500 mt-1">{session.uploadCount || 0} CSV-Dateien</p>
                             </div>
                             <div className="flex gap-2">
                               <Button
