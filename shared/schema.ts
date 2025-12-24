@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,7 +24,9 @@ export const trips = pgTable("trips", {
   tripStatus: text("trip_status").notNull(),
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("trips_dedup_idx").on(table.sessionId, table.licensePlate, table.orderTime),
+]);
 
 // Transactions table - stores payment transaction data
 export const transactions = pgTable("transactions", {
@@ -39,7 +41,9 @@ export const transactions = pgTable("transactions", {
   farePrice: integer("fare_price"), // "Fahrpreis" in cents
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("transactions_dedup_idx").on(table.sessionId, table.licensePlate, table.transactionTime, table.amount),
+]);
 
 // Uploads table - stores original CSV files
 export const uploads = pgTable("uploads", {
