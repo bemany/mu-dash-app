@@ -296,11 +296,11 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
         )}>
           {children}
           {isLoading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-[100] flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                <span className="text-sm font-medium text-slate-600">{t('layout.loadingSession')}</span>
-                <span className="text-xs text-slate-400">{t('layout.loadingSessionHint')}</span>
+            <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-xl shadow-2xl">
+                <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
+                <span className="text-lg font-semibold text-slate-800">{t('layout.loadingSession')}</span>
+                <span className="text-sm text-slate-500">{t('layout.loadingSessionHint')}</span>
               </div>
             </div>
           )}
