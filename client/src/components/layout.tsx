@@ -86,6 +86,8 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
     setIsLoading(true);
     setError('');
     const loadedId = inputVorgangsId.trim().toUpperCase();
+    const startTime = Date.now();
+    const MIN_LOADING_TIME = 800; // Minimum display time for loading overlay
     try {
       const res = await fetch('/api/session/load', {
         method: 'POST',
@@ -95,12 +97,19 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || t('layout.notFound'));
+        setIsLoading(false);
         return;
       }
       await queryClient.invalidateQueries({ queryKey: ['session'] });
       playNotificationSound();
       setInputVorgangsId('');
       toast.success(t('layout.loadSuccess', { id: loadedId }));
+      
+      // Ensure minimum loading display time
+      const elapsed = Date.now() - startTime;
+      if (elapsed < MIN_LOADING_TIME) {
+        await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsed));
+      }
     } catch (err) {
       setError(t('layout.loadError'));
     } finally {
