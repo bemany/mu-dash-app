@@ -70,6 +70,21 @@ export const performanceLogs = pgTable("performance_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Import logs table - detailed logging for import operations
+export const importLogs = pgTable("import_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull(),
+  vorgangsId: text("vorgangs_id"),
+  level: text("level").notNull(), // 'info', 'warn', 'error', 'debug'
+  phase: text("phase").notNull(), // 'upload', 'parse', 'validate', 'insert', 'complete', 'error'
+  message: text("message").notNull(),
+  details: jsonb("details"), // additional structured data (memory usage, counts, errors, etc.)
+  memoryUsageMb: integer("memory_usage_mb"), // heap used in MB
+  recordsProcessed: integer("records_processed"),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertSessionSchema = createInsertSchema(sessions).omit({
   id: true,
@@ -97,6 +112,11 @@ export const insertPerformanceLogSchema = createInsertSchema(performanceLogs).om
   createdAt: true,
 });
 
+export const insertImportLogSchema = createInsertSchema(importLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
@@ -112,3 +132,6 @@ export type InsertUpload = z.infer<typeof insertUploadSchema>;
 
 export type PerformanceLog = typeof performanceLogs.$inferSelect;
 export type InsertPerformanceLog = z.infer<typeof insertPerformanceLogSchema>;
+
+export type ImportLog = typeof importLogs.$inferSelect;
+export type InsertImportLog = z.infer<typeof insertImportLogSchema>;

@@ -2,12 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { progressBroker } from "./progress-broker";
+import { createImportLogger } from "./logger";
 import { z } from "zod";
 import { parseISO, parse } from "date-fns";
 import multer from "multer";
 import Papa from "papaparse";
 
-const SOFTWARE_VERSION = "1.0.0";
+const SOFTWARE_VERSION = "2.2.0";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -505,12 +506,22 @@ export async function registerRoutes(
 
   app.post("/api/upload", upload.array("files", 100), async (req, res) => {
     const startTime = Date.now();
+    const sessionId = req.session.uberRetterSessionId!;
+    const logger = createImportLogger(sessionId);
+    
     try {
-      const sessionId = req.session.uberRetterSessionId!;
       const expressSessionId = req.sessionID!;
       const files = req.files as Express.Multer.File[];
 
+      logger.startPhase('upload');
+      logger.memory('upload', 'Start');
+      logger.info(`Upload started: ${files?.length || 0} files`, 'upload', {
+        fileCount: files?.length || 0,
+        totalSize: files?.reduce((sum, f) => sum + f.size, 0) || 0,
+      });
+
       if (!files || files.length === 0) {
+        logger.warn('No files uploaded', 'upload');
         return res.status(400).json({ error: "Keine Dateien hochgeladen" });
       }
 
@@ -553,6 +564,10 @@ export async function registerRoutes(
         });
       };
 
+      logger.endPhase('upload', files.length);
+      logger.startPhase('parse');
+      logger.memory('parse', 'Before parsing');
+
       progressBroker.broadcast(expressSessionId, {
         phase: "parsing",
         total: files.length,
@@ -568,6 +583,12 @@ export async function registerRoutes(
 
       const allTripData = tripDataArrays.flat();
       const allPaymentData = paymentDataArrays.flat();
+      
+      logger.memory('parse', 'After parsing');
+      logger.info(`Parsed data: ${allTripData.length} trips, ${allPaymentData.length} payments`, 'parse', {
+        tripRowCount: allTripData.length,
+        paymentRowCount: allPaymentData.length,
+      });
 
       progressBroker.broadcast(expressSessionId, {
         phase: "processing",
@@ -725,6 +746,20 @@ export async function registerRoutes(
         };
       });
 
+      logger.endPhase('parse', allTripData.length + allPaymentData.length);
+      logger.startPhase('validate');
+      logger.info(`Validation complete: ${dbTrips.length} valid trips, ${dbTransactions.length} valid transactions`, 'validate', {
+        validTrips: dbTrips.length,
+        validTransactions: dbTransactions.length,
+        skippedTrips: allTripData.length - dbTrips.length,
+        skippedTransactions: allPaymentData.length - dbTransactions.length,
+      });
+      logger.memory('validate', 'After validation');
+
+      logger.endPhase('validate', dbTrips.length + dbTransactions.length);
+      logger.startPhase('insert');
+      logger.memory('insert', 'Before DB insert');
+
       progressBroker.broadcast(expressSessionId, {
         phase: "saving",
         total: dbTrips.length + dbTransactions.length,
@@ -758,6 +793,14 @@ export async function registerRoutes(
       const [insertedTripsList, insertedTransactionsList] = saveResults;
       const insertedTrips = insertedTripsList.length;
       const insertedTransactions = insertedTransactionsList.length;
+
+      logger.endPhase('insert', insertedTrips + insertedTransactions);
+      logger.memory('insert', 'After DB insert');
+      logger.info(`DB insert complete: ${insertedTrips} trips, ${insertedTransactions} transactions inserted`, 'insert', {
+        insertedTrips,
+        insertedTransactions,
+        duplicatesSkipped: (dbTrips.length - insertedTrips) + (dbTransactions.length - insertedTransactions),
+      });
 
       const firstTxWithCompany = allPaymentData.find((tx: any) =>
         tx["Name des Unternehmens"] || tx["Firmenname"]
@@ -800,6 +843,8 @@ export async function registerRoutes(
         }
       }
 
+      logger.setVorgangsId(vorgangsId || '');
+      
       progressBroker.broadcast(expressSessionId, {
         phase: "complete",
         total: insertedTrips + insertedTransactions,
@@ -810,6 +855,7 @@ export async function registerRoutes(
 
       // Log performance (best-effort, don't fail the request if logging fails)
       const durationMs = Date.now() - startTime;
+      logger.complete(insertedTrips, insertedTransactions);
       const totalRecords = insertedTrips + insertedTransactions;
       const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
       
@@ -836,6 +882,8 @@ export async function registerRoutes(
         dateRange,
       });
     } catch (error: any) {
+      logger.error(`Upload failed: ${error?.message || 'Unknown error'}`, 'error', error);
+      logger.memory('error', 'At error');
       console.error("Error in file upload:", error);
       res.status(500).json({ error: `Fehler beim Upload: ${error?.message || "Unbekannter Fehler"}` });
     }
@@ -890,6 +938,27 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching performance logs:", error);
       res.status(500).json({ error: "Failed to fetch performance logs" });
+    }
+  });
+
+  app.get("/api/admin/import-logs", async (req, res) => {
+    if (!req.session.isAdmin) {
+      return res.status(401).json({ error: "Nicht autorisiert" });
+    }
+    try {
+      const { sessionId, vorgangsId, limit } = req.query;
+      let logs;
+      if (sessionId) {
+        logs = await storage.getImportLogsBySession(sessionId as string);
+      } else if (vorgangsId) {
+        logs = await storage.getImportLogsByVorgangsId(vorgangsId as string);
+      } else {
+        logs = await storage.getRecentImportLogs(limit ? parseInt(limit as string) : 100);
+      }
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching import logs:", error);
+      res.status(500).json({ error: "Failed to fetch import logs" });
     }
   });
 

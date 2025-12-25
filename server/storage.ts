@@ -6,6 +6,7 @@ import {
   transactions,
   uploads,
   performanceLogs,
+  importLogs,
   type Session,
   type InsertSession,
   type Trip,
@@ -16,6 +17,8 @@ import {
   type InsertUpload,
   type PerformanceLog,
   type InsertPerformanceLog,
+  type ImportLog,
+  type InsertImportLog,
 } from "@shared/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 
@@ -289,6 +292,12 @@ export interface IStorage {
   getPerformanceLogs(): Promise<PerformanceLog[]>;
   getPerformanceLogsByVorgangsId(vorgangsId: string): Promise<PerformanceLog[]>;
   getLatestPerformanceLogByVorgangsId(vorgangsId: string): Promise<PerformanceLog | null>;
+  
+  // Import logging
+  createImportLog(log: InsertImportLog): Promise<ImportLog>;
+  getImportLogsBySession(sessionId: string): Promise<ImportLog[]>;
+  getImportLogsByVorgangsId(vorgangsId: string): Promise<ImportLog[]>;
+  getRecentImportLogs(limit?: number): Promise<ImportLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1855,6 +1864,38 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(performanceLogs.createdAt))
       .limit(1);
     return result.length > 0 ? result[0] : null;
+  }
+
+  async createImportLog(log: InsertImportLog): Promise<ImportLog> {
+    const result = await db
+      .insert(importLogs)
+      .values(log)
+      .returning();
+    return result[0];
+  }
+
+  async getImportLogsBySession(sessionId: string): Promise<ImportLog[]> {
+    return db
+      .select()
+      .from(importLogs)
+      .where(eq(importLogs.sessionId, sessionId))
+      .orderBy(desc(importLogs.createdAt));
+  }
+
+  async getImportLogsByVorgangsId(vorgangsId: string): Promise<ImportLog[]> {
+    return db
+      .select()
+      .from(importLogs)
+      .where(eq(importLogs.vorgangsId, vorgangsId))
+      .orderBy(desc(importLogs.createdAt));
+  }
+
+  async getRecentImportLogs(limit: number = 100): Promise<ImportLog[]> {
+    return db
+      .select()
+      .from(importLogs)
+      .orderBy(desc(importLogs.createdAt))
+      .limit(limit);
   }
 }
 
