@@ -16,6 +16,17 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "25.12.2024",
+    version: "2.1.0",
+    items: [
+      { type: 'feature', text: "Performance-Logging: Dauer und Durchsatz für Import- und Lade-Operationen" },
+      { type: 'feature', text: "Admin-Panel zeigt Performance-Metriken pro Session (Ladezeit, Records/s)" },
+      { type: 'feature', text: "Lade-Hinweis mit Mindest-Anzeigezeit für bessere Sichtbarkeit" },
+      { type: 'improvement', text: "Deutsche Zahlenformatierung (Komma als Dezimaltrennzeichen)" },
+      { type: 'improvement', text: "Records/s-Metrik nur bei Import-Operationen (konzeptionell korrekt)" },
+    ]
+  },
+  {
     date: "24.12.2024",
     version: "2.0.0",
     items: [
@@ -24,6 +35,28 @@ const updates: Update[] = [
       { type: 'feature', text: "Session beenden ohne Vorgangsdaten zu löschen" },
       { type: 'improvement', text: "Admin-Panel lädt nur aggregierte Statistiken (schneller bei 298k+ Fahrten)" },
       { type: 'fix', text: "Demo-Banner überlappt Sidebar nicht mehr" },
+    ]
+  },
+  {
+    date: "22.12.2024",
+    version: "1.9.5",
+    items: [
+      { type: 'feature', text: "Datei-Vorschau vor dem Upload (Anzahl Fahrten/Zahlungen)" },
+      { type: 'feature', text: "Eindeutige Constraints verhindern doppelte Einträge in der Datenbank" },
+      { type: 'improvement', text: "Duplikat-Erkennung verbessert für zuverlässigeren Import" },
+      { type: 'improvement', text: "Batch-Größe optimiert für schnelleren Import großer Dateien" },
+      { type: 'fix', text: "Automatische Weiterleitung nach Upload entfernt (manuell starten)" },
+    ]
+  },
+  {
+    date: "20.12.2024",
+    version: "1.9.2",
+    items: [
+      { type: 'feature', text: "Tooltips zeigen Berechnungsdetails für alle KPIs" },
+      { type: 'feature', text: "Bereinigter Umsatz (Nettoumsatz) als neue Metrik" },
+      { type: 'improvement', text: "Schichten-Anzeige verbessert mit Tag/Nacht-Aufschlüsselung" },
+      { type: 'improvement', text: "Performance-Seite füllt gesamte Bildschirmbreite" },
+      { type: 'improvement', text: "Tabellen sind scrollbar bei vielen Einträgen" },
     ]
   },
   {
