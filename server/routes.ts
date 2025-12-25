@@ -2,11 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { progressBroker } from "./progress-broker";
-import { createImportLogger } from "./logger";
+import { createImportLogger, type ImportPhase } from "./logger";
 import { z } from "zod";
 import { parseISO, parse } from "date-fns";
 import multer from "multer";
 import Papa from "papaparse";
+import type { InsertTrip, InsertTransaction } from "@shared/schema";
 
 const SOFTWARE_VERSION = "2.2.0";
 
@@ -113,6 +114,200 @@ function parsePaymentTimestamp(timestamp: string): Date {
   }
   
   return new Date(NaN);
+}
+
+const STREAMING_BATCH_SIZE = 1000;
+
+interface StreamingResult {
+  count: number;
+  companyName?: string;
+  dateRange?: { minDate: Date; maxDate: Date };
+}
+
+function parseEuroAmount(value: any): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const numVal = typeof value === 'string' 
+    ? parseFloat(value.replace(',', '.')) 
+    : value;
+  return isNaN(numVal) ? null : Math.round(numVal * 100);
+}
+
+async function processTripFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  seenKeys: Set<string>,
+  onBatch: (batch: InsertTrip[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertTrip[] = [];
+    let count = 0;
+    let minDate: Date | undefined;
+    let maxDate: Date | undefined;
+    let pendingBatch: Promise<void> | null = null;
+    
+    const content = file.buffer.toString('utf-8');
+    
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const trip = results.data as any;
+        
+        if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) return;
+        if (!trip["Fahrtstatus"]) return;
+        
+        const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
+        if (!orderTime || isNaN(orderTime.getTime())) return;
+        
+        const licensePlate = trip["Kennzeichen"].toString().trim();
+        const key = `${licensePlate}-${orderTime.getTime()}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+        
+        if (!minDate || orderTime < minDate) minDate = orderTime;
+        if (!maxDate || orderTime > maxDate) maxDate = orderTime;
+        
+        const dbTrip: InsertTrip = {
+          sessionId,
+          tripId: trip["Fahrt-ID"] ? trip["Fahrt-ID"].toString().trim() : null,
+          licensePlate,
+          orderTime,
+          tripStatus: trip["Fahrtstatus"].toString().trim(),
+          rawData: trip,
+        };
+        
+        buffer.push(dbTrip);
+        count++;
+        
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({
+            count,
+            dateRange: minDate && maxDate ? { minDate, maxDate } : undefined,
+          });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
+}
+
+async function processPaymentFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  seenKeys: Set<string>,
+  onBatch: (batch: InsertTransaction[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertTransaction[] = [];
+    let count = 0;
+    let companyName: string | undefined;
+    let pendingBatch: Promise<void> | null = null;
+    
+    const content = file.buffer.toString('utf-8');
+    
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const tx = results.data as any;
+        
+        let amount: number;
+        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
+          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
+            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
+            : tx["An dein Unternehmen gezahlt"];
+        } else {
+          amount = typeof tx["Betrag"] === 'string'
+            ? parseFloat(tx["Betrag"].replace(',', '.'))
+            : tx["Betrag"];
+        }
+
+        let timestamp: Date;
+        if (tx["vs-Berichterstattung"]) {
+          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
+        } else if (tx["Zeitpunkt"]) {
+          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
+        } else {
+          return;
+        }
+
+        if (isNaN(timestamp.getTime())) return;
+
+        let licensePlate = tx["Kennzeichen"] ? tx["Kennzeichen"].toString().trim() : null;
+        if (!licensePlate && tx["Beschreibung"]) {
+          licensePlate = extractLicensePlate(tx["Beschreibung"]);
+        }
+        
+        const amountCents = Math.round(amount * 100);
+        const normalizedPlate = licensePlate ? licensePlate.trim() : 'unknown';
+        const key = `${normalizedPlate}-${timestamp.getTime()}-${amountCents}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+        
+        if (!companyName) {
+          companyName = tx["Name des Unternehmens"] || tx["Firmenname"];
+        }
+        
+        const tripUuid = tx["Fahrt-UUID"] ? tx["Fahrt-UUID"].toString().trim() : null;
+        const revenue = parseEuroAmount(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze"] ||
+          tx["revenue"]
+        );
+        const farePrice = parseEuroAmount(
+          tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
+          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"] ||
+          tx["farePrice"]
+        );
+
+        const dbTx: InsertTransaction = {
+          sessionId,
+          licensePlate: licensePlate || "",
+          transactionTime: timestamp,
+          amount: amountCents,
+          description: tx["Beschreibung"] || null,
+          tripUuid,
+          revenue,
+          farePrice,
+          rawData: tx,
+        };
+        
+        buffer.push(dbTx);
+        count++;
+        
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({ count, companyName });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
 }
 
 export async function registerRoutes(
@@ -515,7 +710,7 @@ export async function registerRoutes(
 
       logger.startPhase('upload');
       logger.memory('upload', 'Start');
-      logger.info(`Upload started: ${files?.length || 0} files`, 'upload', {
+      logger.info(`Upload started: ${files?.length || 0} files (streaming mode)`, 'upload', {
         fileCount: files?.length || 0,
         totalSize: files?.reduce((sum, f) => sum + f.size, 0) || 0,
       });
@@ -547,269 +742,102 @@ export async function registerRoutes(
         }
       }
 
-      // Deduplication now handled by database unique indexes (ON CONFLICT DO NOTHING)
-      // This avoids loading all existing data into memory for large datasets
+      logger.endPhase('upload', files.length);
+      logger.info(`Classified files: ${tripFiles.length} trip files, ${paymentFiles.length} payment files`, 'upload');
+
       const seenTripKeys = new Set<string>();
       const seenTxKeys = new Set<string>();
+      let totalTripsProcessed = 0;
+      let totalTransactionsProcessed = 0;
+      let companyName: string | undefined;
+      let globalMinDate: Date | undefined;
+      let globalMaxDate: Date | undefined;
 
-      const parseFile = (file: Express.Multer.File): Promise<any[]> => {
-        return new Promise((resolve, reject) => {
-          const content = file.buffer.toString("utf-8");
-          Papa.parse(content, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => resolve(results.data),
-            error: (error: any) => reject(error),
-          });
-        });
-      };
-
-      logger.endPhase('upload', files.length);
       logger.startPhase('parse');
-      logger.memory('parse', 'Before parsing');
-
-      progressBroker.broadcast(expressSessionId, {
-        phase: "parsing",
-        total: files.length,
-        processed: 0,
-        percent: 10,
-        message: "CSV-Dateien werden parallel verarbeitet...",
-      });
-
-      const [tripDataArrays, paymentDataArrays] = await Promise.all([
-        Promise.all(tripFiles.map(parseFile)),
-        Promise.all(paymentFiles.map(parseFile)),
-      ]);
-
-      const allTripData = tripDataArrays.flat();
-      const allPaymentData = paymentDataArrays.flat();
-      
-      logger.memory('parse', 'After parsing');
-      logger.info(`Parsed data: ${allTripData.length} trips, ${allPaymentData.length} payments`, 'parse', {
-        tripRowCount: allTripData.length,
-        paymentRowCount: allPaymentData.length,
-      });
+      logger.memory('parse', 'Before streaming processing');
 
       progressBroker.broadcast(expressSessionId, {
         phase: "processing",
-        total: allTripData.length + allPaymentData.length,
+        total: files.length,
         processed: 0,
-        percent: 20,
-        message: "Daten werden verarbeitet...",
+        percent: 10,
+        message: "Fahrten werden verarbeitet (Streaming)...",
       });
 
-      // Import ALL trips (including cancelled) for acceptance rate analysis
-      // Deduplication handled by database - here we just filter out invalid data and same-batch duplicates
-      const validTrips = allTripData.filter((trip: any) => {
-        if (!trip["Kennzeichen"] || !trip["Zeitpunkt der Fahrtbestellung"]) return false;
-        if (!trip["Fahrtstatus"]) return false; // Must have status
-        const orderTime = parseISO(trip["Zeitpunkt der Fahrtbestellung"]);
-        if (!orderTime || isNaN(orderTime.getTime())) return false;
-        // Normalize license plate (trim whitespace) for deduplication
-        const licensePlate = trip["Kennzeichen"].toString().trim();
-        // Only check for same-batch duplicates (db handles existing data duplicates)
-        const key = `${licensePlate}-${orderTime.getTime()}`;
-        if (seenTripKeys.has(key)) return false;
-        seenTripKeys.add(key);
-        return true;
-      });
-
-      const dbTrips = validTrips.map((trip: any) => ({
-        sessionId,
-        tripId: trip["Fahrt-ID"] ? trip["Fahrt-ID"].toString().trim() : null,
-        licensePlate: trip["Kennzeichen"].toString().trim(),
-        orderTime: parseISO(trip["Zeitpunkt der Fahrtbestellung"]),
-        tripStatus: trip["Fahrtstatus"].toString().trim(),
-        rawData: trip,
-      }));
-
-      // Debug: Count total payments before filtering
-      console.log("[DEBUG] Total payment rows parsed:", allPaymentData.length);
-      if (allPaymentData.length > 0) {
-        console.log("[DEBUG] First payment row keys:", Object.keys(allPaymentData[0]));
-        console.log("[DEBUG] First payment Fahrt-UUID:", allPaymentData[0]["Fahrt-UUID"]);
-        console.log("[DEBUG] First payment vs-Berichterstattung:", allPaymentData[0]["vs-Berichterstattung"]);
-      }
-
-      // Deduplication handled by database - here we just filter out invalid data and same-batch duplicates
-      const validTransactions = allPaymentData.filter((tx: any) => {
-        let amount: number;
-        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
-          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
-            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
-            : tx["An dein Unternehmen gezahlt"];
-        } else {
-          amount = typeof tx["Betrag"] === 'string'
-            ? parseFloat(tx["Betrag"].replace(',', '.'))
-            : tx["Betrag"];
-        }
-
-        let timestamp: Date;
-        if (tx["vs-Berichterstattung"]) {
-          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
-        } else if (tx["Zeitpunkt"]) {
-          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
-        } else {
-          return false;
-        }
-
-        if (isNaN(timestamp.getTime())) return false;
-
-        // Check for direct Kennzeichen column first, then extract from Beschreibung
-        let licensePlate = tx["Kennzeichen"] ? tx["Kennzeichen"].toString().trim() : null;
-        if (!licensePlate && tx["Beschreibung"]) {
-          licensePlate = extractLicensePlate(tx["Beschreibung"]);
-        }
+      for (let i = 0; i < tripFiles.length; i++) {
+        const file = tripFiles[i];
+        logger.info(`Processing trip file ${i + 1}/${tripFiles.length}: ${file.originalname}`, 'parse');
         
-        // Import ALL payments - no filter on license plate or tripUuid
-        const amountCents = Math.round(amount * 100);
-        // Normalize license plate for deduplication
-        const normalizedPlate = licensePlate ? licensePlate.trim() : 'unknown';
-        // Only check for same-batch duplicates (db handles existing data duplicates)
-        const key = `${normalizedPlate}-${timestamp.getTime()}-${amountCents}`;
-        if (seenTxKeys.has(key)) return false;
-        seenTxKeys.add(key);
-        return true;
-      });
-
-      console.log("[DEBUG] Valid transactions after filter:", validTransactions.length);
-
-      const parseEuroAmount = (value: any): number | null => {
-        if (value === undefined || value === null || value === '') return null;
-        const numVal = typeof value === 'string' 
-          ? parseFloat(value.replace(',', '.')) 
-          : value;
-        return isNaN(numVal) ? null : Math.round(numVal * 100);
-      };
-
-      // Debug: Log first transaction's keys to see exact column names
-      if (validTransactions.length > 0) {
-        const firstTx = validTransactions[0];
-        const keys = Object.keys(firstTx);
-        console.log("[DEBUG] First transaction column names:", keys);
-        console.log("[DEBUG] Columns containing 'Fahrpreis':", keys.filter(k => k.includes('Fahrpreis')));
-        console.log("[DEBUG] Columns containing 'Umsätze':", keys.filter(k => k.includes('Umsätze')));
-        console.log("[DEBUG] Sample Fahrpreis value:", firstTx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"]);
-      }
-
-      const dbTransactions = validTransactions.map((tx: any) => {
-        let amount: number;
-        if (tx["An dein Unternehmen gezahlt"] !== undefined) {
-          amount = typeof tx["An dein Unternehmen gezahlt"] === 'string'
-            ? parseFloat(tx["An dein Unternehmen gezahlt"].replace(',', '.'))
-            : tx["An dein Unternehmen gezahlt"];
-        } else {
-          amount = typeof tx["Betrag"] === 'string'
-            ? parseFloat(tx["Betrag"].replace(',', '.'))
-            : tx["Betrag"];
-        }
-
-        let timestamp: Date;
-        if (tx["vs-Berichterstattung"]) {
-          timestamp = parsePaymentTimestamp(tx["vs-Berichterstattung"]);
-        } else {
-          timestamp = parsePaymentTimestamp(tx["Zeitpunkt"]);
-        }
-
-        // Check for direct Kennzeichen column first, then extract from Beschreibung
-        // Normalize by trimming whitespace
-        let licensePlate = tx["Kennzeichen"] ? tx["Kennzeichen"].toString().trim() : "";
-        if (!licensePlate && tx["Beschreibung"]) {
-          licensePlate = (extractLicensePlate(tx["Beschreibung"]) || "").trim();
-        }
-        const tripUuid = tx["Fahrt-UUID"] ? tx["Fahrt-UUID"].toString().trim() : null;
-        
-        // Extract revenue and farePrice for trip-based transactions
-        // Support both column formats: with spaces around colons and without
-        // Also support the already-extracted fields from client-side processing
-        const revenue = parseEuroAmount(
-          tx["An dein Unternehmen gezahlt : Deine Umsätze"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze"] ||
-          tx["revenue"]
-        );
-        const farePrice = parseEuroAmount(
-          tx["An dein Unternehmen gezahlt : Deine Umsätze : Fahrpreis"] || 
-          tx["An dein Unternehmen gezahlt:Deine Umsätze:Fahrpreis"] ||
-          tx["farePrice"]
-        );
-
-        return {
+        const result = await processTripFileStreaming(
+          file,
           sessionId,
-          licensePlate,
-          transactionTime: timestamp,
-          amount: Math.round(amount * 100),
-          description: tx["Beschreibung"] || null,
-          tripUuid,
-          revenue,
-          farePrice,
-          rawData: tx,
-        };
-      });
+          seenTripKeys,
+          async (batch) => {
+            await storage.createTrips(batch);
+            totalTripsProcessed += batch.length;
+            progressBroker.broadcast(expressSessionId, {
+              phase: "saving_trips",
+              total: totalTripsProcessed,
+              processed: totalTripsProcessed,
+              percent: 10 + Math.round(((i + 0.5) / tripFiles.length) * 30),
+              message: `Fahrten speichern: ${totalTripsProcessed} verarbeitet`,
+            });
+          }
+        );
+        
+        if (result.dateRange) {
+          if (!globalMinDate || result.dateRange.minDate < globalMinDate) {
+            globalMinDate = result.dateRange.minDate;
+          }
+          if (!globalMaxDate || result.dateRange.maxDate > globalMaxDate) {
+            globalMaxDate = result.dateRange.maxDate;
+          }
+        }
+      }
 
-      logger.endPhase('parse', allTripData.length + allPaymentData.length);
-      logger.startPhase('validate');
-      logger.info(`Validation complete: ${dbTrips.length} valid trips, ${dbTransactions.length} valid transactions`, 'validate', {
-        validTrips: dbTrips.length,
-        validTransactions: dbTransactions.length,
-        skippedTrips: allTripData.length - dbTrips.length,
-        skippedTransactions: allPaymentData.length - dbTransactions.length,
-      });
-      logger.memory('validate', 'After validation');
-
-      logger.endPhase('validate', dbTrips.length + dbTransactions.length);
-      logger.startPhase('insert');
-      logger.memory('insert', 'Before DB insert');
+      logger.memory('parse', 'After trip processing');
+      logger.info(`Trip processing complete: ${totalTripsProcessed} trips`, 'parse');
 
       progressBroker.broadcast(expressSessionId, {
-        phase: "saving",
-        total: dbTrips.length + dbTransactions.length,
-        processed: 0,
-        percent: 40,
-        message: "Daten werden gespeichert...",
+        phase: "processing",
+        total: files.length,
+        processed: tripFiles.length,
+        percent: 50,
+        message: "Zahlungen werden verarbeitet (Streaming)...",
       });
 
-      const saveResults = await Promise.all([
-        dbTrips.length > 0 ? storage.createTrips(dbTrips, (processed, total) => {
-          progressBroker.broadcast(expressSessionId, {
-            phase: "saving_trips",
-            total,
-            processed,
-            percent: 40 + Math.round((processed / total) * 30),
-            message: `Fahrten speichern: ${processed}/${total}`,
-          });
-        }) : Promise.resolve([]),
-        dbTransactions.length > 0 ? storage.createTransactions(dbTransactions, (processed, total) => {
-          progressBroker.broadcast(expressSessionId, {
-            phase: "saving_transactions",
-            total,
-            processed,
-            percent: 70 + Math.round((processed / total) * 25),
-            message: `Zahlungen speichern: ${processed}/${total}`,
-          });
-        }) : Promise.resolve([]),
-      ]);
-
-      // Get actual inserted counts (after deduplication)
-      const [insertedTripsList, insertedTransactionsList] = saveResults;
-      const insertedTrips = insertedTripsList.length;
-      const insertedTransactions = insertedTransactionsList.length;
-
-      logger.endPhase('insert', insertedTrips + insertedTransactions);
-      logger.memory('insert', 'After DB insert');
-      logger.info(`DB insert complete: ${insertedTrips} trips, ${insertedTransactions} transactions inserted`, 'insert', {
-        insertedTrips,
-        insertedTransactions,
-        duplicatesSkipped: (dbTrips.length - insertedTrips) + (dbTransactions.length - insertedTransactions),
-      });
-
-      const firstTxWithCompany = allPaymentData.find((tx: any) =>
-        tx["Name des Unternehmens"] || tx["Firmenname"]
-      );
-      if (firstTxWithCompany) {
-        const companyName = firstTxWithCompany["Name des Unternehmens"] || firstTxWithCompany["Firmenname"];
-        if (companyName) {
-          await storage.updateCompanyName(sessionId, companyName);
+      for (let i = 0; i < paymentFiles.length; i++) {
+        const file = paymentFiles[i];
+        logger.info(`Processing payment file ${i + 1}/${paymentFiles.length}: ${file.originalname}`, 'parse');
+        
+        const result = await processPaymentFileStreaming(
+          file,
+          sessionId,
+          seenTxKeys,
+          async (batch) => {
+            await storage.createTransactions(batch);
+            totalTransactionsProcessed += batch.length;
+            progressBroker.broadcast(expressSessionId, {
+              phase: "saving_transactions",
+              total: totalTransactionsProcessed,
+              processed: totalTransactionsProcessed,
+              percent: 50 + Math.round(((i + 0.5) / paymentFiles.length) * 40),
+              message: `Zahlungen speichern: ${totalTransactionsProcessed} verarbeitet`,
+            });
+          }
+        );
+        
+        if (result.companyName && !companyName) {
+          companyName = result.companyName;
         }
+      }
+
+      logger.endPhase('parse', totalTripsProcessed + totalTransactionsProcessed);
+      logger.memory('parse', 'After all streaming processing');
+      logger.info(`Streaming processing complete: ${totalTripsProcessed} trips, ${totalTransactionsProcessed} transactions`, 'parse');
+
+      if (companyName) {
+        await storage.updateCompanyName(sessionId, companyName);
       }
 
       for (const file of files) {
@@ -824,39 +852,32 @@ export async function registerRoutes(
       }
 
       let vorgangsId = null;
-      if (dbTrips.length > 0 || dbTransactions.length > 0) {
+      if (totalTripsProcessed > 0 || totalTransactionsProcessed > 0) {
         vorgangsId = await storage.generateVorgangsId(sessionId);
         await storage.updateSessionActivity(sessionId, 2);
       }
 
-      // Calculate date range from trips
       let dateRange: { from: string; to: string } | undefined;
-      if (dbTrips.length > 0) {
-        const tripDates = dbTrips.map(t => t.orderTime.getTime()).filter(d => !isNaN(d));
-        if (tripDates.length > 0) {
-          const minDate = new Date(Math.min(...tripDates));
-          const maxDate = new Date(Math.max(...tripDates));
-          dateRange = {
-            from: minDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
-            to: maxDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
-          };
-        }
+      if (globalMinDate && globalMaxDate) {
+        dateRange = {
+          from: globalMinDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
+          to: globalMaxDate.toLocaleDateString('de-DE', { month: '2-digit', year: 'numeric' }),
+        };
       }
 
       logger.setVorgangsId(vorgangsId || '');
       
       progressBroker.broadcast(expressSessionId, {
         phase: "complete",
-        total: insertedTrips + insertedTransactions,
-        processed: insertedTrips + insertedTransactions,
+        total: totalTripsProcessed + totalTransactionsProcessed,
+        processed: totalTripsProcessed + totalTransactionsProcessed,
         percent: 100,
         message: "Upload abgeschlossen!",
       });
 
-      // Log performance (best-effort, don't fail the request if logging fails)
       const durationMs = Date.now() - startTime;
-      logger.complete(insertedTrips, insertedTransactions);
-      const totalRecords = insertedTrips + insertedTransactions;
+      logger.complete(totalTripsProcessed, totalTransactionsProcessed);
+      const totalRecords = totalTripsProcessed + totalTransactionsProcessed;
       const recordsPerSecond = durationMs > 0 ? Math.round((totalRecords / durationMs) * 1000) : 0;
       
       try {
@@ -865,8 +886,8 @@ export async function registerRoutes(
           operationType: "import",
           softwareVersion: SOFTWARE_VERSION,
           durationMs,
-          tripCount: insertedTrips,
-          transactionCount: insertedTransactions,
+          tripCount: totalTripsProcessed,
+          transactionCount: totalTransactionsProcessed,
           recordsPerSecond,
         });
       } catch (logError) {
@@ -876,8 +897,8 @@ export async function registerRoutes(
       res.json({
         success: true,
         vorgangsId,
-        tripsAdded: insertedTrips,
-        transactionsAdded: insertedTransactions,
+        tripsAdded: totalTripsProcessed,
+        transactionsAdded: totalTransactionsProcessed,
         filesProcessed: files.length,
         dateRange,
       });
