@@ -120,9 +120,17 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
       const newSessionData = await queryClient.fetchQuery({ 
         queryKey: ['session'],
         queryFn: async () => {
+          console.log('[Sidebar] Fetching /api/session...');
           const res = await fetch('/api/session');
-          if (!res.ok) throw new Error('Failed to fetch session');
-          return res.json();
+          console.log('[Sidebar] /api/session response:', res.status, res.ok);
+          if (!res.ok) {
+            const text = await res.text();
+            console.error('[Sidebar] /api/session error body:', text.substring(0, 500));
+            throw new Error(`Failed to fetch session: ${res.status}`);
+          }
+          const data = await res.json();
+          console.log('[Sidebar] /api/session data:', data);
+          return data;
         },
         staleTime: 0 
       });
