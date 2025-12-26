@@ -1,0 +1,109 @@
+Error with Permissions-Policy header: Unrecognized feature: 'browsing-topics'.
+installHook.js:1 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+overrideMethod @ installHook.js:1
+(anonymous) @ index-6kSySBEy.js:376
+Ac @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ma @ index-6kSySBEy.js:48
+jy @ index-6kSySBEy.js:48
+ab @ index-6kSySBEy.js:48
+Zf @ index-6kSySBEy.js:48
+nb @ index-6kSySBEy.js:48
+Jy @ index-6kSySBEy.js:48
+$y @ index-6kSySBEy.js:48
+Vy @ index-6kSySBEy.js:48
+ub @ index-6kSySBEy.js:48
+jc @ index-6kSySBEy.js:48
+ob @ index-6kSySBEy.js:48
+(anonymous) @ index-6kSySBEy.js:48
+index-6kSySBEy.js:372 [Sidebar] Starting session load for: F3DCXW
+index-6kSySBEy.js:372 [Sidebar] Calling /api/session/load...
+index-6kSySBEy.js:372 [Sidebar] Response status: 200 OK
+index-6kSySBEy.js:372 [Sidebar] Success response: {success: true, sessionId: 'session_1766751695714_h263646gk'}
+index-6kSySBEy.js:372 [Sidebar] Invalidating session query...
+index-6kSySBEy.js:372 [Sidebar] Query invalidated, refetching...
+installHook.js:1 [Sidebar] Error loading session: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+overrideMethod @ installHook.js:1
+k @ index-6kSySBEy.js:372
+await in k
+hb @ index-6kSySBEy.js:48
+(anonymous) @ index-6kSySBEy.js:48
+yx @ index-6kSySBEy.js:48
+ep @ index-6kSySBEy.js:48
+mp @ index-6kSySBEy.js:49
+wM @ index-6kSySBEy.js:49
+index-6kSySBEy.js:372 [Sidebar] Load complete, hiding overlay

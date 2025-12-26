@@ -119,6 +119,11 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
       // Wait for refetch to complete
       const newSessionData = await queryClient.fetchQuery({ 
         queryKey: ['session'],
+        queryFn: async () => {
+          const res = await fetch('/api/session');
+          if (!res.ok) throw new Error('Failed to fetch session');
+          return res.json();
+        },
         staleTime: 0 
       });
       console.log('[Sidebar] New session data:', newSessionData);

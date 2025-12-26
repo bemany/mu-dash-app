@@ -81,6 +81,11 @@ function GoToDashboardButton({ vorgangsId }: { vorgangsId: string | null }) {
       
       const newSessionData = await queryClient.fetchQuery({ 
         queryKey: ['session'],
+        queryFn: async () => {
+          const res = await fetch('/api/session');
+          if (!res.ok) throw new Error('Failed to fetch session');
+          return res.json();
+        },
         staleTime: 0 
       });
       console.log('[GoToDashboard] New session data:', newSessionData);
