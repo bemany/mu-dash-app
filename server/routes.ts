@@ -379,38 +379,66 @@ export async function registerRoutes(
 
   app.post("/api/session/load", async (req, res) => {
     const startTime = Date.now();
+    console.log("[Load] Starting session load, request vorgangsId:", req.body?.vorgangsId);
+    console.log("[Load] Current express session ID:", req.sessionID);
+    console.log("[Load] Current uberRetterSessionId before load:", req.session.uberRetterSessionId);
+    
     try {
       const { vorgangsId } = req.body;
       
       if (!vorgangsId || typeof vorgangsId !== "string") {
+        console.log("[Load] Error: No vorgangsId provided");
         return res.status(400).json({ error: "Vorgangs-ID erforderlich" });
       }
 
       const normalizedId = vorgangsId.trim().toUpperCase();
+      console.log("[Load] Looking up session for vorgangsId:", normalizedId);
+      
       const session = await storage.getSessionByVorgangsId(normalizedId);
       
       if (!session) {
+        console.log("[Load] Error: No session found for vorgangsId:", normalizedId);
         return res.status(404).json({ error: "Keine Session mit dieser Vorgangs-ID gefunden" });
       }
+      
+      console.log("[Load] Found session:", session.sessionId);
 
-      // Use count instead of loading all trips
       const tripCount = await storage.getTripCountBySession(session.sessionId);
+      console.log("[Load] Trip count:", tripCount);
       
       if (tripCount === 0) {
+        console.log("[Load] Error: Session has no trips");
         return res.status(404).json({ error: "Dieser Vorgang enthält keine Daten mehr" });
       }
 
       const transactionCount = await storage.getTransactionCountBySession(session.sessionId);
+      console.log("[Load] Transaction count:", transactionCount);
 
+      const oldSessionId = req.session.uberRetterSessionId;
       req.session.uberRetterSessionId = session.sessionId;
+      console.log("[Load] Changed uberRetterSessionId from", oldSessionId, "to", session.sessionId);
       
       if (session.currentStep === 1 && tripCount > 0) {
         const newStep = transactionCount > 0 ? 3 : 2;
         await storage.updateSessionActivity(session.sessionId, newStep);
       }
 
-      // Log performance (best-effort, don't fail the request if logging fails)
+      // Explicitly save session before sending response
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("[Load] Error saving session:", err);
+            reject(err);
+          } else {
+            console.log("[Load] Session saved successfully");
+            resolve();
+          }
+        });
+      });
+
+      // Log performance
       const durationMs = Date.now() - startTime;
+      console.log("[Load] Load completed in", durationMs, "ms");
       
       try {
         await storage.createPerformanceLog({
@@ -428,7 +456,7 @@ export async function registerRoutes(
       
       res.json({ success: true, sessionId: session.sessionId });
     } catch (error) {
-      console.error("Error loading session:", error);
+      console.error("[Load] Error loading session:", error);
       res.status(500).json({ error: "Failed to load session" });
     }
   });
