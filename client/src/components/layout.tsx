@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLocation } from 'wouter';
-import { useTranslation } from '@/i18n';
+import { useTranslation, type Language } from '@/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { playNotificationSound } from '@/lib/notification-sound';
+import { logger } from '@/lib/logger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const APP_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-3";
+const BUILD_NUMBER = "241226-4";
 
 interface LayoutLoadingContextType {
   isLoading: boolean;
@@ -61,11 +62,12 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
   const currentLanguage = languages.find(l => l.code === language);
 
   useEffect(() => {
-    console.log(`[MU-Dash] Version ${APP_VERSION} (Build ${BUILD_NUMBER})`);
+    logger.init();
   }, []);
   
   const copyVorgangsId = () => {
     if (sessionData?.vorgangsId) {
+      logger.ui(`Copying Vorgangs-ID: ${sessionData.vorgangsId}`);
       navigator.clipboard.writeText(sessionData.vorgangsId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -73,19 +75,37 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
   };
 
   const exitSession = async () => {
+    logger.session('Exiting session...');
     try {
       const res = await fetch('/api/session/exit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok) {
+        logger.session('Session exited successfully');
         await queryClient.invalidateQueries({ queryKey: ['session'] });
         toast.success(t('layout.exitSuccess'));
         setLocation('/');
       }
     } catch (err) {
+      logger.error('Error exiting session', err);
       toast.error(t('layout.exitError'));
     }
+  };
+
+  const handleNavClick = (path: string, label: string) => {
+    logger.nav(`Navigating to: ${path} (${label})`);
+    setLocation(path);
+  };
+
+  const handleLanguageChange = (langCode: Language) => {
+    logger.ui(`Language changed to: ${langCode}`);
+    setLanguage(langCode);
+  };
+
+  const handleSidebarToggle = () => {
+    logger.ui(`Sidebar ${sidebarOpen ? 'closed' : 'opened'}`);
+    setSidebarOpen(!sidebarOpen);
   };
 
   const loadVorgangsId = async () => {
@@ -96,67 +116,66 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
     const startTime = Date.now();
     const MIN_LOADING_TIME = 800;
     
-    console.log('[Sidebar] Starting session load for:', loadedId);
+    logger.session(`Starting session load for: ${loadedId}`);
     
     try {
-      console.log('[Sidebar] Calling /api/session/load...');
+      logger.api('POST /api/session/load - sending request');
       const res = await fetch('/api/session/load', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vorgangsId: loadedId }),
       });
       
-      console.log('[Sidebar] Response status:', res.status, res.ok ? 'OK' : 'FAILED');
+      logger.api(`POST /api/session/load - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'}`);
       
       if (!res.ok) {
         const data = await res.json();
-        console.log('[Sidebar] Error response:', data);
+        logger.error('Session load failed', data);
         setError(data.error || t('layout.notFound'));
         setIsLoading(false);
         return;
       }
       
       const responseData = await res.json();
-      console.log('[Sidebar] Success response:', responseData);
+      logger.session('Session load success', { data: responseData });
       
-      console.log('[Sidebar] Invalidating session query...');
+      logger.session('Invalidating session query...');
       await queryClient.invalidateQueries({ queryKey: ['session'] });
-      console.log('[Sidebar] Query invalidated, refetching...');
+      logger.session('Refetching session data...');
       
-      // Wait for refetch to complete
       const newSessionData = await queryClient.fetchQuery({ 
         queryKey: ['session'],
         queryFn: async () => {
-          console.log('[Sidebar] Fetching /api/session...');
+          logger.api('GET /api/session - fetching');
           const res = await fetch('/api/session');
-          console.log('[Sidebar] /api/session response:', res.status, res.ok);
+          logger.api(`GET /api/session - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'}`);
           if (!res.ok) {
             const text = await res.text();
-            console.error('[Sidebar] /api/session error body:', text.substring(0, 500));
+            logger.error(`GET /api/session error body: ${text.substring(0, 500)}`);
             throw new Error(`Failed to fetch session: ${res.status}`);
           }
           const data = await res.json();
-          console.log('[Sidebar] /api/session data:', data);
+          logger.session('Session data received', { data: { vorgangsId: data.vorgangsId, tripCount: data.tripCount } });
           return data;
         },
         staleTime: 0 
       });
-      console.log('[Sidebar] New session data:', newSessionData);
+      logger.session('Session loaded successfully', { data: { vorgangsId: newSessionData.vorgangsId, tripCount: newSessionData.tripCount } });
       
       playNotificationSound();
       setInputVorgangsId('');
       toast.success(t('layout.loadSuccess', { id: loadedId }));
       
       const elapsed = Date.now() - startTime;
-      console.log('[Sidebar] Total load time:', elapsed, 'ms');
+      logger.session(`Total load time: ${elapsed}ms`);
       if (elapsed < MIN_LOADING_TIME) {
         await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsed));
       }
     } catch (err) {
-      console.error('[Sidebar] Error loading session:', err);
+      logger.error('Error loading session', err);
       setError(t('layout.loadError'));
     } finally {
-      console.log('[Sidebar] Load complete, hiding overlay');
+      logger.ui('Session load complete, hiding overlay');
       setIsLoading(false);
     }
   };

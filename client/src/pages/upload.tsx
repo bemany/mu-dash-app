@@ -12,6 +12,7 @@ import { useProgress } from "@/hooks/use-progress";
 import { InlineProgress } from "@/components/ui/inline-progress";
 import { useTranslation } from "@/i18n";
 import { playNotificationSound } from "@/lib/notification-sound";
+import { logger } from "@/lib/logger";
 import Papa from "papaparse";
 import { 
   Upload, 
@@ -155,10 +156,12 @@ export default function UploadPage() {
   });
 
   useEffect(() => {
+    logger.nav('Import page loaded');
     document.title = `${t('upload.title')} - MU-Dash`;
   }, [t]);
 
   const analyzeFiles = async (filesToAnalyze: File[]) => {
+    logger.import(`Analyzing ${filesToAnalyze.length} files`, { data: filesToAnalyze.map(f => f.name) });
     setIsAnalyzing(true);
     const previews: FilePreview[] = [];
 
@@ -221,17 +224,22 @@ export default function UploadPage() {
       }
     }
 
+    logger.import(`Analysis complete`, { data: previews.map(p => ({ name: p.file.name, type: p.type, rows: p.rowCount })) });
     setFilePreviews(prev => [...prev, ...previews]);
     setIsAnalyzing(false);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    if (!isDragging) {
+      logger.ui('Drag over drop zone');
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    logger.ui('Drag left drop zone');
     setIsDragging(false);
   };
 
@@ -241,6 +249,7 @@ export default function UploadPage() {
     const droppedFiles = Array.from(e.dataTransfer.files).filter(
       f => f.name.endsWith('.csv')
     );
+    logger.import(`Files dropped: ${droppedFiles.length}`, { data: droppedFiles.map(f => f.name) });
     setFiles(prev => [...prev, ...droppedFiles]);
     analyzeFiles(droppedFiles);
   };
@@ -250,36 +259,44 @@ export default function UploadPage() {
       const selectedFiles = Array.from(e.target.files).filter(
         f => f.name.endsWith('.csv')
       );
+      logger.import(`Files selected via picker: ${selectedFiles.length}`, { data: selectedFiles.map(f => f.name) });
       setFiles(prev => [...prev, ...selectedFiles]);
       analyzeFiles(selectedFiles);
     }
   };
 
   const removeFile = (index: number) => {
+    const removedFile = filePreviews[index];
+    logger.import(`File removed: ${removedFile?.file.name}`);
     setFiles(prev => prev.filter((_, i) => i !== index));
     setFilePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const uploadMutation = useMutation({
     mutationFn: async (filesToUpload: File[]) => {
+      logger.import(`Starting upload of ${filesToUpload.length} files`, { data: filesToUpload.map(f => ({ name: f.name, size: f.size })) });
       const formData = new FormData();
       filesToUpload.forEach(file => {
         formData.append('files', file);
       });
 
+      logger.api('POST /api/upload - sending request');
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
+      logger.api(`POST /api/upload - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'}`);
       if (!res.ok) {
         const error = await res.json();
+        logger.error('Upload failed', error);
         throw new Error(error.error || 'Upload failed');
       }
 
       return res.json();
     },
     onSuccess: (data) => {
+      logger.import(`Upload successful!`, { data: { vorgangsId: data.vorgangsId, trips: data.tripsAdded, transactions: data.transactionsAdded } });
       setUploadResult(data);
       queryClient.invalidateQueries({ queryKey: ["session"] });
       playNotificationSound();
@@ -290,6 +307,7 @@ export default function UploadPage() {
       });
     },
     onError: (error: any) => {
+      logger.error('Upload error', error);
       toast({
         variant: "destructive",
         title: t('upload.error'),
