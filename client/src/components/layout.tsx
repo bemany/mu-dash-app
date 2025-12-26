@@ -87,32 +87,56 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
     setError('');
     const loadedId = inputVorgangsId.trim().toUpperCase();
     const startTime = Date.now();
-    const MIN_LOADING_TIME = 800; // Minimum display time for loading overlay
+    const MIN_LOADING_TIME = 800;
+    
+    console.log('[Sidebar] Starting session load for:', loadedId);
+    
     try {
+      console.log('[Sidebar] Calling /api/session/load...');
       const res = await fetch('/api/session/load', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vorgangsId: loadedId }),
       });
+      
+      console.log('[Sidebar] Response status:', res.status, res.ok ? 'OK' : 'FAILED');
+      
       if (!res.ok) {
         const data = await res.json();
+        console.log('[Sidebar] Error response:', data);
         setError(data.error || t('layout.notFound'));
         setIsLoading(false);
         return;
       }
+      
+      const responseData = await res.json();
+      console.log('[Sidebar] Success response:', responseData);
+      
+      console.log('[Sidebar] Invalidating session query...');
       await queryClient.invalidateQueries({ queryKey: ['session'] });
+      console.log('[Sidebar] Query invalidated, refetching...');
+      
+      // Wait for refetch to complete
+      const newSessionData = await queryClient.fetchQuery({ 
+        queryKey: ['session'],
+        staleTime: 0 
+      });
+      console.log('[Sidebar] New session data:', newSessionData);
+      
       playNotificationSound();
       setInputVorgangsId('');
       toast.success(t('layout.loadSuccess', { id: loadedId }));
       
-      // Ensure minimum loading display time
       const elapsed = Date.now() - startTime;
+      console.log('[Sidebar] Total load time:', elapsed, 'ms');
       if (elapsed < MIN_LOADING_TIME) {
         await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsed));
       }
     } catch (err) {
+      console.error('[Sidebar] Error loading session:', err);
       setError(t('layout.loadError'));
     } finally {
+      console.log('[Sidebar] Load complete, hiding overlay');
       setIsLoading(false);
     }
   };

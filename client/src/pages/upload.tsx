@@ -43,7 +43,10 @@ function GoToDashboardButton({ vorgangsId }: { vorgangsId: string | null }) {
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleClick = async () => {
+    console.log('[GoToDashboard] Button clicked, vorgangsId:', vorgangsId);
+    
     if (!vorgangsId) {
+      console.log('[GoToDashboard] No vorgangsId, navigating directly to /');
       setLocation('/');
       return;
     }
@@ -54,31 +57,49 @@ function GoToDashboardButton({ vorgangsId }: { vorgangsId: string | null }) {
     const MIN_LOADING_TIME = 800;
     
     try {
+      console.log('[GoToDashboard] Calling /api/session/load...');
       const res = await fetch('/api/session/load', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vorgangsId }),
       });
       
+      console.log('[GoToDashboard] Response status:', res.status, res.ok ? 'OK' : 'FAILED');
+      
       if (!res.ok) {
-        console.error('Failed to load session');
+        const errorData = await res.json();
+        console.error('[GoToDashboard] Load failed:', errorData);
         setLocation('/');
         return;
       }
       
+      const responseData = await res.json();
+      console.log('[GoToDashboard] Success response:', responseData);
+      
+      console.log('[GoToDashboard] Invalidating session query...');
       await queryClient.invalidateQueries({ queryKey: ['session'] });
+      
+      const newSessionData = await queryClient.fetchQuery({ 
+        queryKey: ['session'],
+        staleTime: 0 
+      });
+      console.log('[GoToDashboard] New session data:', newSessionData);
+      
       playNotificationSound();
       
       const elapsed = Date.now() - startTime;
+      console.log('[GoToDashboard] Total load time:', elapsed, 'ms');
       if (elapsed < MIN_LOADING_TIME) {
         await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsed));
       }
       
+      console.log('[GoToDashboard] Navigating to /');
       setLocation('/');
     } catch (err) {
-      console.error('Error loading session:', err);
+      console.error('[GoToDashboard] Error loading session:', err);
       setLocation('/');
     } finally {
+      console.log('[GoToDashboard] Load complete');
       setIsLoading(false);
       setIsNavigating(false);
     }
