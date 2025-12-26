@@ -1,0 +1,105 @@
+Error with Permissions-Policy header: Unrecognized feature: 'browsing-topics'.
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:37:57,698
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:37:59,464
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:38:00,099
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:38:00,558
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:38:03,653
+index-6adPRjdQ.js:332 [14:38:06,853] [Session] Starting session load for: F3DCXW
+index-6adPRjdQ.js:332 [14:38:06,853] [API] POST /api/session/load - sending request
+index-6adPRjdQ.js:332 [14:38:07,178] [API] POST /api/session/load - response: 200 OK
+index-6adPRjdQ.js:332 [14:38:07,179] [Session] Session load success {success: true, sessionId: 'session_1766751695714_h263646gk'}
+index-6adPRjdQ.js:332 [14:38:07,180] [Session] Invalidating session query...
+index-6adPRjdQ.js:332 [14:38:08,762] [Session] Refetching session data...
+index-6adPRjdQ.js:332 [14:38:08,763] [API] GET /api/session - fetching
+index-6adPRjdQ.js:332 [14:38:10,623] [API] GET /api/session - response: 500 FAILED
+installHook.js:1 [14:38:10,624] [Error] GET /api/session error body: 
+overrideMethod @ installHook.js:1
+Yi @ index-6adPRjdQ.js:332
+error @ index-6adPRjdQ.js:332
+queryFn @ index-6adPRjdQ.js:372
+await in queryFn
+s @ index-6adPRjdQ.js:57
+E @ index-6adPRjdQ.js:57
+start @ index-6adPRjdQ.js:57
+fetch @ index-6adPRjdQ.js:57
+fetchQuery @ index-6adPRjdQ.js:57
+k @ index-6adPRjdQ.js:372
+await in k
+onKeyDown @ index-6adPRjdQ.js:372
+pb @ index-6adPRjdQ.js:48
+(anonymous) @ index-6adPRjdQ.js:48
+wx @ index-6adPRjdQ.js:48
+np @ index-6adPRjdQ.js:48
+gp @ index-6adPRjdQ.js:49
+EM @ index-6adPRjdQ.js:49
+installHook.js:1 [14:38:10,625] [Error] Error loading session Error: Failed to fetch session: 500
+    at queryFn (index-6adPRjdQ.js:372:25405)
+overrideMethod @ installHook.js:1
+Yi @ index-6adPRjdQ.js:332
+error @ index-6adPRjdQ.js:332
+k @ index-6adPRjdQ.js:372
+await in k
+onKeyDown @ index-6adPRjdQ.js:372
+pb @ index-6adPRjdQ.js:48
+(anonymous) @ index-6adPRjdQ.js:48
+wx @ index-6adPRjdQ.js:48
+np @ index-6adPRjdQ.js:48
+gp @ index-6adPRjdQ.js:49
+EM @ index-6adPRjdQ.js:49
+index-6adPRjdQ.js:332 [14:38:10,626] [UI] Session load complete, hiding overlay
+index-6adPRjdQ.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-6adPRjdQ.js:332 [MU-Dash] Logging initialized at 14:38:12,958
+index-6adPRjdQ.js:332 [14:38:12,959] [Navigation] Import page loaded
+index-6adPRjdQ.js:332 [14:38:24,750] [Import] Files selected via picker: 2 (2) ['20251101-20251130-payments_order-Straenflitzer_GmbH.csv', '20251101-20251130-trip_activity-Straenflitzer_GmbH.csv']
+index-6adPRjdQ.js:332 [14:38:24,750] [Import] Analyzing 2 files (2) ['20251101-20251130-payments_order-Straenflitzer_GmbH.csv', '20251101-20251130-trip_activity-Straenflitzer_GmbH.csv']
+index-6adPRjdQ.js:332 [14:38:24,937] [Import] Analysis complete (2) [{…}, {…}]
+index-6adPRjdQ.js:332 [14:38:25,969] [Import] Starting upload of 2 files (2) [{…}, {…}]
+index-6adPRjdQ.js:332 [14:38:25,970] [API] POST /api/upload - sending request
+index-6adPRjdQ.js:332 [14:38:35,254] [API] POST /api/upload - response: 200 OK
+index-6adPRjdQ.js:332 [14:38:35,254] [Import] Upload successful! {vorgangsId: 'F3DCXW', trips: 15073, transactions: 17087}
+index-6adPRjdQ.js:332 [14:38:40,168] [Session] Starting session load for: F3DCXW
+index-6adPRjdQ.js:332 [14:38:40,168] [API] POST /api/session/load - sending request
+index-6adPRjdQ.js:332 [14:38:40,426] [API] POST /api/session/load - response: 200 OK
+index-6adPRjdQ.js:332 [14:38:40,426] [Session] Session load success {success: true, sessionId: 'session_1766751695714_h263646gk'}
+index-6adPRjdQ.js:332 [14:38:40,427] [Session] Invalidating session query...
+index-6adPRjdQ.js:332 [14:38:42,046] [Session] Refetching session data...
+index-6adPRjdQ.js:332 [14:38:42,047] [API] GET /api/session - fetching
+index-6adPRjdQ.js:332 [14:38:43,964] [API] GET /api/session - response: 500 FAILED
+installHook.js:1 [14:38:43,964] [Error] GET /api/session error body: 
+overrideMethod @ installHook.js:1
+Yi @ index-6adPRjdQ.js:332
+error @ index-6adPRjdQ.js:332
+queryFn @ index-6adPRjdQ.js:372
+await in queryFn
+s @ index-6adPRjdQ.js:57
+E @ index-6adPRjdQ.js:57
+start @ index-6adPRjdQ.js:57
+fetch @ index-6adPRjdQ.js:57
+fetchQuery @ index-6adPRjdQ.js:57
+k @ index-6adPRjdQ.js:372
+await in k
+pb @ index-6adPRjdQ.js:48
+(anonymous) @ index-6adPRjdQ.js:48
+wx @ index-6adPRjdQ.js:48
+np @ index-6adPRjdQ.js:48
+gp @ index-6adPRjdQ.js:49
+EM @ index-6adPRjdQ.js:49
+installHook.js:1 [14:38:43,965] [Error] Error loading session Error: Failed to fetch session: 500
+    at queryFn (index-6adPRjdQ.js:372:25405)
+overrideMethod @ installHook.js:1
+Yi @ index-6adPRjdQ.js:332
+error @ index-6adPRjdQ.js:332
+k @ index-6adPRjdQ.js:372
+await in k
+pb @ index-6adPRjdQ.js:48
+(anonymous) @ index-6adPRjdQ.js:48
+wx @ index-6adPRjdQ.js:48
+np @ index-6adPRjdQ.js:48
+gp @ index-6adPRjdQ.js:49
+EM @ index-6adPRjdQ.js:49
+index-6adPRjdQ.js:332 [14:38:43,965] [UI] Session load complete, hiding overlay
