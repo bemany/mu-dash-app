@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +14,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const APP_VERSION = "2.4.0";
+const BUILD_NUMBER = "241226-1";
 
 interface LayoutLoadingContextType {
   isLoading: boolean;
@@ -56,6 +59,10 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
 
   const hasSessionData = sessionData?.tripCount > 0;
   const currentLanguage = languages.find(l => l.code === language);
+
+  useEffect(() => {
+    console.log(`[MU-Dash] Version ${APP_VERSION} (Build ${BUILD_NUMBER})`);
+  }, []);
   
   const copyVorgangsId = () => {
     if (sessionData?.vorgangsId) {
@@ -316,8 +323,8 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
               
               <div className="mt-4 pt-3 border-t border-slate-800">
                 <div className="px-4 text-xs text-slate-500">
-                  <div className="font-mono">v2.4.0</div>
-                  <div className="text-slate-600">Build 241226-1</div>
+                  <div className="font-mono">v{APP_VERSION}</div>
+                  <div className="text-slate-600">Build {BUILD_NUMBER}</div>
                 </div>
               </div>
             </div>
