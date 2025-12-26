@@ -10,7 +10,7 @@ import Papa from "papaparse";
 import type { InsertTrip, InsertTransaction } from "@shared/schema";
 
 const SOFTWARE_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-1";
+const BUILD_NUMBER = "241226-2";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -324,9 +324,18 @@ export async function registerRoutes(
   });
 
   app.get("/api/session", async (req, res) => {
+    console.log("[Session] GET /api/session called");
+    console.log("[Session] Express session ID:", req.sessionID);
+    console.log("[Session] uberRetterSessionId:", req.session.uberRetterSessionId);
     try {
       const sessionId = req.session.uberRetterSessionId!;
+      if (!sessionId) {
+        console.error("[Session] ERROR: No uberRetterSessionId in session!");
+        return res.status(500).json({ error: "No session ID found" });
+      }
+      console.log("[Session] Looking up session:", sessionId);
       const session = await storage.getOrCreateSession(sessionId);
+      console.log("[Session] Session found/created:", session?.sessionId);
       
       // Use count to check if there's data
       const [tripCount, transactionCount] = await Promise.all([
