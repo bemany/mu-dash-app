@@ -9,7 +9,8 @@ import multer from "multer";
 import Papa from "papaparse";
 import type { InsertTrip, InsertTransaction } from "@shared/schema";
 
-const SOFTWARE_VERSION = "2.3.0";
+const SOFTWARE_VERSION = "2.4.0";
+const BUILD_NUMBER = "241226-1";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),

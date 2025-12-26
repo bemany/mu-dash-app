@@ -316,9 +316,8 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
               
               <div className="mt-4 pt-3 border-t border-slate-800">
                 <div className="px-4 text-xs text-slate-500">
-                  <span className="font-mono">v2.3.0</span>
-                  <span className="mx-1">•</span>
-                  <span>26.12.2024</span>
+                  <div className="font-mono">v2.4.0</div>
+                  <div className="text-slate-600">Build 241226-1</div>
                 </div>
               </div>
             </div>
