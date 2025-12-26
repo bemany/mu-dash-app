@@ -1,5 +1,5 @@
 const APP_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-5";
+const BUILD_NUMBER = "241226-6";
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 

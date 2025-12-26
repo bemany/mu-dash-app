@@ -329,6 +329,8 @@ export async function registerRoutes(
     console.log("[Session] GET /api/session called");
     console.log("[Session] Express session ID:", req.sessionID);
     console.log("[Session] uberRetterSessionId:", req.session.uberRetterSessionId);
+    console.log("[Session] Cookie header present:", !!req.headers.cookie);
+    console.log("[Session] connect.sid cookie present:", !!req.headers.cookie?.includes('connect.sid'));
     
     try {
       const sessionId = req.session.uberRetterSessionId;
@@ -421,6 +423,7 @@ export async function registerRoutes(
     console.log("[Load] Starting session load, request vorgangsId:", req.body?.vorgangsId);
     console.log("[Load] Current express session ID:", req.sessionID);
     console.log("[Load] Current uberRetterSessionId before load:", req.session.uberRetterSessionId);
+    console.log("[Load] Session cookie present:", !!req.headers.cookie?.includes('connect.sid'));
     
     try {
       const { vorgangsId } = req.body;
