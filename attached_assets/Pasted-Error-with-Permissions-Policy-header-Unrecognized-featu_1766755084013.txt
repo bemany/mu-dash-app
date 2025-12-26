@@ -1,0 +1,49 @@
+Error with Permissions-Policy header: Unrecognized feature: 'browsing-topics'.
+index-C_ctrbZX.js:332 [MU-Dash] Version 2.4.0 (Build 241226-5)
+index-C_ctrbZX.js:332 [MU-Dash] Logging initialized at 14:14:07,389
+index-C_ctrbZX.js:332 [14:14:07,390] [Navigation] Import page loaded
+index-C_ctrbZX.js:332 [MU-Dash] Version 2.4.0 (Build 241226-5)
+index-C_ctrbZX.js:332 [MU-Dash] Logging initialized at 14:14:13,449
+index-C_ctrbZX.js:332 [14:14:21,164] [Session] Starting session load for: F3DCXW
+index-C_ctrbZX.js:332 [14:14:21,164] [API] POST /api/session/load - sending request
+index-C_ctrbZX.js:332 [14:14:21,452] [API] POST /api/session/load - response: 200 OK
+index-C_ctrbZX.js:332 [14:14:21,452] [Session] Session load success {success: true, sessionId: 'session_1766751695714_h263646gk'}
+index-C_ctrbZX.js:332 [14:14:21,453] [Session] Invalidating session query...
+index-C_ctrbZX.js:332 [14:14:22,737] [Session] Refetching session data...
+index-C_ctrbZX.js:332 [14:14:22,738] [API] GET /api/session - fetching
+index-C_ctrbZX.js:332 [14:14:24,217] [API] GET /api/session - response: 500 FAILED
+installHook.js:1 [14:14:24,218] [Error] GET /api/session error body: 
+overrideMethod @ installHook.js:1
+Yi @ index-C_ctrbZX.js:332
+error @ index-C_ctrbZX.js:332
+queryFn @ index-C_ctrbZX.js:372
+await in queryFn
+s @ index-C_ctrbZX.js:57
+E @ index-C_ctrbZX.js:57
+start @ index-C_ctrbZX.js:57
+fetch @ index-C_ctrbZX.js:57
+fetchQuery @ index-C_ctrbZX.js:57
+k @ index-C_ctrbZX.js:372
+await in k
+onKeyDown @ index-C_ctrbZX.js:372
+pb @ index-C_ctrbZX.js:48
+(anonymous) @ index-C_ctrbZX.js:48
+wx @ index-C_ctrbZX.js:48
+np @ index-C_ctrbZX.js:48
+gp @ index-C_ctrbZX.js:49
+EM @ index-C_ctrbZX.js:49
+installHook.js:1 [14:14:24,248] [Error] Error loading session Error: Failed to fetch session: 500
+    at queryFn (index-C_ctrbZX.js:372:25405)
+overrideMethod @ installHook.js:1
+Yi @ index-C_ctrbZX.js:332
+error @ index-C_ctrbZX.js:332
+k @ index-C_ctrbZX.js:372
+await in k
+onKeyDown @ index-C_ctrbZX.js:372
+pb @ index-C_ctrbZX.js:48
+(anonymous) @ index-C_ctrbZX.js:48
+wx @ index-C_ctrbZX.js:48
+np @ index-C_ctrbZX.js:48
+gp @ index-C_ctrbZX.js:49
+EM @ index-C_ctrbZX.js:49
+index-C_ctrbZX.js:332 [14:14:24,249] [UI] Session load complete, hiding overlay
