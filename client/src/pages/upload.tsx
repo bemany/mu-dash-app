@@ -35,19 +35,59 @@ interface FilePreview {
   dateRange?: { from: string; to: string };
 }
 
-function GoToDashboardButton() {
+function GoToDashboardButton({ vorgangsId }: { vorgangsId: string | null }) {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { setIsLoading } = useLayoutLoading();
+  const queryClient = useQueryClient();
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    if (!vorgangsId) {
+      setLocation('/');
+      return;
+    }
+    
+    setIsNavigating(true);
     setIsLoading(true);
-    setLocation('/');
+    const startTime = Date.now();
+    const MIN_LOADING_TIME = 800;
+    
+    try {
+      const res = await fetch('/api/session/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vorgangsId }),
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to load session');
+        setLocation('/');
+        return;
+      }
+      
+      await queryClient.invalidateQueries({ queryKey: ['session'] });
+      playNotificationSound();
+      
+      const elapsed = Date.now() - startTime;
+      if (elapsed < MIN_LOADING_TIME) {
+        await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsed));
+      }
+      
+      setLocation('/');
+    } catch (err) {
+      console.error('Error loading session:', err);
+      setLocation('/');
+    } finally {
+      setIsLoading(false);
+      setIsNavigating(false);
+    }
   };
 
   return (
     <Button
       onClick={handleClick}
+      disabled={isNavigating}
       className="bg-emerald-600 hover:bg-emerald-700 text-white"
       data-testid="button-go-to-dashboard"
     >
@@ -347,7 +387,7 @@ export default function UploadPage() {
                   <FileUp className="w-4 h-4 mr-2" />
                   {t('dashboard.addMoreData')}
                 </Button>
-                <GoToDashboardButton />
+                <GoToDashboardButton vorgangsId={uploadResult.vorgangsId} />
               </div>
             </CardContent>
           </Card>
