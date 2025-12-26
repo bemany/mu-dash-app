@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { progressBroker } from "./progress-broker";
@@ -10,7 +10,7 @@ import Papa from "papaparse";
 import type { InsertTrip, InsertTransaction } from "@shared/schema";
 
 const SOFTWARE_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-4";
+const BUILD_NUMBER = "241226-5";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -316,26 +316,55 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  app.use((req, res, next) => {
+  // Helper function to create a new session ID (called only when importing data)
+  function ensureSessionId(req: Request): string {
     if (!req.session.uberRetterSessionId) {
       req.session.uberRetterSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log("[Session] Created new session ID:", req.session.uberRetterSessionId);
     }
-    next();
-  });
+    return req.session.uberRetterSessionId;
+  }
 
   app.get("/api/session", async (req, res) => {
     console.log("[Session] GET /api/session called");
     console.log("[Session] Express session ID:", req.sessionID);
     console.log("[Session] uberRetterSessionId:", req.session.uberRetterSessionId);
+    
     try {
-      const sessionId = req.session.uberRetterSessionId!;
+      const sessionId = req.session.uberRetterSessionId;
+      
+      // If no session exists yet, return empty data (no DB session created)
       if (!sessionId) {
-        console.error("[Session] ERROR: No uberRetterSessionId in session!");
-        return res.status(500).json({ error: "No session ID found" });
+        console.log("[Session] No session yet - returning empty state");
+        return res.json({
+          sessionId: null,
+          vorgangsId: null,
+          companyName: null,
+          currentStep: 1,
+          tripCount: 0,
+          aggregatedTrips: [],
+          transactions: [],
+        });
       }
+      
       console.log("[Session] Looking up session:", sessionId);
-      const session = await storage.getOrCreateSession(sessionId);
-      console.log("[Session] Session found/created:", session?.sessionId);
+      const session = await storage.getSessionById(sessionId);
+      
+      // Session ID exists in cookie but not in DB (maybe cleaned up) - return empty
+      if (!session) {
+        console.log("[Session] Session not found in DB - returning empty state");
+        return res.json({
+          sessionId: null,
+          vorgangsId: null,
+          companyName: null,
+          currentStep: 1,
+          tripCount: 0,
+          aggregatedTrips: [],
+          transactions: [],
+        });
+      }
+      
+      console.log("[Session] Session found:", session.sessionId);
       
       // Use count to check if there's data
       const [tripCount, transactionCount] = await Promise.all([
@@ -739,7 +768,17 @@ export async function registerRoutes(
 
   app.post("/api/upload", upload.array("files", 100), async (req, res) => {
     const startTime = Date.now();
-    const sessionId = req.session.uberRetterSessionId!;
+    // Create session ID only when actually importing data
+    const sessionId = ensureSessionId(req);
+    
+    // Save the session to persist the new session ID
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
     const logger = createImportLogger(sessionId);
     
     try {

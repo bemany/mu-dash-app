@@ -1,0 +1,75 @@
+Error with Permissions-Policy header: Unrecognized feature: 'browsing-topics'.
+index-vINwn_wS.js:332 [MU-Dash] Version 2.4.0 (Build 241226-4)
+index-vINwn_wS.js:332 [MU-Dash] Logging initialized at 14:04:00,910
+index-vINwn_wS.js:332 [MU-Dash] Version 2.4.0 (Build 241226-4)
+index-vINwn_wS.js:332 [MU-Dash] Logging initialized at 14:04:06,245
+index-vINwn_wS.js:332 [14:05:25,704] [Session] Starting session load for: F3DCXW
+index-vINwn_wS.js:332 [14:05:25,705] [API] POST /api/session/load - sending request
+index-vINwn_wS.js:332 [14:05:26,253] [API] POST /api/session/load - response: 200 OK
+index-vINwn_wS.js:332 [14:05:26,254] [Session] Session load success {success: true, sessionId: 'session_1766751695714_h263646gk'}sessionId: "session_1766751695714_h263646gk"success: true[[Prototype]]: Object
+index-vINwn_wS.js:332 [14:05:26,254] [Session] Invalidating session query...
+index-vINwn_wS.js:332 [14:05:34,259] [Session] Refetching session data...
+index-vINwn_wS.js:332 [14:05:34,259] [API] GET /api/session - fetching
+index-vINwn_wS.js:332 [14:05:36,686] [API] GET /api/session - response: 500 FAILED
+installHook.js:1 [14:05:36,687] [Error] GET /api/session error body: 
+overrideMethod @ installHook.js:1
+Yi @ index-vINwn_wS.js:332
+error @ index-vINwn_wS.js:332
+queryFn @ index-vINwn_wS.js:372
+await in queryFn
+s @ index-vINwn_wS.js:57
+E @ index-vINwn_wS.js:57
+start @ index-vINwn_wS.js:57
+fetch @ index-vINwn_wS.js:57
+fetchQuery @ index-vINwn_wS.js:57
+k @ index-vINwn_wS.js:372
+await in k
+pb @ index-vINwn_wS.js:48
+(anonymous) @ index-vINwn_wS.js:48
+wx @ index-vINwn_wS.js:48
+np @ index-vINwn_wS.js:48
+gp @ index-vINwn_wS.js:49
+EM @ index-vINwn_wS.js:49
+installHook.js:1 [14:05:36,688] [Error] Error loading session Error: Failed to fetch session: 500
+    at queryFn (index-vINwn_wS.js:372:25405)
+overrideMethod @ installHook.js:1
+Yi @ index-vINwn_wS.js:332
+error @ index-vINwn_wS.js:332
+k @ index-vINwn_wS.js:372
+await in k
+pb @ index-vINwn_wS.js:48
+(anonymous) @ index-vINwn_wS.js:48
+wx @ index-vINwn_wS.js:48
+np @ index-vINwn_wS.js:48
+gp @ index-vINwn_wS.js:49
+EM @ index-vINwn_wS.js:49
+index-vINwn_wS.js:332 [14:05:36,689] [UI] Session load complete, hiding overlay
+index-vINwn_wS.js:332 [MU-Dash] Version 2.4.0 (Build 241226-4)
+index-vINwn_wS.js:332 [MU-Dash] Logging initialized at 14:05:50,578
+index-vINwn_wS.js:332 [14:05:50,579] [Navigation] Import page loaded
+index-vINwn_wS.js:332 [14:05:55,338] [Import] Files selected via picker: 2 (2) ['20251101-20251130-trip_activity-Straenflitzer_GmbH.csv', '20251101-20251130-payments_order-Straenflitzer_GmbH.csv']
+index-vINwn_wS.js:332 [14:05:55,338] [Import] Analyzing 2 files (2) ['20251101-20251130-trip_activity-Straenflitzer_GmbH.csv', '20251101-20251130-payments_order-Straenflitzer_GmbH.csv']
+index-vINwn_wS.js:332 [14:05:55,535] [Import] Analysis complete (2) [{…}, {…}]
+index-vINwn_wS.js:332 [14:05:56,587] [Import] Starting upload of 2 files (2) [{…}, {…}]
+index-vINwn_wS.js:332 [14:05:56,587] [API] POST /api/upload - sending request
+index-vINwn_wS.js:332 [14:06:06,147] [API] POST /api/upload - response: 200 OK
+index-vINwn_wS.js:332 [14:06:06,148] [Import] Upload successful! {vorgangsId: 'F3DCXW', trips: 15073, transactions: 17087}
+index-vINwn_wS.js:390 [GoToDashboard] Button clicked, vorgangsId: F3DCXW
+index-vINwn_wS.js:390 [GoToDashboard] Calling /api/session/load...
+index-vINwn_wS.js:390 [GoToDashboard] Response status: 200 OK
+index-vINwn_wS.js:390 [GoToDashboard] Success response: {success: true, sessionId: 'session_1766751695714_h263646gk'}
+index-vINwn_wS.js:390 [GoToDashboard] Invalidating session query...
+installHook.js:1 [GoToDashboard] Error loading session: Error: Failed to fetch session
+    at queryFn (index-vINwn_wS.js:390:2885)
+overrideMethod @ installHook.js:1
+u @ index-vINwn_wS.js:390
+await in u
+pb @ index-vINwn_wS.js:48
+(anonymous) @ index-vINwn_wS.js:48
+wx @ index-vINwn_wS.js:48
+np @ index-vINwn_wS.js:48
+gp @ index-vINwn_wS.js:49
+EM @ index-vINwn_wS.js:49
+index-vINwn_wS.js:390 [GoToDashboard] Load complete
+index-vINwn_wS.js:332 [MU-Dash] Version 2.4.0 (Build 241226-4)
+index-vINwn_wS.js:332 [MU-Dash] Logging initialized at 14:06:18,868

@@ -49,7 +49,7 @@ const sessionMiddleware = session({
   }),
   secret: SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Don't save sessions until data is actually imported
   cookie: {
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
