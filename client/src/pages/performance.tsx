@@ -412,6 +412,7 @@ const dateLocaleMap: Record<string, Locale> = {
 interface SessionData {
   sessionId: string;
   vorgangsId: string | null;
+  companyName: string | null;
   currentStep: number;
   tripCount: number;
 }
@@ -1576,9 +1577,10 @@ interface PromoTabProps {
   isDemo: boolean;
   selectedVehicles: string[];
   dateRange?: DateRange;
+  companyName?: string | null;
 }
 
-function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: PromoTabProps) {
+function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, companyName }: PromoTabProps) {
   const { t } = useTranslation();
   
   const reportData = isDemo ? mockPromoReport : data;
@@ -1693,15 +1695,26 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
   
   const exportToExcel = () => {
     if (!pivotData.length) return;
-    const headers: Record<string, any> = { [t('performance.tableLicensePlate')]: '' };
-    months.forEach(month => {
-      headers[`${month} ${t('performance.tableTheoBonus')}`] = '';
-      headers[`${month} ${t('performance.tablePaid')}`] = '';
-      headers[`${month} ${t('performance.tableDifference')}`] = '';
-    });
-    headers[`${t('performance.total')} ${t('performance.tableTheoBonus')}`] = '';
-    headers[`${t('performance.total')} ${t('performance.tablePaid')}`] = '';
-    headers[`${t('performance.total')} ${t('performance.tableDifference')}`] = '';
+    
+    // Build date range string
+    let dateRangeStr = '';
+    if (dateRange?.from && dateRange?.to) {
+      const fromStr = format(dateRange.from, 'dd.MM.yyyy');
+      const toStr = format(dateRange.to, 'dd.MM.yyyy');
+      dateRangeStr = `${fromStr} - ${toStr}`;
+    }
+    
+    // Header rows with company name and date range
+    const headerRows: Record<string, any>[] = [];
+    if (companyName) {
+      headerRows.push({ [t('performance.tableLicensePlate')]: t('performance.companyLabel') || 'Unternehmen', '': companyName });
+    }
+    if (dateRangeStr) {
+      headerRows.push({ [t('performance.tableLicensePlate')]: t('performance.dateRangeLabel') || 'Zeitraum', '': dateRangeStr });
+    }
+    if (headerRows.length > 0) {
+      headerRows.push({}); // Empty row separator
+    }
     
     const dataToExport = pivotData.map(row => {
       const rowData: Record<string, any> = { [t('performance.tableLicensePlate')]: row.licensePlate };
@@ -1717,10 +1730,21 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange }: Prom
       return rowData;
     });
     
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const allData = [...headerRows, ...dataToExport];
+    
+    const ws = XLSX.utils.json_to_sheet(allData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetPromo'));
-    XLSX.writeFile(wb, `${t('performance.excelSheetPromo')}_Report.xlsx`);
+    
+    // Build filename with company name
+    const filenameParts = [t('performance.excelSheetPromo')];
+    if (companyName) {
+      filenameParts.push(companyName.replace(/[^a-zA-Z0-9äöüÄÖÜß\-_]/g, '_'));
+    }
+    if (dateRangeStr) {
+      filenameParts.push(dateRangeStr.replace(/\s/g, ''));
+    }
+    XLSX.writeFile(wb, `${filenameParts.join('_')}.xlsx`);
   };
 
   if (isLoading) {
@@ -2804,6 +2828,7 @@ export default function PerformancePage() {
             isDemo={isDemo}
             selectedVehicles={selectedVehicles}
             dateRange={dateRange}
+            companyName={sessionData?.companyName}
           />
         </TabsContent>
         <TabsContent value="commissions" className="mt-0 flex-1 overflow-auto">
