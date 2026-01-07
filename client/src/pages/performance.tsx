@@ -1628,17 +1628,22 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, compan
   
   const filteredSummary = useMemo(() => {
     if (!reportData?.summary) return { totalTheoreticalBonus: 0, totalActualPaid: 0, totalDifference: 0 };
+    
     const uniqueVehiclesInData = new Set(reportData.rows.map(r => r.licensePlate)).size;
     const allVehiclesSelected = selectedVehicles.length === 0 || selectedVehicles.length === uniqueVehiclesInData;
-    if (allVehiclesSelected) {
-      return reportData.summary;
+    const hasDateFilter = dateRange?.from || dateRange?.to;
+    
+    // Always recalculate from filtered rows if any filter is active
+    if (!allVehiclesSelected || hasDateFilter) {
+      return {
+        totalTheoreticalBonus: filteredRows.reduce((sum, r) => sum + r.theoreticalBonus, 0),
+        totalActualPaid: filteredRows.reduce((sum, r) => sum + r.actualPaid, 0),
+        totalDifference: filteredRows.reduce((sum, r) => sum + r.difference, 0),
+      };
     }
-    return {
-      totalTheoreticalBonus: filteredRows.reduce((sum, r) => sum + r.theoreticalBonus, 0),
-      totalActualPaid: filteredRows.reduce((sum, r) => sum + r.actualPaid, 0),
-      totalDifference: filteredRows.reduce((sum, r) => sum + r.difference, 0),
-    };
-  }, [reportData, filteredRows, selectedVehicles]);
+    
+    return reportData.summary;
+  }, [reportData, filteredRows, selectedVehicles, dateRange]);
   
   const { pivotData, months, monthTotals } = useMemo(() => {
     if (!filteredRows.length) return { pivotData: [], months: [], monthTotals: {} as Record<string, { theo: number; paid: number; diff: number }> };
