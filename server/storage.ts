@@ -1493,6 +1493,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(*)::int as count
         FROM trips
         WHERE session_id = ${sessionId}
+          AND LOWER(trip_status) = 'completed'
         GROUP BY license_plate, TO_CHAR(order_time, 'YYYY-MM')
         ORDER BY license_plate, month
       `),
