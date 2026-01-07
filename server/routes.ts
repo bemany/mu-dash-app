@@ -382,15 +382,22 @@ export async function registerRoutes(
       // For sessions with many trips, use aggregated data
       // This prevents loading 260,000+ rows into memory
       const aggregatedTrips = await storage.getAggregatedTripsBySession(sessionId);
-      const transactions = await storage.getTransactionsBySession(sessionId);
-
-      const frontendTransactions = transactions.map(tx => ({
-        "Kennzeichen": tx.licensePlate,
-        "Zeitpunkt": tx.transactionTime.toISOString(),
-        "Betrag": tx.amount / 100,
-        "Beschreibung": tx.description || undefined,
-        ...tx.rawData as any,
-      }));
+      
+      // For large sessions (>10,000 transactions), don't load all transactions
+      // This prevents JSON.stringify RangeError for very large datasets
+      const MAX_TRANSACTIONS_IN_SESSION = 10000;
+      let frontendTransactions: any[] = [];
+      
+      if (transactionCount <= MAX_TRANSACTIONS_IN_SESSION) {
+        const transactions = await storage.getTransactionsBySession(sessionId);
+        frontendTransactions = transactions.map(tx => ({
+          "Kennzeichen": tx.licensePlate,
+          "Zeitpunkt": tx.transactionTime.toISOString(),
+          "Betrag": tx.amount / 100,
+          "Beschreibung": tx.description || undefined,
+          ...tx.rawData as any,
+        }));
+      }
 
       res.json({
         sessionId,
@@ -398,6 +405,7 @@ export async function registerRoutes(
         companyName: session.companyName,
         currentStep: session.currentStep,
         tripCount,
+        transactionCount,
         aggregatedTrips,
         transactions: frontendTransactions,
       });
