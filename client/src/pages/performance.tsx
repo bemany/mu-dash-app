@@ -1769,9 +1769,17 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, compan
     diff: Object.values(monthTotals).reduce((sum, m) => sum + m.diff, 0),
   };
   
+  const totalCompletedTrips = filteredRows.reduce((sum, r) => sum + r.tripCount, 0);
+  
   return (
     <div className="flex flex-col gap-4 h-full">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 flex-shrink-0">
+        <KpiCard
+          testId="kpi-promo-trips"
+          title={t('performance.promoTripsTitle')}
+          value={totalCompletedTrips.toLocaleString('de-DE')}
+          icon={<Car className="w-5 h-5" />}
+        />
         <KpiCard
           testId="kpi-promo-theoretical"
           title={t('performance.promoTheoreticalTitle')}
