@@ -382,6 +382,8 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, pres
               numberOfMonths={2}
               locale={dateLocale}
               captionLayout="dropdown"
+              startMonth={new Date(2020, 0)}
+              endMonth={new Date(new Date().getFullYear() + 1, 11)}
               classNames={{
                 months: "flex flex-col sm:flex-row space-y-4 sm:space-x-6 sm:space-y-0",
                 month: "space-y-4",
