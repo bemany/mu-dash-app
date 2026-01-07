@@ -1310,6 +1310,7 @@ export class DatabaseStorage implements IStorage {
       trip_with_shift_type AS (
         SELECT 
           *,
+          UPPER(TRIM(REPLACE(license_plate, ' ', ''))) as normalized_plate,
           CASE 
             WHEN start_hour >= 6 AND start_hour < 18 THEN 'day'
             ELSE 'night'
@@ -1319,7 +1320,7 @@ export class DatabaseStorage implements IStorage {
       ),
       shift_detection AS (
         SELECT 
-          license_plate,
+          normalized_plate,
           order_time,
           status,
           fare,
@@ -1329,11 +1330,11 @@ export class DatabaseStorage implements IStorage {
           shift_type,
           CASE 
             WHEN LAG(order_time) OVER (
-              PARTITION BY license_plate 
+              PARTITION BY normalized_plate 
               ORDER BY order_time
             ) IS NULL 
             OR EXTRACT(EPOCH FROM (order_time - LAG(order_time) OVER (
-              PARTITION BY license_plate 
+              PARTITION BY normalized_plate 
               ORDER BY order_time
             ))) / 3600 > 5
             THEN 1
@@ -1343,7 +1344,7 @@ export class DatabaseStorage implements IStorage {
       ),
       vehicle_metrics AS (
         SELECT 
-          license_plate,
+          normalized_plate as license_plate,
           COUNT(*) FILTER (WHERE status = 'completed') as completed_trips,
           COUNT(*) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
           COUNT(*) as total_trips,
@@ -1359,7 +1360,7 @@ export class DatabaseStorage implements IStorage {
           COUNT(DISTINCT DATE(order_time)) as active_days,
           COUNT(DISTINCT TO_CHAR(order_time, 'YYYY-MM')) as active_months
         FROM shift_detection
-        GROUP BY license_plate
+        GROUP BY normalized_plate
       )
       SELECT 
         license_plate,
