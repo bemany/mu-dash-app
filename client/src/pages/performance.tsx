@@ -353,7 +353,7 @@ function DatePickerWithRange({ date, onDateChange, placeholder, dateLocale, pres
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <div className="flex">
-          <div className="border-r border-slate-200 p-3 space-y-1 w-fit max-h-[340px] overflow-y-auto">
+          <div className="border-r border-slate-200 p-3 space-y-1 w-fit max-w-[180px] max-h-[340px] overflow-y-auto">
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide px-2 mb-2">Zeitraum</p>
             {presets.map((preset) => (
               <button
