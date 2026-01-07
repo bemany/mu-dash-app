@@ -933,6 +933,8 @@ export async function registerRoutes(
 
       let vorgangsId = null;
       if (totalTripsProcessed > 0 || totalTransactionsProcessed > 0) {
+        // Ensure session exists in DB before generating VorgangsId
+        await storage.getOrCreateSession(sessionId);
         vorgangsId = await storage.generateVorgangsId(sessionId);
         await storage.updateSessionActivity(sessionId, 2);
       }
