@@ -1488,23 +1488,23 @@ export class DatabaseStorage implements IStorage {
     const [aggregatedTripsResult, transactionsResult] = await Promise.all([
       db.execute(sql`
         SELECT 
-          license_plate as "licensePlate",
+          UPPER(TRIM(REPLACE(license_plate, ' ', ''))) as "licensePlate",
           TO_CHAR(order_time, 'YYYY-MM') as month,
           COUNT(*)::int as count
         FROM trips
         WHERE session_id = ${sessionId}
           AND LOWER(trip_status) = 'completed'
-        GROUP BY license_plate, TO_CHAR(order_time, 'YYYY-MM')
-        ORDER BY license_plate, month
+        GROUP BY UPPER(TRIM(REPLACE(license_plate, ' ', ''))), TO_CHAR(order_time, 'YYYY-MM')
+        ORDER BY "licensePlate", month
       `),
       db.execute(sql`
         SELECT 
-          license_plate,
+          UPPER(TRIM(REPLACE(license_plate, ' ', ''))) as license_plate,
           TO_CHAR(transaction_time, 'YYYY-MM') as month,
           SUM(amount)::int as total_amount
         FROM transactions
         WHERE session_id = ${sessionId}
-        GROUP BY license_plate, TO_CHAR(transaction_time, 'YYYY-MM')
+        GROUP BY UPPER(TRIM(REPLACE(license_plate, ' ', ''))), TO_CHAR(transaction_time, 'YYYY-MM')
         ORDER BY license_plate, month
       `)
     ]);
