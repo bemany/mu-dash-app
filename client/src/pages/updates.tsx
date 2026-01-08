@@ -16,6 +16,16 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "08.01.2025",
+    version: "2.5.0",
+    items: [
+      { type: 'fix', text: "Fahrtenzählung korrigiert: Fahrzeuge- und Fahrer-Tab zeigen jetzt korrekte Werte" },
+      { type: 'feature', text: "Excel-Export enthält jetzt Fahrtenzahlen pro Monat und Fahrzeug" },
+      { type: 'improvement', text: "Excel-Export vereinfacht: Firmenname und Zeitraum nur noch im Dateinamen" },
+      { type: 'fix', text: "Prämienberechnung korrigiert: 150€ für 250-699 Fahrten, 400€ ab 700 Fahrten" },
+    ]
+  },
+  {
     date: "25.12.2024",
     version: "2.1.0",
     items: [
