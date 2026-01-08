@@ -1522,7 +1522,7 @@ export class DatabaseStorage implements IStorage {
 
     const calculateBonus = (tripCount: number): number => {
       if (tripCount >= 700) return 400;
-      if (tripCount >= 250) return 250;
+      if (tripCount >= 250) return 150;
       return 0;
     };
 
