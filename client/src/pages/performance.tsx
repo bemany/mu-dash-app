@@ -1709,17 +1709,6 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, compan
       dateRangeStr = `${fromStr} - ${toStr}`;
     }
     
-    // Header rows with company name and date range
-    const headerRows: Record<string, any>[] = [];
-    if (companyName) {
-      headerRows.push({ [t('performance.tableLicensePlate')]: t('performance.companyLabel') || 'Unternehmen', '': companyName });
-    }
-    if (dateRangeStr) {
-      headerRows.push({ [t('performance.tableLicensePlate')]: t('performance.dateRangeLabel') || 'Zeitraum', '': dateRangeStr });
-    }
-    if (headerRows.length > 0) {
-      headerRows.push({}); // Empty row separator
-    }
     
     const dataToExport = pivotData.map(row => {
       const rowData: Record<string, any> = { [t('performance.tableLicensePlate')]: row.licensePlate };
@@ -1739,9 +1728,7 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, compan
       return rowData;
     });
     
-    const allData = [...headerRows, ...dataToExport];
-    
-    const ws = XLSX.utils.json_to_sheet(allData);
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, t('performance.excelSheetPromo'));
     
