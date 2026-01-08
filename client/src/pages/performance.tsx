@@ -1723,12 +1723,16 @@ function PromoTab({ data, isLoading, isDemo, selectedVehicles, dateRange, compan
     
     const dataToExport = pivotData.map(row => {
       const rowData: Record<string, any> = { [t('performance.tableLicensePlate')]: row.licensePlate };
+      let totalTrips = 0;
       months.forEach(month => {
-        const data = row.monthData[month] || { theo: 0, paid: 0, diff: 0 };
+        const data = row.monthData[month] || { theo: 0, paid: 0, diff: 0, trips: 0 };
+        totalTrips += data.trips;
+        rowData[`${month} ${t('performance.tableTrips')}`] = data.trips;
         rowData[`${month} ${t('performance.tableTheoBonus')}`] = data.theo;
         rowData[`${month} ${t('performance.tablePaid')}`] = data.paid;
         rowData[`${month} ${t('performance.tableDifference')}`] = data.diff;
       });
+      rowData[`${t('performance.total')} ${t('performance.tableTrips')}`] = totalTrips;
       rowData[`${t('performance.total')} ${t('performance.tableTheoBonus')}`] = row.total.theo;
       rowData[`${t('performance.total')} ${t('performance.tablePaid')}`] = row.total.paid;
       rowData[`${t('performance.total')} ${t('performance.tableDifference')}`] = row.total.diff;
