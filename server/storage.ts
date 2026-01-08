@@ -1094,7 +1094,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db.execute(sql`
       WITH trip_data AS (
         SELECT 
-          t.trip_id,
+          t.id as row_id,
           COALESCE(t.raw_data->>'Vorname des Fahrers', '') as first_name,
           COALESCE(t.raw_data->>'Nachname des Fahrers', '') as last_name,
           t.order_time,
@@ -1141,7 +1141,7 @@ export class DatabaseStorage implements IStorage {
       ),
       shift_detection AS (
         SELECT 
-          trip_id,
+          row_id,
           first_name,
           last_name,
           order_time,
@@ -1169,9 +1169,9 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           first_name,
           last_name,
-          COUNT(DISTINCT trip_id) FILTER (WHERE status = 'completed') as completed_trips,
-          COUNT(DISTINCT trip_id) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
-          COUNT(DISTINCT trip_id) as total_trips,
+          COUNT(DISTINCT row_id) FILTER (WHERE status = 'completed') as completed_trips,
+          COUNT(DISTINCT row_id) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
+          COUNT(DISTINCT row_id) as total_trips,
           SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
           SUM(CASE WHEN status = 'completed' THEN revenue ELSE 0 END) as total_revenue,
           SUM(distance_m) as total_distance_m,
@@ -1274,7 +1274,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db.execute(sql`
       WITH trip_data AS (
         SELECT 
-          t.trip_id,
+          t.id as row_id,
           t.license_plate,
           t.order_time,
           LOWER(COALESCE(t.trip_status, '')) as status,
@@ -1321,7 +1321,7 @@ export class DatabaseStorage implements IStorage {
       ),
       shift_detection AS (
         SELECT 
-          trip_id,
+          row_id,
           normalized_plate,
           order_time,
           status,
@@ -1347,9 +1347,9 @@ export class DatabaseStorage implements IStorage {
       vehicle_metrics AS (
         SELECT 
           normalized_plate as license_plate,
-          COUNT(DISTINCT trip_id) FILTER (WHERE status = 'completed') as completed_trips,
-          COUNT(DISTINCT trip_id) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
-          COUNT(DISTINCT trip_id) as total_trips,
+          COUNT(DISTINCT row_id) FILTER (WHERE status = 'completed') as completed_trips,
+          COUNT(DISTINCT row_id) FILTER (WHERE status IN ('driver_cancelled', 'rider_cancelled', 'failed', 'delivery_failed')) as cancelled_trips,
+          COUNT(DISTINCT row_id) as total_trips,
           SUM(CASE WHEN status = 'completed' THEN fare ELSE 0 END) as total_fare,
           SUM(CASE WHEN status = 'completed' THEN revenue ELSE 0 END) as total_revenue,
           SUM(CASE WHEN status = 'completed' AND shift_type = 'day' THEN revenue ELSE 0 END) as day_revenue,
