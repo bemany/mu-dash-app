@@ -19,10 +19,12 @@ const updates: Update[] = [
     date: "08.01.2025",
     version: "2.5.0",
     items: [
+      { type: 'feature', text: "Batch-Upload: Große Dateimengen werden automatisch in kleinere Pakete aufgeteilt" },
       { type: 'fix', text: "Fahrtenzählung korrigiert: Fahrzeuge- und Fahrer-Tab zeigen jetzt korrekte Werte" },
       { type: 'feature', text: "Excel-Export enthält jetzt Fahrtenzahlen pro Monat und Fahrzeug" },
       { type: 'improvement', text: "Excel-Export vereinfacht: Firmenname und Zeitraum nur noch im Dateinamen" },
       { type: 'fix', text: "Prämienberechnung korrigiert: 150€ für 250-699 Fahrten, 400€ ab 700 Fahrten" },
+      { type: 'improvement', text: "Verbessertes Logging bei Upload-Fehlern mit klaren Fehlermeldungen" },
     ]
   },
   {

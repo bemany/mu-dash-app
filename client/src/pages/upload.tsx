@@ -272,6 +272,85 @@ export default function UploadPage() {
     setFilePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Split files into batches (max 5 files or 30MB per batch)
+  const createBatches = (filesToUpload: File[]): File[][] => {
+    const MAX_FILES_PER_BATCH = 5;
+    const MAX_SIZE_PER_BATCH = 30 * 1024 * 1024; // 30MB
+    
+    const batches: File[][] = [];
+    let currentBatch: File[] = [];
+    let currentBatchSize = 0;
+    
+    for (const file of filesToUpload) {
+      const wouldExceedFiles = currentBatch.length >= MAX_FILES_PER_BATCH;
+      const wouldExceedSize = currentBatchSize + file.size > MAX_SIZE_PER_BATCH && currentBatch.length > 0;
+      
+      if (wouldExceedFiles || wouldExceedSize) {
+        batches.push(currentBatch);
+        currentBatch = [];
+        currentBatchSize = 0;
+      }
+      
+      currentBatch.push(file);
+      currentBatchSize += file.size;
+    }
+    
+    if (currentBatch.length > 0) {
+      batches.push(currentBatch);
+    }
+    
+    return batches;
+  };
+
+  const uploadSingleBatch = async (batch: File[], batchNum: number, totalBatches: number): Promise<any> => {
+    const batchSize = batch.reduce((sum, f) => sum + f.size, 0);
+    const batchSizeMB = (batchSize / (1024 * 1024)).toFixed(2);
+    
+    logger.import(`Batch ${batchNum}/${totalBatches}: Uploading ${batch.length} files (${batchSizeMB} MB)`, { 
+      data: batch.map(f => ({ name: f.name, sizeMB: (f.size / (1024 * 1024)).toFixed(2) })) 
+    });
+    
+    const formData = new FormData();
+    batch.forEach(file => {
+      formData.append('files', file);
+    });
+
+    logger.api(`POST /api/upload - batch ${batchNum}/${totalBatches} (${batchSizeMB} MB)`);
+    const startTime = Date.now();
+    
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    logger.api(`POST /api/upload - batch ${batchNum} response: ${res.status} ${res.ok ? 'OK' : 'FAILED'} (after ${elapsed}s)`);
+    
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      logger.error(`Batch ${batchNum} failed with status ${res.status}, content-type: ${contentType}`);
+      
+      if (res.status === 413) {
+        logger.error('413 Request Entity Too Large - batch is too big');
+        throw new Error(`Batch ${batchNum} zu groß (${batchSizeMB} MB). Server-Limit erreicht.`);
+      }
+      
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        logger.error('Non-JSON error response (first 500 chars):', text.substring(0, 500));
+        throw new Error(`Server-Fehler ${res.status} bei Batch ${batchNum}.`);
+      }
+      
+      const error = await res.json();
+      logger.error('Batch upload failed with JSON error', error);
+      throw new Error(error.error || `Batch ${batchNum} Upload fehlgeschlagen`);
+    }
+
+    return res.json();
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async (filesToUpload: File[]) => {
       const totalSize = filesToUpload.reduce((sum, f) => sum + f.size, 0);
@@ -285,47 +364,41 @@ export default function UploadPage() {
         })) 
       });
       
-      if (totalSize > 50 * 1024 * 1024) {
-        logger.warn(`Large upload detected: ${totalSizeMB} MB - may hit server limits`);
+      const batches = createBatches(filesToUpload);
+      logger.import(`Split into ${batches.length} batches`, { 
+        data: batches.map((b, i) => ({ 
+          batch: i + 1, 
+          files: b.length, 
+          sizeMB: (b.reduce((s, f) => s + f.size, 0) / (1024 * 1024)).toFixed(2) 
+        })) 
+      });
+      
+      let totalTripsAdded = 0;
+      let totalTransactionsAdded = 0;
+      let vorgangsId: string | null = null;
+      let dateRange: { from: string; to: string } | undefined;
+      
+      for (let i = 0; i < batches.length; i++) {
+        setBatchProgress({ current: i + 1, total: batches.length });
+        
+        const result = await uploadSingleBatch(batches[i], i + 1, batches.length);
+        
+        totalTripsAdded += result.tripsAdded || 0;
+        totalTransactionsAdded += result.transactionsAdded || 0;
+        if (result.vorgangsId) vorgangsId = result.vorgangsId;
+        if (result.dateRange) dateRange = result.dateRange;
+        
+        logger.import(`Batch ${i + 1}/${batches.length} complete: +${result.tripsAdded} trips, +${result.transactionsAdded} transactions`);
       }
       
-      const formData = new FormData();
-      filesToUpload.forEach(file => {
-        formData.append('files', file);
-      });
-
-      logger.api(`POST /api/upload - sending request (${totalSizeMB} MB)`);
-      const startTime = Date.now();
+      setBatchProgress(null);
       
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      logger.api(`POST /api/upload - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'} (after ${elapsed}s)`);
-      
-      if (!res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        logger.error(`Upload failed with status ${res.status}, content-type: ${contentType}`);
-        
-        if (res.status === 413) {
-          logger.error('413 Request Entity Too Large - files are too big for the server');
-          throw new Error(`Upload zu groß (${totalSizeMB} MB). Bitte weniger Dateien gleichzeitig hochladen (max. 10 Dateien oder 50 MB).`);
-        }
-        
-        if (!contentType.includes('application/json')) {
-          const text = await res.text();
-          logger.error('Non-JSON error response (first 500 chars):', text.substring(0, 500));
-          throw new Error(`Server-Fehler ${res.status}: Keine gültige Antwort. Evtl. Upload zu groß.`);
-        }
-        
-        const error = await res.json();
-        logger.error('Upload failed with JSON error', error);
-        throw new Error(error.error || 'Upload failed');
-      }
-
-      return res.json();
+      return {
+        vorgangsId,
+        tripsAdded: totalTripsAdded,
+        transactionsAdded: totalTransactionsAdded,
+        dateRange,
+      };
     },
     onSuccess: (data) => {
       logger.import(`Upload successful!`, { data: { vorgangsId: data.vorgangsId, trips: data.tripsAdded, transactions: data.transactionsAdded } });
@@ -340,6 +413,7 @@ export default function UploadPage() {
     },
     onError: (error: any) => {
       logger.error('Upload error', error);
+      setBatchProgress(null);
       toast({
         variant: "destructive",
         title: t('upload.error'),
@@ -654,7 +728,10 @@ export default function UploadPage() {
                 {isUploading ? (
                   <>
                     <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                    {t('upload.uploading')}
+                    {batchProgress && batchProgress.total > 1 
+                      ? `${t('upload.uploading')} (${batchProgress.current}/${batchProgress.total})`
+                      : t('upload.uploading')
+                    }
                   </>
                 ) : (
                   <>
