@@ -1,0 +1,38 @@
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:23:49,677
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:23:53,803
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:23:54,990
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:24:01,935
+index-Cp-Rbtnh.js:332 [12:24:04,133] [Session] Starting session load for: J6T68S
+index-Cp-Rbtnh.js:332 [12:24:04,133] [API] POST /api/session/load - sending request
+index-Cp-Rbtnh.js:332 [12:24:04,674] [API] POST /api/session/load - response: 200 OK
+index-Cp-Rbtnh.js:332 [12:24:04,674] [Session] Session load success Object
+index-Cp-Rbtnh.js:332 [12:24:04,675] [Session] Invalidating session query...
+index-Cp-Rbtnh.js:332 [12:24:05,196] [Session] Refetching session data...
+index-Cp-Rbtnh.js:332 [12:24:05,197] [API] GET /api/session - fetching
+index-Cp-Rbtnh.js:332 [12:24:05,718] [API] GET /api/session - response: 200 OK
+index-Cp-Rbtnh.js:332 [12:24:05,718] [Session] Session data received Object
+index-Cp-Rbtnh.js:332 [12:24:05,719] [Session] Session loaded successfully Object
+index-Cp-Rbtnh.js:332 [12:24:05,721] [Session] Total load time: 1588ms
+index-Cp-Rbtnh.js:332 [12:24:05,721] [UI] Session load complete, hiding overlay
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:24:07,502
+index-Cp-Rbtnh.js:332 [12:24:38,358] [Session] Exiting session...
+index-Cp-Rbtnh.js:332 [12:24:38,551] [Session] Session exited successfully
+index-Cp-Rbtnh.js:332 [MU-Dash] Version 2.4.0 (Build 241226-6)
+index-Cp-Rbtnh.js:332 [MU-Dash] Logging initialized at 12:24:40,520
+index-Cp-Rbtnh.js:332 [12:24:40,520] [Navigation] Import page loaded
+index-Cp-Rbtnh.js:332 [12:26:47,957] [Import] Files selected via picker: 28 Array(28)
+index-Cp-Rbtnh.js:332 [12:26:47,958] [Import] Analyzing 28 files Array(28)
+index-Cp-Rbtnh.js:332 [12:26:49,166] [Import] Starting upload of 28 files Array(28)
+index-Cp-Rbtnh.js:332 [12:26:49,167] [API] POST /api/upload - sending request
+index-Cp-Rbtnh.js:332 [12:26:50,279] [Import] Analysis complete Array(28)
+index-Cp-Rbtnh.js:332 [12:29:08,078] [API] POST /api/upload - response: 413 FAILED
+index-Cp-Rbtnh.js:332 [12:29:08,084] [Error] Upload error SyntaxError: Unexpected token '<', "
+<html><hea"... is not valid JSON
+Yi @ index-Cp-Rbtnh.js:332
+import:2 Uncaught (in promise) SyntaxError: Unexpected token '<', "
+<html><hea"... is not valid JSON

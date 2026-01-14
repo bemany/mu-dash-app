@@ -274,22 +274,54 @@ export default function UploadPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async (filesToUpload: File[]) => {
-      logger.import(`Starting upload of ${filesToUpload.length} files`, { data: filesToUpload.map(f => ({ name: f.name, size: f.size })) });
+      const totalSize = filesToUpload.reduce((sum, f) => sum + f.size, 0);
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      
+      logger.import(`Starting upload of ${filesToUpload.length} files (${totalSizeMB} MB total)`, { 
+        data: filesToUpload.map(f => ({ 
+          name: f.name, 
+          size: f.size, 
+          sizeMB: (f.size / (1024 * 1024)).toFixed(2) 
+        })) 
+      });
+      
+      if (totalSize > 50 * 1024 * 1024) {
+        logger.warn(`Large upload detected: ${totalSizeMB} MB - may hit server limits`);
+      }
+      
       const formData = new FormData();
       filesToUpload.forEach(file => {
         formData.append('files', file);
       });
 
-      logger.api('POST /api/upload - sending request');
+      logger.api(`POST /api/upload - sending request (${totalSizeMB} MB)`);
+      const startTime = Date.now();
+      
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
-      logger.api(`POST /api/upload - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'}`);
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      logger.api(`POST /api/upload - response: ${res.status} ${res.ok ? 'OK' : 'FAILED'} (after ${elapsed}s)`);
+      
       if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        logger.error(`Upload failed with status ${res.status}, content-type: ${contentType}`);
+        
+        if (res.status === 413) {
+          logger.error('413 Request Entity Too Large - files are too big for the server');
+          throw new Error(`Upload zu groß (${totalSizeMB} MB). Bitte weniger Dateien gleichzeitig hochladen (max. 10 Dateien oder 50 MB).`);
+        }
+        
+        if (!contentType.includes('application/json')) {
+          const text = await res.text();
+          logger.error('Non-JSON error response (first 500 chars):', text.substring(0, 500));
+          throw new Error(`Server-Fehler ${res.status}: Keine gültige Antwort. Evtl. Upload zu groß.`);
+        }
+        
         const error = await res.json();
-        logger.error('Upload failed', error);
+        logger.error('Upload failed with JSON error', error);
         throw new Error(error.error || 'Upload failed');
       }
 

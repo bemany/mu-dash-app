@@ -1,5 +1,5 @@
-const APP_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-6";
+const APP_VERSION = "2.5.0";
+const BUILD_NUMBER = "250108-1";
 
 type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -41,6 +41,7 @@ export const logger = {
   session: (message: string, options?: LogOptions) => log('Session', message, options),
   ui: (message: string, options?: LogOptions) => log('UI', message, options),
   api: (message: string, options?: LogOptions) => log('API', message, options),
+  warn: (message: string, data?: any) => log('Warning', message, { data, level: 'warn' }),
   error: (message: string, error?: any) => log('Error', message, { data: error, level: 'error' }),
   
   init: () => {
