@@ -237,6 +237,11 @@ export const translations = {
       session: 'Session',
       sessions: 'Sessions',
     },
+    aiChat: {
+      title: 'KI-Assistent',
+      warningTitle: 'Vorgang erforderlich',
+      warningMessage: 'Um den KI-Assistenten zu nutzen, müssen Sie zuerst Ihre Daten importieren. Der Assistent kann dann Ihre Fahrt- und Zahlungsdaten analysieren.',
+    },
     common: {
       tip: 'Tipp',
       hint: 'Hinweis',
@@ -671,6 +676,11 @@ export const translations = {
       time: '',
       session: 'Session',
       sessions: 'Sessions',
+    },
+    aiChat: {
+      title: 'AI Assistant',
+      warningTitle: 'Process Required',
+      warningMessage: 'To use the AI assistant, you need to import your data first. The assistant can then analyze your trip and payment data.',
     },
     common: {
       tip: 'Tip',
@@ -1107,6 +1117,11 @@ export const translations = {
       session: 'Oturum',
       sessions: 'Oturum',
     },
+    aiChat: {
+      title: 'Yapay Zeka Asistanı',
+      warningTitle: 'İşlem Gerekli',
+      warningMessage: 'Yapay zeka asistanını kullanmak için önce verilerinizi içe aktarmanız gerekiyor. Asistan daha sonra yolculuk ve ödeme verilerinizi analiz edebilir.',
+    },
     common: {
       tip: 'İpucu',
       hint: 'İpucu',
@@ -1541,6 +1556,11 @@ export const translations = {
       time: '',
       session: 'جلسة',
       sessions: 'جلسات',
+    },
+    aiChat: {
+      title: 'مساعد الذكاء الاصطناعي',
+      warningTitle: 'مطلوب عملية',
+      warningMessage: 'لاستخدام مساعد الذكاء الاصطناعي، تحتاج أولاً إلى استيراد بياناتك. يمكن للمساعد بعد ذلك تحليل بيانات رحلاتك ومدفوعاتك.',
     },
     common: {
       tip: 'نصيحة',

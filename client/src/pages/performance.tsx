@@ -58,6 +58,7 @@ import {
   Search,
   Banknote,
   TrendingUp,
+  MessageSquare,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { DateRange } from "react-day-picker";
@@ -2495,6 +2496,8 @@ export default function PerformancePage() {
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
   const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
   const [showDemoBanner, setShowDemoBanner] = useState(true);
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [showAiChatWarning, setShowAiChatWarning] = useState(false);
 
   const { data: sessionData } = useQuery<SessionData>({
     queryKey: ["session"],
@@ -2635,62 +2638,13 @@ export default function PerformancePage() {
     }
   }, [allDrivers, allVehicles, hasInitializedFilters]);
 
-  useEffect(() => {
-    const vorgangsId = sessionData?.vorgangsId;
-    if (!vorgangsId) {
-      const button = document.getElementById('dify-chatbot-bubble-button');
-      const chatWindow = document.getElementById('dify-chatbot-bubble-window');
-      if (button) button.remove();
-      if (chatWindow) chatWindow.remove();
-      return;
+  const handleAiChatClick = () => {
+    if (isDemo) {
+      setShowAiChatWarning(true);
+    } else {
+      setShowAiChat(true);
     }
-
-    (window as any).difyChatbotConfig = {
-      token: 'mUKuZBhT5uhzaVbw',
-      baseUrl: 'https://dify.bemany.tech',
-      inputs: {},
-      systemVariables: {
-        user_id: vorgangsId,
-      },
-      userVariables: {
-        name: vorgangsId,
-      },
-    };
-
-    let existingStyle = document.getElementById('dify-chatbot-style');
-    if (!existingStyle) {
-      const style = document.createElement('style');
-      style.id = 'dify-chatbot-style';
-      style.textContent = `
-        #dify-chatbot-bubble-button {
-          background-color: #1C64F2 !important;
-        }
-        #dify-chatbot-bubble-window {
-          width: 24rem !important;
-          height: 40rem !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    const existingScript = document.getElementById('dify-chatbot-script');
-    if (existingScript) {
-      existingScript.remove();
-    }
-    
-    const script = document.createElement('script');
-    script.src = 'https://dify.bemany.tech/embed.min.js';
-    script.id = 'dify-chatbot-script';
-    script.defer = true;
-    document.body.appendChild(script);
-
-    return () => {
-      const button = document.getElementById('dify-chatbot-bubble-button');
-      const chatWindow = document.getElementById('dify-chatbot-bubble-window');
-      if (button) button.remove();
-      if (chatWindow) chatWindow.remove();
-    };
-  }, [sessionData?.vorgangsId]);
+  };
 
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
@@ -2946,6 +2900,63 @@ export default function PerformancePage() {
           </div>
         </div>
       )}
+
+      {/* AI Chat Button - fixed position */}
+      <button
+        onClick={handleAiChatClick}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        data-testid="button-ai-chat"
+        title={t('aiChat.title')}
+      >
+        <MessageSquare className="h-6 w-6" />
+      </button>
+
+      {/* AI Chat Warning Dialog - shown in demo mode */}
+      <Dialog open={showAiChatWarning} onOpenChange={setShowAiChatWarning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              {t('aiChat.warningTitle')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              {t('aiChat.warningMessage')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAiChatWarning(false)}>
+                {t('common.close')}
+              </Button>
+              <Link href="/import">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+                  <Upload className="h-4 w-4" />
+                  {t('performance.startImport')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Chat Dialog - shown when session is loaded */}
+      <Dialog open={showAiChat} onOpenChange={setShowAiChat}>
+        <DialogContent className="sm:max-w-2xl h-[80vh] flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+              {t('aiChat.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            <iframe
+              src={`https://dify.bemany.tech/chatbot/mUKuZBhT5uhzaVbw?user_id=${sessionData?.vorgangsId || ''}`}
+              className="w-full h-full border-0"
+              title="AI Chat"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
