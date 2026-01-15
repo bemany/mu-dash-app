@@ -2706,6 +2706,7 @@ export default function PerformancePage() {
                 <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
                 <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
                 <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
+                <TabsTrigger value="aichat" data-testid="tab-aichat">{t('performance.tabAiChat')}</TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -2853,6 +2854,18 @@ export default function PerformancePage() {
             isDemo={isDemo}
             dateRange={dateRange}
           />
+        </TabsContent>
+        <TabsContent value="aichat" className="mt-0 flex-1 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm h-full">
+            <iframe
+              src="https://dify.bemany.tech/chatbot/mUKuZBhT5uhzaVbw"
+              style={{ width: '100%', height: '100%', minHeight: '700px' }}
+              frameBorder="0"
+              allow="microphone"
+              title="KI Chat"
+              data-testid="iframe-aichat"
+            />
+          </div>
         </TabsContent>
       </Tabs>
 
