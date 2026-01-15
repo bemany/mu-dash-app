@@ -2637,7 +2637,13 @@ export default function PerformancePage() {
 
   useEffect(() => {
     const vorgangsId = sessionData?.vorgangsId;
-    if (!vorgangsId) return;
+    if (!vorgangsId) {
+      const button = document.getElementById('dify-chatbot-bubble-button');
+      const chatWindow = document.getElementById('dify-chatbot-bubble-window');
+      if (button) button.remove();
+      if (chatWindow) chatWindow.remove();
+      return;
+    }
 
     (window as any).difyChatbotConfig = {
       token: 'mUKuZBhT5uhzaVbw',
@@ -2651,16 +2657,7 @@ export default function PerformancePage() {
       },
     };
 
-    const existingScript = document.getElementById('dify-chatbot-script');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.src = 'https://dify.bemany.tech/embed.min.js';
-      script.id = 'dify-chatbot-script';
-      script.defer = true;
-      document.body.appendChild(script);
-    }
-
-    const existingStyle = document.getElementById('dify-chatbot-style');
+    let existingStyle = document.getElementById('dify-chatbot-style');
     if (!existingStyle) {
       const style = document.createElement('style');
       style.id = 'dify-chatbot-style';
@@ -2676,11 +2673,22 @@ export default function PerformancePage() {
       document.head.appendChild(style);
     }
 
+    const existingScript = document.getElementById('dify-chatbot-script');
+    if (existingScript) {
+      existingScript.remove();
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://dify.bemany.tech/embed.min.js';
+    script.id = 'dify-chatbot-script';
+    script.defer = true;
+    document.body.appendChild(script);
+
     return () => {
       const button = document.getElementById('dify-chatbot-bubble-button');
-      const window_ = document.getElementById('dify-chatbot-bubble-window');
+      const chatWindow = document.getElementById('dify-chatbot-bubble-window');
       if (button) button.remove();
-      if (window_) window_.remove();
+      if (chatWindow) chatWindow.remove();
     };
   }, [sessionData?.vorgangsId]);
 
