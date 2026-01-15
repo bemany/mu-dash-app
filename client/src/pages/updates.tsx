@@ -16,6 +16,16 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "15.01.2025",
+    version: "2.6.0",
+    items: [
+      { type: 'feature', text: "KI-Assistent: Neuer Chat-Button für Datenanalyse mit künstlicher Intelligenz" },
+      { type: 'feature', text: "Demo-Modus Warnung: Hinweis wenn KI-Assistent ohne geladenen Vorgang genutzt wird" },
+      { type: 'feature', text: "Dokumentation: Neue Berechnungs-Logik Dokumentation für externe KI-Agenten" },
+      { type: 'feature', text: "Datenbank-Schema Dokumentation für API-Zugriffe" },
+    ]
+  },
+  {
     date: "08.01.2025",
     version: "2.5.0",
     items: [
