@@ -2950,8 +2950,8 @@ export default function PerformancePage() {
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
             <iframe
-              src={`https://dify.bemany.tech/chatbot/mUKuZBhT5uhzaVbw?user_id=${sessionData?.vorgangsId || ''}`}
-              className="w-full h-full border-0"
+              src={`https://dify.bemany.tech/chatbot/mUKuZBhT5uhzaVbw?user_id=${sessionData?.vorgangsId || ''}&theme=light`}
+              className="w-full h-full border-0 bg-white"
               title="AI Chat"
             />
           </div>
