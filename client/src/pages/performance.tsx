@@ -2635,6 +2635,55 @@ export default function PerformancePage() {
     }
   }, [allDrivers, allVehicles, hasInitializedFilters]);
 
+  useEffect(() => {
+    const vorgangsId = sessionData?.vorgangsId;
+    if (!vorgangsId) return;
+
+    (window as any).difyChatbotConfig = {
+      token: 'mUKuZBhT5uhzaVbw',
+      baseUrl: 'https://dify.bemany.tech',
+      inputs: {},
+      systemVariables: {
+        user_id: vorgangsId,
+      },
+      userVariables: {
+        name: vorgangsId,
+      },
+    };
+
+    const existingScript = document.getElementById('dify-chatbot-script');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = 'https://dify.bemany.tech/embed.min.js';
+      script.id = 'dify-chatbot-script';
+      script.defer = true;
+      document.body.appendChild(script);
+    }
+
+    const existingStyle = document.getElementById('dify-chatbot-style');
+    if (!existingStyle) {
+      const style = document.createElement('style');
+      style.id = 'dify-chatbot-style';
+      style.textContent = `
+        #dify-chatbot-bubble-button {
+          background-color: #1C64F2 !important;
+        }
+        #dify-chatbot-bubble-window {
+          width: 24rem !important;
+          height: 40rem !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    return () => {
+      const button = document.getElementById('dify-chatbot-bubble-button');
+      const window_ = document.getElementById('dify-chatbot-bubble-window');
+      if (button) button.remove();
+      if (window_) window_.remove();
+    };
+  }, [sessionData?.vorgangsId]);
+
   const presets = useMemo(() => {
     const availableMonths = isDemo ? [] : (dateRangeData?.availableMonths || []);
     
@@ -2706,7 +2755,6 @@ export default function PerformancePage() {
                 <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
                 <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
                 <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
-                <TabsTrigger value="aichat" data-testid="tab-aichat">{t('performance.tabAiChat')}</TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -2855,19 +2903,7 @@ export default function PerformancePage() {
             dateRange={dateRange}
           />
         </TabsContent>
-        <TabsContent value="aichat" className="mt-0 flex-1 overflow-hidden">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm h-full">
-            <iframe
-              src="https://dify.bemany.tech/chatbot/mUKuZBhT5uhzaVbw"
-              style={{ width: '100%', height: '100%', minHeight: '700px' }}
-              frameBorder="0"
-              allow="microphone"
-              title="KI Chat"
-              data-testid="iframe-aichat"
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
+        </Tabs>
 
       {isDemo && showDemoBanner && !isLayoutLoading && (
         <div 
