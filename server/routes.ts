@@ -1025,7 +1025,13 @@ export async function registerRoutes(
       
       if (password === adminPassword) {
         req.session.isAdmin = true;
-        res.json({ success: true });
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving admin session:", err);
+            return res.status(500).json({ error: "Session save failed" });
+          }
+          res.json({ success: true });
+        });
       } else {
         res.status(401).json({ error: "Falsches Passwort" });
       }
