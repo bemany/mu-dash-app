@@ -1,0 +1,237 @@
+/**
+ * Platform configuration for multi-platform CSV import (Uber + Bolt).
+ *
+ * Centralizes all platform-specific CSV column names, header detection patterns,
+ * and status normalization mappings.
+ */
+
+export type Platform = 'uber' | 'bolt';
+
+export type FileType = 'trips' | 'payments' | 'campaign' | 'shifts' | 'driver_performance' | 'vehicle_performance';
+
+export interface PlatformFileClassification {
+  platform: Platform;
+  fileType: FileType;
+}
+
+// ---------------------------------------------------------------------------
+// Header signature patterns for automatic file detection
+// Each entry lists column names that MUST appear in the CSV header to match.
+// ---------------------------------------------------------------------------
+export const PLATFORM_SIGNATURES: Record<Platform, Partial<Record<FileType, string[]>>> = {
+  uber: {
+    trips: ['Kennzeichen', 'Zeitpunkt der Fahrtbestellung'],
+    payments: ['Beschreibung', 'An dein Unternehmen gezahlt'],
+  },
+  bolt: {
+    trips: ['Kfz-Kennzeichen', 'Fahrtpreis|€'],
+    payments: ['Bruttoverdienst (insgesamt)|€', 'Fahrer:in'],
+    campaign: ['Name der Kampagne', 'Erzielter Umsatz'],
+    shifts: ['Gesamte Zeit online (Min.)', 'Schichtzeit'],
+    driver_performance: ['Fahrer-Aktivität|%', 'Auslastung|%'],
+    vehicle_performance: ['Fahrzeugmodellat', 'Identifikationsnummer des Fahrzeugs'],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Bolt trip status → normalized English status (matching Uber convention)
+// ---------------------------------------------------------------------------
+export const BOLT_STATUS_MAP: Record<string, string> = {
+  'abgeschlossen': 'completed',
+  'fahrer hat abgelehnt': 'driver_cancelled',
+  'fahrer reagiert nicht': 'driver_cancelled',
+  'fahrer storniert': 'driver_cancelled',
+  'fahrgast hat storniert': 'rider_cancelled',
+  'fahrgast storniert': 'rider_cancelled',
+  'storniert': 'rider_cancelled',
+  'fahrt nicht angefangen': 'failed',
+};
+
+// ---------------------------------------------------------------------------
+// Column mappings: platform-specific CSV column name → normalized concept
+// ---------------------------------------------------------------------------
+export const TRIP_COLUMN_MAP = {
+  uber: {
+    licensePlate: 'Kennzeichen',
+    orderTime: 'Zeitpunkt der Fahrtbestellung',
+    tripStatus: 'Fahrtstatus',
+    tripId: 'Fahrt-ID',
+    tripUuid: 'Fahrt-UUID',
+    driverFirstName: 'Vorname des Fahrers',
+    driverLastName: 'Nachname des Fahrers',
+    farePrice: 'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)',
+    distance: 'Fahrtdistanz',
+    startTime: 'Startzeit der Fahrt',
+    endTime: 'Ankunftszeit der Fahrt',
+    pickupAddress: 'Abholadresse',
+    destinationAddress: 'Zieladresse',
+    serviceType: 'Serviceart',
+    productType: 'Produkttyp',
+  },
+  bolt: {
+    licensePlate: 'Kfz-Kennzeichen',
+    orderTime: 'Datum',
+    tripStatus: 'Status',
+    tripId: 'Individueller Identifikator',
+    driverName: 'Fahrer',
+    farePrice: 'Fahrtpreis|€',
+    distance: 'Entfernung|km',
+    durationMinutes: 'Dauer der Fahrt (Min.)',
+    pickupArrival: 'Ab Abholort angekommen',
+    destinationArrival: 'An Zielorten angekommen',
+    pickupDurationMin: 'Dauer bis zur Abholung (Min.)',
+    category: 'Kategorie',
+    paymentMethod: 'Zahlungsart',
+    tips: 'Trinkgelder von Fahrgästen|€',
+    bookingFees: 'Buchungsgebühren|€',
+    tollFees: 'Mautgebühren|€',
+    cancellationFees: 'Stornogebühren|€',
+    route: 'Route',
+    vehicleModel: 'Fahrzeugmodellat',
+    driverPhone: 'Fahrer-telefonnummer',
+    type: 'Typ',
+    optionalRide: 'Optionale Fahrt',
+    createdBy: 'Erstellt von',
+    fareFinalized: 'Tarif finalisiert',
+  },
+} as const;
+
+export const PAYMENT_COLUMN_MAP = {
+  uber: {
+    licensePlate: 'Kennzeichen',
+    description: 'Beschreibung',
+    amount: 'An dein Unternehmen gezahlt',
+    reportingDate: 'vs-Berichterstattung',
+    timestamp: 'Zeitpunkt',
+    tripUuid: 'Fahrt-UUID',
+    companyName: 'Name des Unternehmens',
+  },
+  bolt: {
+    driverName: 'Fahrer:in',
+    email: 'E-Mail-Adresse',
+    phone: 'Handynummer',
+    grossTotal: 'Bruttoverdienst (insgesamt)|€',
+    grossInApp: 'Bruttoeinnahmen (In-App-Zahlung)|€',
+    grossCash: 'Bruttoeinnahmen (Barzahlung)|€',
+    cashReceived: 'Erhaltenes Bargeld|€',
+    tips: 'Trinkgelder von Fahrgästen|€',
+    campaignRevenue: 'Kampagneneinnahmen|€',
+    cancellationFees: 'Stornogebühren|€',
+    tollFees: 'Mautgebühren|€',
+    bookingFees: 'Buchungsgebühren|€',
+    totalFees: 'Gesamtgebühren|€',
+    commission: 'Provision|€',
+    refunds: 'Rückerstattungen an Fahrgäste|€',
+    otherFees: 'Sonstige Gebühren|€',
+    netRevenue: 'Umsatz netto|€',
+    expectedPayout: 'Voraussichtliche Auszahlung|€',
+    grossHourly: 'Bruttoverdienst pro Stunde|€/Std.',
+    netHourly: 'Nettoverdienst pro Stunde|€/Std.',
+    driverId: 'Fahrer-ID',
+    customId: 'Individueller Identifikator',
+  },
+} as const;
+
+export const CAMPAIGN_COLUMN_MAP = {
+  bolt: {
+    appliedTo: 'Angewandt auf',
+    campaignName: 'Name der Kampagne',
+    periodStart: 'Zeitraum Beginn',
+    periodEnd: 'Zeitraum Ende',
+    status: 'Status',
+    driverName: 'Name Fahrer:in',
+    vehicleNumber: 'Fahrzeugnummer',
+    participants: 'Teilnehmer:innen',
+    achievedRevenue: 'Erzielter Umsatz',
+  },
+} as const;
+
+// ---------------------------------------------------------------------------
+// File classification – detects platform and file type from CSV header line
+// ---------------------------------------------------------------------------
+
+/**
+ * Strip UTF-8 BOM character that Bolt CSVs often start with.
+ */
+function stripBom(str: string): string {
+  return str.replace(/^\uFEFF/, '');
+}
+
+/**
+ * Classify a CSV file by examining its header line.
+ * Returns platform + fileType, or null if unrecognized.
+ */
+export function classifyFile(headerLine: string): PlatformFileClassification | null {
+  const cleaned = stripBom(headerLine).trim();
+
+  // Check Bolt signatures first (more specific headers)
+  for (const [fileType, requiredHeaders] of Object.entries(PLATFORM_SIGNATURES.bolt)) {
+    if (requiredHeaders && requiredHeaders.every(h => cleaned.includes(h))) {
+      return { platform: 'bolt', fileType: fileType as FileType };
+    }
+  }
+
+  // Then check Uber signatures
+  for (const [fileType, requiredHeaders] of Object.entries(PLATFORM_SIGNATURES.uber)) {
+    if (requiredHeaders && requiredHeaders.every(h => cleaned.includes(h))) {
+      return { platform: 'uber', fileType: fileType as FileType };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Normalize a Bolt trip status to the English convention used internally.
+ * Returns the original value (lowercased) if no mapping exists.
+ */
+export function normalizeBoltStatus(status: string): string {
+  const lower = status.trim().toLowerCase();
+  return BOLT_STATUS_MAP[lower] ?? lower;
+}
+
+/**
+ * Parse a Euro amount from Bolt CSV format.
+ * Handles: "75,00 €", "75.00", "75,00", empty strings.
+ */
+export function parseBoltEuroAmount(value: string | undefined | null): number {
+  if (!value || value.trim() === '' || value.trim() === '—') return 0;
+  // Remove currency symbol and whitespace
+  const cleaned = value.replace(/[€\s]/g, '').trim();
+  // Convert German comma decimal to dot
+  const normalized = cleaned.replace(',', '.');
+  const num = parseFloat(normalized);
+  return isNaN(num) ? 0 : num;
+}
+
+/**
+ * Parse a Bolt timestamp. Bolt uses "2025-11-30 23:53" (no seconds).
+ */
+export function parseBoltTimestamp(dateStr: string | undefined | null): Date | null {
+  if (!dateStr || dateStr.trim() === '') return null;
+  const trimmed = dateStr.trim();
+
+  // Try "YYYY-MM-DD HH:MM" format (Bolt standard)
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+  if (match) {
+    const [, year, month, day, hour, minute] = match;
+    return new Date(
+      parseInt(year), parseInt(month) - 1, parseInt(day),
+      parseInt(hour), parseInt(minute), 0
+    );
+  }
+
+  // Try "YYYY-MM-DD HH:MM:SS" format (Bolt campaign dates)
+  const matchSec = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (matchSec) {
+    const [, year, month, day, hour, minute, second] = matchSec;
+    return new Date(
+      parseInt(year), parseInt(month) - 1, parseInt(day),
+      parseInt(hour), parseInt(minute), parseInt(second)
+    );
+  }
+
+  // Fallback: try native Date parsing
+  const fallback = new Date(trimmed);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}

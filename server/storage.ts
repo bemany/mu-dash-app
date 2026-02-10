@@ -423,15 +423,14 @@ export class DatabaseStorage implements IStorage {
       const batch = newTrips.slice(i, i + BATCH_SIZE);
       
       // Build parameterized values for batch insert with ON CONFLICT
-      const values = batch.map((t, idx) => {
-        const base = idx * 6;
-        return sql`(${t.sessionId}, ${t.tripId}, ${t.licensePlate}, ${t.orderTime}, ${t.tripStatus}, ${JSON.stringify(t.rawData)}::jsonb)`;
+      const values = batch.map((t) => {
+        return sql`(${t.sessionId}, ${t.tripId}, ${t.licensePlate}, ${t.orderTime}, ${t.tripStatus}, ${t.platform || 'uber'}, ${JSON.stringify(t.rawData)}::jsonb)`;
       });
-      
+
       const result = await db.execute(sql`
-        INSERT INTO trips (session_id, trip_id, license_plate, order_time, trip_status, raw_data)
+        INSERT INTO trips (session_id, trip_id, license_plate, order_time, trip_status, platform, raw_data)
         VALUES ${sql.join(values, sql`, `)}
-        ON CONFLICT (session_id, license_plate, order_time) DO NOTHING
+        ON CONFLICT (session_id, license_plate, order_time, platform) DO NOTHING
         RETURNING *
       `);
       
@@ -490,13 +489,13 @@ export class DatabaseStorage implements IStorage {
       
       // Build parameterized values for batch insert with ON CONFLICT
       const values = batch.map((t) => {
-        return sql`(${t.sessionId}, ${t.licensePlate}, ${t.transactionTime}, ${t.amount}, ${t.description}, ${t.tripUuid}, ${t.revenue}, ${t.farePrice}, ${JSON.stringify(t.rawData)}::jsonb)`;
+        return sql`(${t.sessionId}, ${t.licensePlate}, ${t.transactionTime}, ${t.amount}, ${t.description}, ${t.tripUuid}, ${t.revenue}, ${t.farePrice}, ${t.platform || 'uber'}, ${JSON.stringify(t.rawData)}::jsonb)`;
       });
-      
+
       const result = await db.execute(sql`
-        INSERT INTO transactions (session_id, license_plate, transaction_time, amount, description, trip_uuid, revenue, fare_price, raw_data)
+        INSERT INTO transactions (session_id, license_plate, transaction_time, amount, description, trip_uuid, revenue, fare_price, platform, raw_data)
         VALUES ${sql.join(values, sql`, `)}
-        ON CONFLICT (session_id, license_plate, transaction_time, amount) DO NOTHING
+        ON CONFLICT (session_id, license_plate, transaction_time, amount, platform) DO NOTHING
         RETURNING *
       `);
       
@@ -527,6 +526,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTransactionsForSession(sessionId: string): Promise<void> {
     await db.delete(transactions).where(eq(transactions.sessionId, sessionId));
+  }
+
+  /**
+   * Lazy cross-reference: Link Bolt financial/campaign transactions (which have no license plate)
+   * to license plates found in Bolt trip data (matching by driver name).
+   * Called after every Bolt import – safe to run multiple times.
+   */
+  async crossReferenceBoltTransactions(sessionId: string): Promise<number> {
+    const result = await db.execute(sql`
+      UPDATE transactions t
+      SET license_plate = sub.license_plate
+      FROM (
+        SELECT DISTINCT ON (raw_data->>'Fahrer')
+          raw_data->>'Fahrer' as driver_name,
+          license_plate
+        FROM trips
+        WHERE session_id = ${sessionId}
+          AND platform = 'bolt'
+          AND license_plate IS NOT NULL
+          AND license_plate != ''
+        ORDER BY raw_data->>'Fahrer', order_time DESC
+      ) sub
+      WHERE t.session_id = ${sessionId}
+        AND t.platform = 'bolt'
+        AND (t.license_plate IS NULL OR t.license_plate = '')
+        AND (
+          t.raw_data->>'Fahrer:in' = sub.driver_name
+          OR t.raw_data->>'Name Fahrer:in' = sub.driver_name
+        )
+    `);
+    const updated = (result as any).rowCount || 0;
+    if (updated > 0) {
+      console.log(`[Bolt] Cross-referenced ${updated} transactions with license plates`);
+    }
+    return updated;
   }
 
   async deleteSession(sessionId: string): Promise<void> {

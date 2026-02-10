@@ -22,10 +22,11 @@ export const trips = pgTable("trips", {
   licensePlate: text("license_plate").notNull(),
   orderTime: timestamp("order_time").notNull(),
   tripStatus: text("trip_status").notNull(),
+  platform: text("platform").notNull().default('uber'), // 'uber' | 'bolt'
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("trips_dedup_idx").on(table.sessionId, table.licensePlate, table.orderTime),
+  uniqueIndex("trips_dedup_idx").on(table.sessionId, table.licensePlate, table.orderTime, table.platform),
 ]);
 
 // Transactions table - stores payment transaction data
@@ -39,21 +40,23 @@ export const transactions = pgTable("transactions", {
   tripUuid: text("trip_uuid"), // UUID of the trip for matching with trips table
   revenue: integer("revenue"), // "Deine Umsätze" in cents
   farePrice: integer("fare_price"), // "Fahrpreis" in cents
+  platform: text("platform").notNull().default('uber'), // 'uber' | 'bolt'
   rawData: jsonb("raw_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex("transactions_dedup_idx").on(table.sessionId, table.licensePlate, table.transactionTime, table.amount),
+  uniqueIndex("transactions_dedup_idx").on(table.sessionId, table.licensePlate, table.transactionTime, table.amount, table.platform),
 ]);
 
 // Uploads table - stores original CSV files
 export const uploads = pgTable("uploads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionId: text("session_id").notNull(),
-  fileType: text("file_type").notNull(), // 'trips' or 'payments'
+  fileType: text("file_type").notNull(), // 'trips' or 'payments' or 'campaign'
   filename: text("filename").notNull(),
   mimeType: text("mime_type").notNull(),
   size: integer("size").notNull(), // in bytes
   content: text("content").notNull(), // base64 encoded file content
+  platform: text("platform").notNull().default('uber'), // 'uber' | 'bolt'
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

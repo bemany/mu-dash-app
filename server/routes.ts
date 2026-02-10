@@ -8,6 +8,7 @@ import { parseISO, parse } from "date-fns";
 import multer from "multer";
 import Papa from "papaparse";
 import type { InsertTrip, InsertTransaction } from "@shared/schema";
+import { classifyFile, normalizeBoltStatus, parseBoltTimestamp, parseBoltEuroAmount, type Platform, type PlatformFileClassification } from "./platform-config";
 
 const SOFTWARE_VERSION = "2.5.0";
 const BUILD_NUMBER = "250108-1";
@@ -123,6 +124,7 @@ interface StreamingResult {
   count: number;
   companyName?: string;
   dateRange?: { minDate: Date; maxDate: Date };
+  platform: Platform;
 }
 
 function parseEuroAmount(value: any): number | null {
@@ -174,6 +176,7 @@ async function processTripFileStreaming(
           licensePlate,
           orderTime,
           tripStatus: trip["Fahrtstatus"].toString().trim(),
+          platform: 'uber',
           rawData: trip,
         };
         
@@ -195,6 +198,7 @@ async function processTripFileStreaming(
           resolve({
             count,
             dateRange: minDate && maxDate ? { minDate, maxDate } : undefined,
+            platform: 'uber',
           });
         } catch (err) {
           reject(err);
@@ -283,6 +287,7 @@ async function processPaymentFileStreaming(
           tripUuid,
           revenue,
           farePrice,
+          platform: 'uber',
           rawData: tx,
         };
         
@@ -301,7 +306,252 @@ async function processPaymentFileStreaming(
           if (buffer.length > 0) {
             await onBatch([...buffer]);
           }
-          resolve({ count, companyName });
+          resolve({ count, companyName, platform: 'uber' });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Bolt Trip File Parser (Fahrtenübersicht)
+// ---------------------------------------------------------------------------
+async function processBoltTripFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  seenKeys: Set<string>,
+  onBatch: (batch: InsertTrip[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertTrip[] = [];
+    let count = 0;
+    let minDate: Date | undefined;
+    let maxDate: Date | undefined;
+    let pendingBatch: Promise<void> | null = null;
+
+    const content = file.buffer.toString('utf-8').replace(/^\uFEFF/, ''); // Strip BOM
+
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const trip = results.data as any;
+
+        const rawPlate = trip["Kfz-Kennzeichen"];
+        const rawDatum = trip["Datum"];
+        const rawStatus = trip["Status"];
+
+        if (!rawPlate || !rawDatum || !rawStatus) return;
+
+        const orderTime = parseBoltTimestamp(rawDatum);
+        if (!orderTime || isNaN(orderTime.getTime())) return;
+
+        const licensePlate = rawPlate.toString().trim().toUpperCase().replace(/\s/g, '');
+        const key = `${licensePlate}-${orderTime.getTime()}-bolt`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        if (!minDate || orderTime < minDate) minDate = orderTime;
+        if (!maxDate || orderTime > maxDate) maxDate = orderTime;
+
+        const normalizedStatus = normalizeBoltStatus(rawStatus);
+
+        const dbTrip: InsertTrip = {
+          sessionId,
+          tripId: trip["Individueller Identifikator"] ? trip["Individueller Identifikator"].toString().trim() : null,
+          licensePlate,
+          orderTime,
+          tripStatus: normalizedStatus,
+          platform: 'bolt',
+          rawData: trip,
+        };
+
+        buffer.push(dbTrip);
+        count++;
+
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({
+            count,
+            dateRange: minDate && maxDate ? { minDate, maxDate } : undefined,
+            platform: 'bolt',
+          });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Bolt Financial File Parser (Umsatz pro Fahrer_in)
+// ---------------------------------------------------------------------------
+async function processBoltFinancialFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  seenKeys: Set<string>,
+  onBatch: (batch: InsertTransaction[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertTransaction[] = [];
+    let count = 0;
+    let companyName: string | undefined;
+    let pendingBatch: Promise<void> | null = null;
+
+    const content = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+
+    // Extract month from filename pattern: "...-2025-11-..."
+    const monthMatch = file.originalname.match(/(\d{4})-(\d{2})/);
+    const fileMonth = monthMatch
+      ? new Date(parseInt(monthMatch[1]), parseInt(monthMatch[2]) - 1, 1)
+      : new Date();
+
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const row = results.data as any;
+
+        const driverName = row["Fahrer:in"]?.toString().trim();
+        if (!driverName || driverName === '—') return;
+
+        const expectedPayout = parseBoltEuroAmount(row["Voraussichtliche Auszahlung|€"]);
+        const netRevenue = parseBoltEuroAmount(row["Umsatz netto|€"]);
+        const grossTotal = parseBoltEuroAmount(row["Bruttoverdienst (insgesamt)|€"]);
+
+        const amountCents = Math.round(expectedPayout * 100);
+        const revenueCents = Math.round(netRevenue * 100);
+        const farePriceCents = Math.round(grossTotal * 100);
+
+        // Dedup key: driver + month + amount
+        const key = `bolt-fin-${driverName}-${fileMonth.getTime()}-${amountCents}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        // License plate will be empty initially – lazy cross-ref fills it later
+        const dbTx: InsertTransaction = {
+          sessionId,
+          licensePlate: "",
+          transactionTime: fileMonth,
+          amount: amountCents,
+          description: "bolt_driver_monthly_summary",
+          tripUuid: null,
+          revenue: revenueCents,
+          farePrice: farePriceCents,
+          platform: 'bolt',
+          rawData: row,
+        };
+
+        buffer.push(dbTx);
+        count++;
+
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({ count, companyName, platform: 'bolt' });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Bolt Campaign File Parser (Kampagnenbericht)
+// ---------------------------------------------------------------------------
+async function processBoltCampaignFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  seenKeys: Set<string>,
+  onBatch: (batch: InsertTransaction[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertTransaction[] = [];
+    let count = 0;
+    let pendingBatch: Promise<void> | null = null;
+
+    const content = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const row = results.data as any;
+
+        const driverName = row["Name Fahrer:in"]?.toString().trim();
+        const campaignName = row["Name der Kampagne"]?.toString().trim();
+        const revenueStr = row["Erzielter Umsatz"]?.toString().trim();
+
+        if (!driverName || !campaignName) return;
+
+        const amount = parseBoltEuroAmount(revenueStr);
+        if (amount === 0) return; // Skip campaigns with 0 payout
+
+        const amountCents = Math.round(amount * 100);
+
+        // Parse campaign period for timestamp
+        const periodStart = parseBoltTimestamp(row["Zeitraum Beginn"]);
+        const timestamp = periodStart || new Date();
+
+        const key = `bolt-campaign-${driverName}-${campaignName}-${timestamp.getTime()}-${amountCents}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        const dbTx: InsertTransaction = {
+          sessionId,
+          licensePlate: "", // Will be filled by lazy cross-ref
+          transactionTime: timestamp,
+          amount: amountCents,
+          description: `Bolt Kampagne: ${campaignName}`,
+          tripUuid: null,
+          revenue: amountCents,
+          farePrice: null,
+          platform: 'bolt',
+          rawData: row,
+        };
+
+        buffer.push(dbTx);
+        count++;
+
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({ count, platform: 'bolt' });
         } catch (err) {
           reject(err);
         }
@@ -816,22 +1066,45 @@ export async function registerRoutes(
         message: "Dateien werden analysiert...",
       });
 
-      const tripFiles: Express.Multer.File[] = [];
-      const paymentFiles: Express.Multer.File[] = [];
+      const tripFiles: { file: Express.Multer.File; platform: Platform }[] = [];
+      const paymentFiles: { file: Express.Multer.File; platform: Platform }[] = [];
+      const campaignFiles: { file: Express.Multer.File; platform: Platform }[] = [];
+      const unclassifiedFiles: Express.Multer.File[] = [];
 
       for (const file of files) {
         const content = file.buffer.toString("utf-8");
         const firstLine = content.split("\n")[0] || "";
-        
-        if (firstLine.includes("Kennzeichen") && firstLine.includes("Zeitpunkt der Fahrtbestellung")) {
-          tripFiles.push(file);
-        } else if (firstLine.includes("Beschreibung") || firstLine.includes("An dein Unternehmen gezahlt")) {
-          paymentFiles.push(file);
+
+        const classification = classifyFile(firstLine);
+        if (!classification) {
+          unclassifiedFiles.push(file);
+          continue;
+        }
+
+        switch (classification.fileType) {
+          case 'trips':
+            tripFiles.push({ file, platform: classification.platform });
+            break;
+          case 'payments':
+            paymentFiles.push({ file, platform: classification.platform });
+            break;
+          case 'campaign':
+            campaignFiles.push({ file, platform: classification.platform });
+            break;
+          default:
+            // shifts, driver_performance, vehicle_performance – store as upload only
+            unclassifiedFiles.push(file);
+            break;
         }
       }
 
       logger.endPhase('upload', files.length);
-      logger.info(`Classified files: ${tripFiles.length} trip files, ${paymentFiles.length} payment files`, 'upload');
+      const platforms = [...new Set([
+        ...tripFiles.map(f => f.platform),
+        ...paymentFiles.map(f => f.platform),
+        ...campaignFiles.map(f => f.platform),
+      ])];
+      logger.info(`Classified files: ${tripFiles.length} trip files, ${paymentFiles.length} payment files, ${campaignFiles.length} campaign files (platforms: ${platforms.join(', ')})`, 'upload');
 
       const seenTripKeys = new Set<string>();
       const seenTxKeys = new Set<string>();
@@ -853,10 +1126,11 @@ export async function registerRoutes(
       });
 
       for (let i = 0; i < tripFiles.length; i++) {
-        const file = tripFiles[i];
-        logger.info(`Processing trip file ${i + 1}/${tripFiles.length}: ${file.originalname}`, 'parse');
-        
-        const result = await processTripFileStreaming(
+        const { file, platform } = tripFiles[i];
+        logger.info(`Processing ${platform} trip file ${i + 1}/${tripFiles.length}: ${file.originalname}`, 'parse');
+
+        const processFn = platform === 'bolt' ? processBoltTripFileStreaming : processTripFileStreaming;
+        const result = await processFn(
           file,
           sessionId,
           seenTripKeys,
@@ -868,11 +1142,11 @@ export async function registerRoutes(
               total: totalTripsProcessed,
               processed: totalTripsProcessed,
               percent: 10 + Math.round(((i + 0.5) / tripFiles.length) * 30),
-              message: `Fahrten speichern: ${totalTripsProcessed} verarbeitet`,
+              message: `${platform === 'bolt' ? 'Bolt' : 'Uber'} Fahrten speichern: ${totalTripsProcessed} verarbeitet`,
             });
           }
         );
-        
+
         if (result.dateRange) {
           if (!globalMinDate || result.dateRange.minDate < globalMinDate) {
             globalMinDate = result.dateRange.minDate;
@@ -894,11 +1168,14 @@ export async function registerRoutes(
         message: "Zahlungen werden verarbeitet (Streaming)...",
       });
 
+      const totalPaymentAndCampaignFiles = paymentFiles.length + campaignFiles.length;
+
       for (let i = 0; i < paymentFiles.length; i++) {
-        const file = paymentFiles[i];
-        logger.info(`Processing payment file ${i + 1}/${paymentFiles.length}: ${file.originalname}`, 'parse');
-        
-        const result = await processPaymentFileStreaming(
+        const { file, platform } = paymentFiles[i];
+        logger.info(`Processing ${platform} payment file ${i + 1}/${paymentFiles.length}: ${file.originalname}`, 'parse');
+
+        const processFn = platform === 'bolt' ? processBoltFinancialFileStreaming : processPaymentFileStreaming;
+        const result = await processFn(
           file,
           sessionId,
           seenTxKeys,
@@ -909,15 +1186,43 @@ export async function registerRoutes(
               phase: "saving_transactions",
               total: totalTransactionsProcessed,
               processed: totalTransactionsProcessed,
-              percent: 50 + Math.round(((i + 0.5) / paymentFiles.length) * 40),
-              message: `Zahlungen speichern: ${totalTransactionsProcessed} verarbeitet`,
+              percent: 50 + Math.round(((i + 0.5) / totalPaymentAndCampaignFiles) * 40),
+              message: `${platform === 'bolt' ? 'Bolt' : 'Uber'} Zahlungen speichern: ${totalTransactionsProcessed} verarbeitet`,
             });
           }
         );
-        
+
         if (result.companyName && !companyName) {
           companyName = result.companyName;
         }
+      }
+
+      // Process Bolt campaign files
+      for (let i = 0; i < campaignFiles.length; i++) {
+        const { file, platform } = campaignFiles[i];
+        logger.info(`Processing ${platform} campaign file ${i + 1}/${campaignFiles.length}: ${file.originalname}`, 'parse');
+
+        const result = await processBoltCampaignFileStreaming(
+          file,
+          sessionId,
+          seenTxKeys,
+          async (batch) => {
+            await storage.createTransactions(batch);
+            totalTransactionsProcessed += batch.length;
+            progressBroker.broadcast(expressSessionId, {
+              phase: "saving_transactions",
+              total: totalTransactionsProcessed,
+              processed: totalTransactionsProcessed,
+              percent: 50 + Math.round(((paymentFiles.length + i + 0.5) / totalPaymentAndCampaignFiles) * 40),
+              message: `Bolt Kampagnen speichern: ${totalTransactionsProcessed} verarbeitet`,
+            });
+          }
+        );
+      }
+
+      // Lazy cross-reference: link Bolt financial/campaign transactions to license plates from Bolt trips
+      if (tripFiles.some(f => f.platform === 'bolt') || paymentFiles.some(f => f.platform === 'bolt') || campaignFiles.length > 0) {
+        await storage.crossReferenceBoltTransactions(sessionId);
       }
 
       logger.endPhase('parse', totalTripsProcessed + totalTransactionsProcessed);
@@ -929,13 +1234,21 @@ export async function registerRoutes(
       }
 
       for (const file of files) {
+        // Determine file type and platform for upload record
+        const tripEntry = tripFiles.find(f => f.file === file);
+        const paymentEntry = paymentFiles.find(f => f.file === file);
+        const campaignEntry = campaignFiles.find(f => f.file === file);
+        const fileType = tripEntry ? "trips" : campaignEntry ? "campaign" : "payments";
+        const filePlatform = tripEntry?.platform || paymentEntry?.platform || campaignEntry?.platform || 'uber';
+
         await storage.createUpload({
           sessionId,
           filename: file.originalname,
-          fileType: tripFiles.includes(file) ? "trips" : "payments",
+          fileType,
           mimeType: file.mimetype || "text/csv",
           size: file.size,
           content: file.buffer.toString("base64"),
+          platform: filePlatform,
         });
       }
 
