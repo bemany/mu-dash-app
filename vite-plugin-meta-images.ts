@@ -56,6 +56,14 @@ export function metaImagesPlugin(): Plugin {
 }
 
 function getDeploymentUrl(): string | null {
+  // Self-hosted: use APP_URL environment variable
+  if (process.env.APP_URL) {
+    const url = process.env.APP_URL;
+    log('[meta-images] using APP_URL:', url);
+    return url;
+  }
+
+  // Legacy Replit support
   if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
     const url = `https://${process.env.REPLIT_INTERNAL_APP_DOMAIN}`;
     log('[meta-images] using internal app domain:', url);

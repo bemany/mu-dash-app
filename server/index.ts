@@ -36,6 +36,9 @@ if (process.env.NODE_ENV === "production") {
 // Create PostgreSQL pool for session store
 const pgPool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 5,                        // Sessions need fewer connections
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 5000,
 });
 
 // Create PostgreSQL session store

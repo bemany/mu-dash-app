@@ -26,6 +26,9 @@ const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 20,                       // Local connections are cheap – supports parallel Promise.all queries
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 export const db = drizzle(pool);
