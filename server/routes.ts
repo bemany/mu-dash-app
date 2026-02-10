@@ -10,8 +10,8 @@ import Papa from "papaparse";
 import type { InsertTrip, InsertTransaction } from "@shared/schema";
 import { classifyFile, normalizeBoltStatus, parseBoltTimestamp, parseBoltEuroAmount, type Platform, type PlatformFileClassification } from "./platform-config";
 
-const SOFTWARE_VERSION = "2.5.0";
-const BUILD_NUMBER = "250108-1";
+const SOFTWARE_VERSION = "3.0.0";
+const BUILD_NUMBER = "260210-1";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),

@@ -16,8 +16,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const APP_VERSION = "2.4.0";
-const BUILD_NUMBER = "241226-6";
+const APP_VERSION = "3.0.0";
+const BUILD_NUMBER = "260210-1";
 
 interface LayoutLoadingContextType {
   isLoading: boolean;

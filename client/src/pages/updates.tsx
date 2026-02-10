@@ -16,6 +16,20 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "10.02.2026",
+    version: "3.0.0",
+    items: [
+      { type: 'feature', text: "Bolt-Integration: Automatische Erkennung und Import von Bolt CSV-Dateien" },
+      { type: 'feature', text: "Multi-Plattform: Uber- und Bolt-Daten in einem Vorgang kombinierbar" },
+      { type: 'feature', text: "Bolt Fahrtenübersicht: Vollständiger Import mit Status-Normalisierung" },
+      { type: 'feature', text: "Bolt Finanzdaten: Umsatz pro Fahrer_in mit automatischer Kennzeichen-Zuordnung" },
+      { type: 'feature', text: "Bolt Kampagnen: Import von Bonuskampagnen als einzelne Transaktionen" },
+      { type: 'improvement', text: "Plattform-Feld in allen Tabellen für saubere Datentrennung" },
+      { type: 'improvement', text: "Self-Hosted auf eigener Infrastruktur (Proxmox VM, lokale PostgreSQL)" },
+      { type: 'fix', text: "Session-Persistenz: Admin-Login funktioniert jetzt zuverlässig über Cloudflare Tunnel" },
+    ]
+  },
+  {
     date: "15.01.2025",
     version: "2.6.0",
     items: [
