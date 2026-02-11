@@ -564,6 +564,15 @@ export class DatabaseStorage implements IStorage {
           t.raw_data->>'Fahrer:in' = sub.driver_name
           OR t.raw_data->>'Name Fahrer:in' = sub.driver_name
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM transactions t2
+          WHERE t2.session_id = t.session_id
+            AND t2.license_plate = sub.license_plate
+            AND t2.transaction_time = t.transaction_time
+            AND t2.amount = t.amount
+            AND t2.platform = t.platform
+            AND t2.id != t.id
+        )
     `);
     const updated = (result as any).rowCount || 0;
     if (updated > 0) {
