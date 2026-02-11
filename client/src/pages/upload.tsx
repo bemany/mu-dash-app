@@ -31,9 +31,11 @@ import { cn } from "@/lib/utils";
 
 interface FilePreview {
   file: File;
-  type: 'trips' | 'payments' | 'unknown';
+  type: 'trips' | 'payments' | 'other' | 'unknown';
   rowCount: number;
   dateRange?: { from: string; to: string };
+  companyName?: string;
+  label?: string; // human-readable Bolt file type label
 }
 
 function GoToDashboardButton({ vorgangsId }: { vorgangsId: string | null }) {
@@ -160,6 +162,97 @@ export default function UploadPage() {
     document.title = `${t('upload.title')} - MU-Dash`;
   }, [t]);
 
+  const classifyHeader = (headerLine: string): { type: 'trips' | 'payments' | 'other' | 'unknown'; platform: 'uber' | 'bolt' | null; label?: string } => {
+    const cleaned = headerLine.replace(/^\uFEFF/, '').trim();
+    // Bolt trips: Kfz-Kennzeichen + Fahrtpreis
+    if (cleaned.includes('Kfz-Kennzeichen') && cleaned.includes('Fahrtpreis')) {
+      return { type: 'trips', platform: 'bolt' };
+    }
+    // Bolt driver revenue: Bruttoverdienst (insgesamt) + Fahrer:in
+    if (cleaned.includes('Bruttoverdienst (insgesamt)') && cleaned.includes('Fahrer:in')) {
+      return { type: 'other', platform: 'bolt', label: 'Umsatz pro Fahrer' };
+    }
+    // Bolt shifts: Gesamte Zeit online (Min.) + Schichtzeit
+    if (cleaned.includes('Gesamte Zeit online (Min.)') && cleaned.includes('Schichtzeit')) {
+      return { type: 'other', platform: 'bolt', label: 'Schichtprotokoll' };
+    }
+    // Bolt driver performance: Fahrer-Aktivität|%
+    if (cleaned.includes('Fahrer') && cleaned.includes('Annahmequote') && cleaned.includes('Stornoquote')) {
+      return { type: 'other', platform: 'bolt', label: 'Fahrer Performance' };
+    }
+    // Bolt vehicle performance: Fahrzeugmodellat + Kfz-Kennzeichen + Online-Zeit
+    if (cleaned.includes('Fahrzeugmodellat') && cleaned.includes('Online-Zeit')) {
+      return { type: 'other', platform: 'bolt', label: 'Fahrzeug Performance' };
+    }
+    // Bolt invoices: Rechnungs-Nr. + Fahrtpreis
+    if (cleaned.includes('Rechnungs-Nr.') && cleaned.includes('Fahrtpreis')) {
+      return { type: 'other', platform: 'bolt', label: 'Rechnungen' };
+    }
+    // Bolt campaign: Name der Kampagne
+    if (cleaned.includes('Name der Kampagne') && cleaned.includes('Erzielter Umsatz')) {
+      return { type: 'other', platform: 'bolt', label: 'Kampagnen' };
+    }
+    // Uber trips: Kennzeichen + Zeitpunkt der Fahrtbestellung
+    if (cleaned.includes('Kennzeichen') && cleaned.includes('Zeitpunkt der Fahrtbestellung')) {
+      return { type: 'trips', platform: 'uber' };
+    }
+    // Uber payments: Beschreibung or An dein Unternehmen gezahlt
+    if (cleaned.includes('Beschreibung') || cleaned.includes('An dein Unternehmen gezahlt')) {
+      return { type: 'payments', platform: 'uber' };
+    }
+    return { type: 'unknown', platform: null };
+  };
+
+  const extractCompanyName = (filename: string, platform: 'uber' | 'bolt' | null, rows: any[]): string | undefined => {
+    // Both Uber and Bolt may have "Name des Unternehmens" in CSV data
+    // (Uber payments, Bolt invoice files)
+    const fromData = rows[0]?.['Name des Unternehmens'];
+    if (fromData && fromData.trim()) return fromData.trim();
+
+    if (platform === 'uber') {
+      // Fallback: from filename e.g. "20240701-20240731-trip_activity-Straenflitzer_GmbH.csv"
+      const match = filename.replace(/\.csv$/i, '').match(/-([^-]+)$/);
+      if (match) return match[1].replace(/_/g, ' ');
+    }
+    // Bolt (or unrecognized Bolt files with platform=null): extract from filename
+    // by stripping known report keywords and dates
+    if (platform === 'bolt' || platform === null) {
+      let name = filename.replace(/\.csv$/i, '');
+      const boltKeywords = [
+        'Fahrtenübersicht', 'Umsatz pro Fahrer_in', 'Fahrer_innen Performance',
+        'Fahrzeuge Performance', 'Protokoll der Schichtaktivitäten', 'Kampagnenbericht',
+      ];
+      for (const kw of boltKeywords) {
+        name = name.replace(kw, '');
+      }
+      // Remove date patterns: "1 Jan_ 2026", "2025-11", etc.
+      name = name.replace(/\d{1,2}\s+\w+_?\s*\d{4}/g, '');
+      name = name.replace(/\d{4}-\d{2}(-\d{2})?/g, '');
+      // Clean leftover separators
+      name = name.replace(/^[-_\s]+|[-_\s]+$/g, '').replace(/[-_]{2,}/g, '-').trim();
+      if (name.length > 2) return name;
+    }
+    return undefined;
+  };
+
+  const extractDateFromRow = (row: any, platform: 'uber' | 'bolt' | null): Date | null => {
+    if (platform === 'uber') {
+      const timestamp = row['Zeitpunkt der Fahrtbestellung'];
+      if (timestamp) {
+        const d = new Date(timestamp);
+        return isNaN(d.getTime()) ? null : d;
+      }
+    } else if (platform === 'bolt') {
+      const timestamp = row['Datum'];
+      if (timestamp) {
+        // Bolt format: "2025-11-30 23:53"
+        const d = new Date(timestamp.trim().replace(' ', 'T'));
+        return isNaN(d.getTime()) ? null : d;
+      }
+    }
+    return null;
+  };
+
   const analyzeFiles = async (filesToAnalyze: File[]) => {
     logger.import(`Analyzing ${filesToAnalyze.length} files`, { data: filesToAnalyze.map(f => f.name) });
     setIsAnalyzing(true);
@@ -169,13 +262,8 @@ export default function UploadPage() {
       try {
         const content = await file.text();
         const firstLine = content.split('\n')[0] || '';
-        
-        let type: 'trips' | 'payments' | 'unknown' = 'unknown';
-        if (firstLine.includes('Kennzeichen') && firstLine.includes('Zeitpunkt der Fahrtbestellung')) {
-          type = 'trips';
-        } else if (firstLine.includes('Beschreibung') || firstLine.includes('An dein Unternehmen gezahlt')) {
-          type = 'payments';
-        }
+
+        const { type, platform } = classifyHeader(firstLine);
 
         const parsed = await new Promise<any[]>((resolve) => {
           Papa.parse(content, {
@@ -189,14 +277,7 @@ export default function UploadPage() {
         let dateRange: { from: string; to: string } | undefined;
         if (type === 'trips' && parsed.length > 0) {
           const dates = parsed
-            .map((row: any) => {
-              const timestamp = row['Zeitpunkt der Fahrtbestellung'];
-              if (timestamp) {
-                const d = new Date(timestamp);
-                return isNaN(d.getTime()) ? null : d;
-              }
-              return null;
-            })
+            .map((row: any) => extractDateFromRow(row, platform))
             .filter((d): d is Date => d !== null);
 
           if (dates.length > 0) {
@@ -209,11 +290,14 @@ export default function UploadPage() {
           }
         }
 
+        const companyName = extractCompanyName(file.name, platform, parsed);
+
         previews.push({
           file,
           type,
           rowCount: parsed.length,
           dateRange,
+          companyName,
         });
       } catch (error) {
         previews.push({
@@ -438,6 +522,28 @@ export default function UploadPage() {
     if (allDates.length === 0) return null;
     return `${tripPreviews[0]?.dateRange?.from || ''} - ${tripPreviews[tripPreviews.length - 1]?.dateRange?.to || ''}`;
   })() : null;
+
+  // Detect mixed company names across uploaded files
+  // Group names that are substrings of each other (e.g. "YourRide GmbH" ⊂ "kb_18_Berlin Fleet YourRide GmbH")
+  const rawCompanyNames = filePreviews
+    .map(p => p.companyName)
+    .filter((name): name is string => !!name);
+  const uniqueNames = Array.from(new Set(rawCompanyNames));
+  const companyGroups: string[][] = [];
+  for (const name of uniqueNames) {
+    const existing = companyGroups.find(group =>
+      group.some(g => g.includes(name) || name.includes(g))
+    );
+    if (existing) {
+      existing.push(name);
+    } else {
+      companyGroups.push([name]);
+    }
+  }
+  const detectedCompanies = companyGroups.map(group =>
+    group.reduce((a, b) => a.length > b.length ? a : b)
+  );
+  const hasMixedCompanies = detectedCompanies.length > 1;
 
   const handleUpload = async () => {
     if (files.length === 0) return;
@@ -669,6 +775,23 @@ export default function UploadPage() {
                       <span className="text-blue-700 font-semibold">{totalPayments.toLocaleString('de-DE')} {t('upload.payments')}</span>
                     </div>
                   </div>
+
+                  {hasMixedCompanies && (
+                    <Alert className="bg-amber-50 border-amber-300">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-800">
+                        <strong>{t('upload.companyWarningTitle')}</strong>{' '}
+                        {t('upload.companyWarningText')}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {detectedCompanies.map((name, i) => (
+                            <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-200 text-amber-900">
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               )}
 

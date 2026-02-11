@@ -7,6 +7,7 @@ import {
   uploads,
   performanceLogs,
   importLogs,
+  boltDriverSummaries,
   type Session,
   type InsertSession,
   type Trip,
@@ -19,6 +20,8 @@ import {
   type InsertPerformanceLog,
   type ImportLog,
   type InsertImportLog,
+  type BoltDriverSummary,
+  type InsertBoltDriverSummary,
 } from "@shared/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 
@@ -259,7 +262,10 @@ export interface IStorage {
   getTransactionsBySession(sessionId: string): Promise<Transaction[]>;
   getTransactionCountBySession(sessionId: string): Promise<number>;
   deleteTransactionsForSession(sessionId: string): Promise<void>;
-  
+
+  // Bolt driver summaries
+  createBoltDriverSummaries(summaries: InsertBoltDriverSummary[]): Promise<BoltDriverSummary[]>;
+
   // Session data cleanup
   deleteSession(sessionId: string): Promise<void>;
   
@@ -515,6 +521,48 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
+    return results;
+  }
+
+  async createBoltDriverSummaries(summaries: InsertBoltDriverSummary[]): Promise<BoltDriverSummary[]> {
+    if (summaries.length === 0) return [];
+
+    const BATCH_SIZE = 500;
+    const results: BoltDriverSummary[] = [];
+
+    for (let i = 0; i < summaries.length; i += BATCH_SIZE) {
+      const batch = summaries.slice(i, i + BATCH_SIZE);
+
+      const values = batch.map((s) => {
+        return sql`(
+          ${s.sessionId}, ${s.driverName}, ${s.email}, ${s.phone},
+          ${s.grossTotal}, ${s.grossInApp}, ${s.grossCash}, ${s.cashReceived},
+          ${s.tips}, ${s.campaignRevenue}, ${s.cancellationFees}, ${s.tollFees},
+          ${s.bookingFees}, ${s.totalFees}, ${s.commission}, ${s.refunds},
+          ${s.otherFees}, ${s.netRevenue}, ${s.expectedPayout},
+          ${s.grossHourly}, ${s.netHourly}, ${s.driverId}, ${s.customId},
+          ${JSON.stringify(s.rawData)}::jsonb
+        )`;
+      });
+
+      const result = await db.execute(sql`
+        INSERT INTO bolt_driver_summaries (
+          session_id, driver_name, email, phone,
+          gross_total, gross_in_app, gross_cash, cash_received,
+          tips, campaign_revenue, cancellation_fees, toll_fees,
+          booking_fees, total_fees, commission, refunds,
+          other_fees, net_revenue, expected_payout,
+          gross_hourly, net_hourly, driver_id, custom_id,
+          raw_data
+        )
+        VALUES ${sql.join(values, sql`, `)}
+        ON CONFLICT (session_id, driver_name, email) DO NOTHING
+        RETURNING *
+      `);
+
+      results.push(...(result.rows as BoltDriverSummary[]));
+    }
+
     return results;
   }
 

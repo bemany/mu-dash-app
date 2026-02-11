@@ -9,6 +9,7 @@ import AdminPage from "@/pages/admin";
 import HelpPage from "@/pages/help";
 import UpdatesPage from "@/pages/updates";
 import PerformancePage from "@/pages/performance";
+import FilesPage from "@/pages/files";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/performance" component={PerformancePage} />
       <Route path="/import" component={UploadPage} />
       <Route path="/v/:vorgangsId" component={PerformancePage} />
+      <Route path="/files" component={FilesPage} />
       <Route path="/help" component={HelpPage} />
       <Route path="/updates" component={UpdatesPage} />
       <Route path="/admin" component={AdminPage} />

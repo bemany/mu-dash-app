@@ -2493,6 +2493,7 @@ export default function PerformancePage() {
   const [tripsMetric, setTripsMetric] = useState<string>("hour");
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [shiftFilter, setShiftFilter] = useState<"all" | "day" | "night">("all");
   const [lastVorgangsId, setLastVorgangsId] = useState<string | null>(null);
   const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
@@ -2724,13 +2725,25 @@ export default function PerformancePage() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap min-h-[40px]">
-            <DatePickerWithRange 
-              date={dateRange} 
-              onDateChange={setDateRange} 
+            <DatePickerWithRange
+              date={dateRange}
+              onDateChange={setDateRange}
               placeholder={t('performance.datePickerPlaceholder')}
               dateLocale={dateLocale}
               presets={presets}
             />
+            {sessionData?.platforms && sessionData.platforms.length > 1 && (
+              <MultiSelect
+                items={sessionData.platforms.map(p => ({
+                  value: p,
+                  label: p.charAt(0).toUpperCase() + p.slice(1)
+                }))}
+                selectedValues={selectedPlatforms}
+                onSelectionChange={setSelectedPlatforms}
+                placeholder="Alle Plattformen"
+                emptyMessage="Keine Plattformen"
+              />
+            )}
             {activeTab === "drivers" && (
               <>
                 <MultiSelect

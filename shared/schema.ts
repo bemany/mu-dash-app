@@ -60,6 +60,40 @@ export const uploads = pgTable("uploads", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Bolt driver summaries table - stores Bolt "Umsatz pro Fahrer_in" data
+// This is separate from transactions because it's aggregated driver-level data,
+// not individual transactions. May contain bonus payments and other relevant future data.
+export const boltDriverSummaries = pgTable("bolt_driver_summaries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull(),
+  driverName: text("driver_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  grossTotal: integer("gross_total"), // Bruttoverdienst (insgesamt) in cents
+  grossInApp: integer("gross_in_app"), // Bruttoeinnahmen (In-App-Zahlung) in cents
+  grossCash: integer("gross_cash"), // Bruttoeinnahmen (Barzahlung) in cents
+  cashReceived: integer("cash_received"), // Erhaltenes Bargeld in cents
+  tips: integer("tips"), // Trinkgelder in cents
+  campaignRevenue: integer("campaign_revenue"), // Kampagneneinnahmen in cents
+  cancellationFees: integer("cancellation_fees"), // Stornogebühren in cents
+  tollFees: integer("toll_fees"), // Mautgebühren in cents
+  bookingFees: integer("booking_fees"), // Buchungsgebühren in cents
+  totalFees: integer("total_fees"), // Gesamtgebühren in cents
+  commission: integer("commission"), // Provision in cents
+  refunds: integer("refunds"), // Rückerstattungen in cents
+  otherFees: integer("other_fees"), // Sonstige Gebühren in cents
+  netRevenue: integer("net_revenue"), // Umsatz netto in cents
+  expectedPayout: integer("expected_payout"), // Voraussichtliche Auszahlung in cents
+  grossHourly: integer("gross_hourly"), // Bruttoverdienst pro Stunde in cents
+  netHourly: integer("net_hourly"), // Nettoverdienst pro Stunde in cents
+  driverId: text("driver_id"), // Fahrer-ID
+  customId: text("custom_id"), // Individueller Identifikator
+  rawData: jsonb("raw_data"), // Full row data for future use
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("bolt_driver_summaries_dedup_idx").on(table.sessionId, table.driverName, table.email),
+]);
+
 // Performance logs table - tracks import and load performance
 export const performanceLogs = pgTable("performance_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -120,6 +154,11 @@ export const insertImportLogSchema = createInsertSchema(importLogs).omit({
   createdAt: true,
 });
 
+export const insertBoltDriverSummarySchema = createInsertSchema(boltDriverSummaries).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Session = typeof sessions.$inferSelect;
 export type InsertSession = z.infer<typeof insertSessionSchema>;
@@ -138,3 +177,6 @@ export type InsertPerformanceLog = z.infer<typeof insertPerformanceLogSchema>;
 
 export type ImportLog = typeof importLogs.$inferSelect;
 export type InsertImportLog = z.infer<typeof insertImportLogSchema>;
+
+export type BoltDriverSummary = typeof boltDriverSummaries.$inferSelect;
+export type InsertBoltDriverSummary = z.infer<typeof insertBoltDriverSummarySchema>;

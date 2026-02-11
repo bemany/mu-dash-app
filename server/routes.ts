@@ -7,7 +7,7 @@ import { z } from "zod";
 import { parseISO, parse } from "date-fns";
 import multer from "multer";
 import Papa from "papaparse";
-import type { InsertTrip, InsertTransaction } from "@shared/schema";
+import type { InsertTrip, InsertTransaction, InsertBoltDriverSummary } from "@shared/schema";
 import { classifyFile, normalizeBoltStatus, parseBoltTimestamp, parseBoltEuroAmount, type Platform, type PlatformFileClassification } from "./platform-config";
 
 const SOFTWARE_VERSION = "3.0.0";
@@ -584,6 +584,90 @@ async function processBoltCampaignFileStreaming(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Bolt Driver Summary File Parser ("Umsatz pro Fahrer_in")
+// ---------------------------------------------------------------------------
+async function processBoltDriverSummaryFileStreaming(
+  file: Express.Multer.File,
+  sessionId: string,
+  onBatch: (batch: InsertBoltDriverSummary[]) => Promise<void>
+): Promise<StreamingResult> {
+  return new Promise((resolve, reject) => {
+    const buffer: InsertBoltDriverSummary[] = [];
+    let count = 0;
+    let pendingBatch: Promise<void> | null = null;
+    const seenKeys = new Set<string>();
+
+    const content = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      step: (results) => {
+        const row = results.data as any;
+
+        const driverName = row["Fahrer:in"]?.toString().trim();
+        const email = row["E-Mail-Adresse"]?.toString().trim();
+
+        if (!driverName) return;
+
+        // Dedup by driver name + email
+        const key = `${driverName}-${email || ''}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        const dbSummary: InsertBoltDriverSummary = {
+          sessionId,
+          driverName,
+          email: email || null,
+          phone: row["Handynummer"]?.toString().trim() || null,
+          grossTotal: Math.round(parseBoltEuroAmount(row["Bruttoverdienst (insgesamt)|€"]) * 100),
+          grossInApp: Math.round(parseBoltEuroAmount(row["Bruttoeinnahmen (In-App-Zahlung)|€"]) * 100),
+          grossCash: Math.round(parseBoltEuroAmount(row["Bruttoeinnahmen (Barzahlung)|€"]) * 100),
+          cashReceived: Math.round(parseBoltEuroAmount(row["Erhaltenes Bargeld|€"]) * 100),
+          tips: Math.round(parseBoltEuroAmount(row["Trinkgelder von Fahrgästen|€"]) * 100),
+          campaignRevenue: Math.round(parseBoltEuroAmount(row["Kampagneneinnahmen|€"]) * 100),
+          cancellationFees: Math.round(parseBoltEuroAmount(row["Stornogebühren|€"]) * 100),
+          tollFees: Math.round(parseBoltEuroAmount(row["Mautgebühren|€"]) * 100),
+          bookingFees: Math.round(parseBoltEuroAmount(row["Buchungsgebühren|€"]) * 100),
+          totalFees: Math.round(parseBoltEuroAmount(row["Gesamtgebühren|€"]) * 100),
+          commission: Math.round(parseBoltEuroAmount(row["Provision|€"]) * 100),
+          refunds: Math.round(parseBoltEuroAmount(row["Rückerstattungen an Fahrgäste|€"]) * 100),
+          otherFees: Math.round(parseBoltEuroAmount(row["Sonstige Gebühren|€"]) * 100),
+          netRevenue: Math.round(parseBoltEuroAmount(row["Umsatz netto|€"]) * 100),
+          expectedPayout: Math.round(parseBoltEuroAmount(row["Voraussichtliche Auszahlung|€"]) * 100),
+          grossHourly: Math.round(parseBoltEuroAmount(row["Bruttoverdienst pro Stunde|€/Std."]) * 100),
+          netHourly: Math.round(parseBoltEuroAmount(row["Nettoverdienst pro Stunde|€/Std."]) * 100),
+          driverId: row["Fahrer-ID"]?.toString().trim() || null,
+          customId: row["Individueller Identifikator"]?.toString().trim() || null,
+          rawData: row,
+        };
+
+        buffer.push(dbSummary);
+        count++;
+
+        if (buffer.length >= STREAMING_BATCH_SIZE) {
+          const batchToInsert = [...buffer];
+          buffer.length = 0;
+          pendingBatch = onBatch(batchToInsert);
+        }
+      },
+      complete: async () => {
+        try {
+          if (pendingBatch) await pendingBatch;
+          if (buffer.length > 0) {
+            await onBatch([...buffer]);
+          }
+          resolve({ count, platform: 'bolt' });
+        } catch (err) {
+          reject(err);
+        }
+      },
+      error: (error: any) => reject(error),
+    });
+  });
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1097,6 +1181,7 @@ export async function registerRoutes(
       const tripFiles: { file: Express.Multer.File; platform: Platform }[] = [];
       const paymentFiles: { file: Express.Multer.File; platform: Platform }[] = [];
       const campaignFiles: { file: Express.Multer.File; platform: Platform }[] = [];
+      const boltDriverSummaryFiles: Express.Multer.File[] = [];
       const unclassifiedFiles: Express.Multer.File[] = [];
 
       for (const file of files) {
@@ -1114,7 +1199,12 @@ export async function registerRoutes(
             tripFiles.push({ file, platform: classification.platform });
             break;
           case 'payments':
-            paymentFiles.push({ file, platform: classification.platform });
+            // Bolt "Umsatz pro Fahrer_in" files go to separate table
+            if (classification.platform === 'bolt') {
+              boltDriverSummaryFiles.push(file);
+            } else {
+              paymentFiles.push({ file, platform: classification.platform });
+            }
             break;
           case 'campaign':
             campaignFiles.push({ file, platform: classification.platform });
@@ -1248,14 +1338,39 @@ export async function registerRoutes(
         );
       }
 
+      // Process Bolt driver summary files ("Umsatz pro Fahrer_in")
+      let totalBoltDriverSummariesProcessed = 0;
+      for (let i = 0; i < boltDriverSummaryFiles.length; i++) {
+        const file = boltDriverSummaryFiles[i];
+        logger.info(`Processing Bolt driver summary file ${i + 1}/${boltDriverSummaryFiles.length}: ${file.originalname}`, 'parse');
+
+        const result = await processBoltDriverSummaryFileStreaming(
+          file,
+          sessionId,
+          async (batch) => {
+            await storage.createBoltDriverSummaries(batch);
+            totalBoltDriverSummariesProcessed += batch.length;
+            progressBroker.broadcast(expressSessionId, {
+              phase: "saving_bolt_summaries",
+              total: totalBoltDriverSummariesProcessed,
+              processed: totalBoltDriverSummariesProcessed,
+              percent: 90,
+              message: `Bolt Fahrer-Zusammenfassungen speichern: ${totalBoltDriverSummariesProcessed} verarbeitet`,
+            });
+          }
+        );
+
+        logger.info(`Bolt driver summary file processed: ${result.count} summaries`, 'parse');
+      }
+
       // Lazy cross-reference: link Bolt financial/campaign transactions to license plates from Bolt trips
-      if (tripFiles.some(f => f.platform === 'bolt') || paymentFiles.some(f => f.platform === 'bolt') || campaignFiles.length > 0) {
+      if (tripFiles.some(f => f.platform === 'bolt') || paymentFiles.some(f => f.platform === 'bolt') || campaignFiles.length > 0 || boltDriverSummaryFiles.length > 0) {
         await storage.crossReferenceBoltTransactions(sessionId);
       }
 
-      logger.endPhase('parse', totalTripsProcessed + totalTransactionsProcessed);
+      logger.endPhase('parse', totalTripsProcessed + totalTransactionsProcessed + totalBoltDriverSummariesProcessed);
       logger.memory('parse', 'After all streaming processing');
-      logger.info(`Streaming processing complete: ${totalTripsProcessed} trips, ${totalTransactionsProcessed} transactions`, 'parse');
+      logger.info(`Streaming processing complete: ${totalTripsProcessed} trips, ${totalTransactionsProcessed} transactions, ${totalBoltDriverSummariesProcessed} Bolt driver summaries`, 'parse');
 
       if (companyName) {
         await storage.updateCompanyName(sessionId, companyName);
