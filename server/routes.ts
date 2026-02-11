@@ -415,11 +415,34 @@ async function processBoltFinancialFileStreaming(
 
     const content = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
 
-    // Extract month from filename pattern: "...-2025-11-..."
-    const monthMatch = file.originalname.match(/(\d{4})-(\d{2})/);
-    const fileMonth = monthMatch
-      ? new Date(parseInt(monthMatch[1]), parseInt(monthMatch[2]) - 1, 1)
-      : new Date();
+    // Extract month from filename pattern: "...-2025-11-..." or "1 Jan_ 2026"
+    let fileMonth: Date;
+
+    // Try "DD MMM_ YYYY" format first (e.g., "1 Jan_ 2026")
+    const dateMatch = file.originalname.match(/\d+\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[_\s]+(\d{4})/i);
+    if (dateMatch) {
+      const monthNames: Record<string, number> = {
+        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+      };
+      const monthName = dateMatch[1].toLowerCase();
+      const year = parseInt(dateMatch[2]);
+      fileMonth = new Date(year, monthNames[monthName] || 0, 1);
+    } else {
+      // Try YYYY-MM format (e.g., "2025-11")
+      const monthMatch = file.originalname.match(/(\d{4})-(\d{2})(?![\d])/);
+      if (monthMatch) {
+        const month = parseInt(monthMatch[2]);
+        // Validate month is 01-12
+        if (month >= 1 && month <= 12) {
+          fileMonth = new Date(parseInt(monthMatch[1]), month - 1, 1);
+        } else {
+          fileMonth = new Date(); // fallback
+        }
+      } else {
+        fileMonth = new Date(); // fallback
+      }
+    }
 
     Papa.parse(content, {
       header: true,
@@ -631,7 +654,11 @@ export async function registerRoutes(
 
       // For sessions with many trips, use aggregated data
       // This prevents loading 260,000+ rows into memory
-      const aggregatedTrips = await storage.getAggregatedTripsBySession(sessionId);
+      const [aggregatedTrips, platformsSet] = await Promise.all([
+        storage.getAggregatedTripsBySession(sessionId),
+        storage.getSessionPlatforms(sessionId),
+      ]);
+      const platforms = Array.from(platformsSet);
       
       // For large sessions (>10,000 transactions), don't load all transactions
       // This prevents JSON.stringify RangeError for very large datasets
@@ -658,6 +685,7 @@ export async function registerRoutes(
         transactionCount,
         aggregatedTrips,
         transactions: frontendTransactions,
+        platforms,
       });
     } catch (error) {
       console.error("Error fetching session:", error);
@@ -1099,11 +1127,11 @@ export async function registerRoutes(
       }
 
       logger.endPhase('upload', files.length);
-      const platforms = [...new Set([
+      const platforms = Array.from(new Set([
         ...tripFiles.map(f => f.platform),
         ...paymentFiles.map(f => f.platform),
         ...campaignFiles.map(f => f.platform),
-      ])];
+      ]));
       logger.info(`Classified files: ${tripFiles.length} trip files, ${paymentFiles.length} payment files, ${campaignFiles.length} campaign files (platforms: ${platforms.join(', ')})`, 'upload');
 
       const seenTripKeys = new Set<string>();
@@ -1596,6 +1624,54 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error reprocessing session:", error);
       res.status(500).json({ error: "Fehler beim Neu-Einlesen der Daten" });
+    }
+  });
+
+  // Get uploaded files for current session (metadata only)
+  app.get("/api/files", async (req, res) => {
+    try {
+      const sessionId = req.session.uberRetterSessionId;
+      if (!sessionId) {
+        return res.json({ files: [] });
+      }
+
+      const allUploads = await storage.getUploadsBySession(sessionId);
+      const files = allUploads.map(u => ({
+        id: u.id,
+        fileType: u.fileType,
+        filename: u.filename,
+        platform: u.platform,
+        size: u.size,
+        createdAt: u.createdAt,
+      }));
+
+      res.json({ files });
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
+  // Download a specific file from current session
+  app.get("/api/files/:fileId/download", async (req, res) => {
+    try {
+      const sessionId = req.session.uberRetterSessionId;
+      if (!sessionId) {
+        return res.status(401).json({ error: "No session" });
+      }
+
+      const upload = await storage.getUploadById(req.params.fileId);
+      if (!upload || upload.sessionId !== sessionId) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      const content = Buffer.from(upload.content, 'base64');
+      res.setHeader('Content-Type', upload.mimeType);
+      res.setHeader('Content-Disposition', `attachment; filename="${upload.filename}"`);
+      res.send(content);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      res.status(500).json({ error: "Failed to download file" });
     }
   });
 

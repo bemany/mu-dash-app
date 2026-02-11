@@ -416,6 +416,7 @@ interface SessionData {
   companyName: string | null;
   currentStep: number;
   tripCount: number;
+  platforms?: string[];
 }
 
 interface DateRangeData {
@@ -2715,7 +2716,9 @@ export default function PerformancePage() {
                 <TabsTrigger value="company" data-testid="tab-company">{t('performance.tabCompany')}</TabsTrigger>
                 <TabsTrigger value="drivers" data-testid="tab-drivers">{t('performance.tabDrivers')}</TabsTrigger>
                 <TabsTrigger value="vehicles" data-testid="tab-vehicles">{t('performance.tabVehicles')}</TabsTrigger>
-                <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
+                {sessionData?.platforms?.includes('uber') && (
+                  <TabsTrigger value="promo" data-testid="tab-promo">{t('performance.tabPromo')}</TabsTrigger>
+                )}
                 <TabsTrigger value="commissions" data-testid="tab-commissions">{t('performance.tabCommissions')}</TabsTrigger>
               </TabsList>
             </div>

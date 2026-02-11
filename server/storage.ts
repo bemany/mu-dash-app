@@ -461,7 +461,7 @@ export class DatabaseStorage implements IStorage {
 
   async getAggregatedTripsBySession(sessionId: string): Promise<{ licensePlate: string; month: string; count: number }[]> {
     const result = await db.execute(sql`
-      SELECT 
+      SELECT
         license_plate as "licensePlate",
         TO_CHAR(order_time, 'YYYY-MM') as month,
         COUNT(*)::int as count
@@ -471,6 +471,15 @@ export class DatabaseStorage implements IStorage {
       ORDER BY license_plate, month
     `);
     return result.rows as { licensePlate: string; month: string; count: number }[];
+  }
+
+  async getSessionPlatforms(sessionId: string): Promise<Set<string>> {
+    const result = await db.execute(sql`
+      SELECT DISTINCT platform
+      FROM trips
+      WHERE session_id = ${sessionId}
+    `);
+    return new Set(result.rows.map((row: any) => row.platform));
   }
 
   async deleteTripsForSession(sessionId: string): Promise<void> {
@@ -1130,21 +1139,42 @@ export class DatabaseStorage implements IStorage {
     
     const result = await db.execute(sql`
       WITH trip_data AS (
-        SELECT 
+        SELECT
           t.id as row_id,
-          COALESCE(t.raw_data->>'Vorname des Fahrers', '') as first_name,
-          COALESCE(t.raw_data->>'Nachname des Fahrers', '') as last_name,
+          CASE
+            WHEN t.platform = 'uber' THEN COALESCE(t.raw_data->>'Vorname des Fahrers', '')
+            WHEN t.platform = 'bolt' THEN SPLIT_PART(COALESCE(t.raw_data->>'Fahrer', ''), ' ', 1)
+            ELSE ''
+          END as first_name,
+          CASE
+            WHEN t.platform = 'uber' THEN COALESCE(t.raw_data->>'Nachname des Fahrers', '')
+            WHEN t.platform = 'bolt' THEN SUBSTRING(COALESCE(t.raw_data->>'Fahrer', '') FROM POSITION(' ' IN COALESCE(t.raw_data->>'Fahrer', '')) + 1)
+            ELSE ''
+          END as last_name,
           t.order_time,
           LOWER(COALESCE(t.trip_status, '')) as status,
-          CASE 
-            WHEN t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+          CASE
+            WHEN t.platform = 'uber' AND t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
             THEN REPLACE(t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            WHEN t.platform = 'bolt' AND t.raw_data->>'Fahrtpreis|€' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrtpreis|€', ',', '.')::numeric
             ELSE 0
           END as fare,
-          COALESCE(tx.revenue, 0) / 100.0 as revenue,
-          CASE 
-            WHEN t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+          CASE
+            WHEN t.platform = 'uber' THEN COALESCE(tx.revenue, 0) / 100.0
+            WHEN t.platform = 'bolt' THEN
+              CASE
+                WHEN t.raw_data->>'Fahrtpreis|€' ~ '^[0-9]+([,.][0-9]+)?$'
+                THEN REPLACE(t.raw_data->>'Fahrtpreis|€', ',', '.')::numeric
+                ELSE 0
+              END
+            ELSE 0
+          END as revenue,
+          CASE
+            WHEN t.platform = 'uber' AND t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
             THEN REPLACE(t.raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            WHEN t.platform = 'bolt' AND t.raw_data->>'Entfernung|km' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Entfernung|km', ',', '.')::numeric * 1000
             ELSE 0
           END as distance_m,
           CASE 
@@ -1162,7 +1192,9 @@ export class DatabaseStorage implements IStorage {
             ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
         FROM trips t
-        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid AND tx.session_id = ${sessionId}
+        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid
+          AND tx.session_id = ${sessionId}
+          AND tx.platform = t.platform
         WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
@@ -1315,15 +1347,28 @@ export class DatabaseStorage implements IStorage {
           t.license_plate,
           t.order_time,
           LOWER(COALESCE(t.trip_status, '')) as status,
-          CASE 
-            WHEN t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
+          CASE
+            WHEN t.platform = 'uber' AND t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)' ~ '^[0-9]+([,.][0-9]+)?$'
             THEN REPLACE(t.raw_data->>'Fahrpreis (Änderungen aufgrund von Anpassungen nach der Fahrt vorbehalten)', ',', '.')::numeric
+            WHEN t.platform = 'bolt' AND t.raw_data->>'Fahrtpreis|€' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Fahrtpreis|€', ',', '.')::numeric
             ELSE 0
           END as fare,
-          COALESCE(tx.revenue, 0) / 100.0 as revenue,
-          CASE 
-            WHEN t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
+          CASE
+            WHEN t.platform = 'uber' THEN COALESCE(tx.revenue, 0) / 100.0
+            WHEN t.platform = 'bolt' THEN
+              CASE
+                WHEN t.raw_data->>'Fahrtpreis|€' ~ '^[0-9]+([,.][0-9]+)?$'
+                THEN REPLACE(t.raw_data->>'Fahrtpreis|€', ',', '.')::numeric
+                ELSE 0
+              END
+            ELSE 0
+          END as revenue,
+          CASE
+            WHEN t.platform = 'uber' AND t.raw_data->>'Fahrtdistanz' ~ '^[0-9]+([,.][0-9]+)?$'
             THEN REPLACE(t.raw_data->>'Fahrtdistanz', ',', '.')::numeric
+            WHEN t.platform = 'bolt' AND t.raw_data->>'Entfernung|km' ~ '^[0-9]+([,.][0-9]+)?$'
+            THEN REPLACE(t.raw_data->>'Entfernung|km', ',', '.')::numeric * 1000
             ELSE 0
           END as distance_m,
           CASE 
@@ -1341,7 +1386,9 @@ export class DatabaseStorage implements IStorage {
             ELSE EXTRACT(HOUR FROM t.order_time)
           END as start_hour
         FROM trips t
-        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid AND tx.session_id = ${sessionId}
+        LEFT JOIN transactions tx ON t.raw_data->>'Fahrt-UUID' = tx.trip_uuid
+          AND tx.session_id = ${sessionId}
+          AND tx.platform = t.platform
         WHERE t.session_id = ${sessionId}
         ${dateFilter}
       ),
