@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2, LogOut } from 'lucide-react';
+import { ClipboardCheck, HelpCircle, Shield, Menu, Globe, ChevronDown, Sparkles, TrendingUp, Copy, Check, Building2, Search, Loader2, LogOut, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const APP_VERSION = "3.0.0";
-const BUILD_NUMBER = "260210-1";
+const APP_VERSION = "3.1.0";
+const BUILD_NUMBER = "260211-";
 
 interface LayoutLoadingContextType {
   isLoading: boolean;
@@ -285,10 +285,19 @@ export function DashboardLayout({ children, fullHeight = false }: DashboardLayou
                 onClick={() => setLocation('/import')}
                 testId="nav-pruefvorgang"
               />
-              <NavItem 
-                icon={<HelpCircle className="w-5 h-5" />} 
-                label={t('layout.navHelp')} 
-                active={location === '/help'} 
+              {sessionData?.vorgangsId && (
+                <NavItem
+                  icon={<FileText className="w-5 h-5" />}
+                  label={t('layout.navFiles')}
+                  active={location === '/files'}
+                  onClick={() => setLocation('/files')}
+                  testId="nav-files"
+                />
+              )}
+              <NavItem
+                icon={<HelpCircle className="w-5 h-5" />}
+                label={t('layout.navHelp')}
+                active={location === '/help'}
                 onClick={() => setLocation('/help')}
                 testId="nav-help"
               />

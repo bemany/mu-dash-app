@@ -16,6 +16,19 @@ interface Update {
 
 const updates: Update[] = [
   {
+    date: "11.02.2026",
+    version: "3.1.0",
+    items: [
+      { type: 'feature', text: "Plattform-Filter: Uber/Bolt Daten separat oder kombiniert anzeigen" },
+      { type: 'fix', text: "SQL-Fehler behoben: Ambiguous column 'platform' in Reports" },
+      { type: 'fix', text: "Bolt-Feldmappings: Fahrer-Namen, Fahrtpreis und Entfernung korrekt" },
+      { type: 'fix', text: "Re-Upload blockiert nicht mehr: Duplicate key errors werden übersprungen" },
+      { type: 'fix', text: "Bolt Datumserkennung: 'DD MMM_ YYYY' Format wird korrekt geparst" },
+      { type: 'improvement', text: "Werbegelder-Tab nur für Uber-Daten sichtbar" },
+      { type: 'improvement', text: "Platform-aware Revenue: Bolt nutzt Fahrtpreis, Uber nutzt Transaktionen" },
+    ]
+  },
+  {
     date: "10.02.2026",
     version: "3.0.0",
     items: [
