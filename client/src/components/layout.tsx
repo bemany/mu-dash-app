@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const APP_VERSION = "3.1.0";
-const BUILD_NUMBER = "260211-";
+const BUILD_NUMBER = "260211-1";
 
 interface LayoutLoadingContextType {
   isLoading: boolean;
