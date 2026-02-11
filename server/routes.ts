@@ -1266,8 +1266,17 @@ export async function registerRoutes(
         const tripEntry = tripFiles.find(f => f.file === file);
         const paymentEntry = paymentFiles.find(f => f.file === file);
         const campaignEntry = campaignFiles.find(f => f.file === file);
-        const fileType = tripEntry ? "trips" : campaignEntry ? "campaign" : "payments";
-        const filePlatform = tripEntry?.platform || paymentEntry?.platform || campaignEntry?.platform || 'uber';
+
+        // Re-classify file to get true fileType (including ignored types like driver_performance, vehicle_performance)
+        const content = file.buffer.toString("utf-8");
+        const firstLine = content.split("\n")[0] || "";
+        const classification = classifyFile(firstLine);
+
+        const fileType = tripEntry ? "trips" :
+                         campaignEntry ? "campaign" :
+                         paymentEntry ? "payments" :
+                         classification?.fileType || "unknown";
+        const filePlatform = tripEntry?.platform || paymentEntry?.platform || campaignEntry?.platform || classification?.platform || 'uber';
 
         await storage.createUpload({
           sessionId,
